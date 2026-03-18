@@ -4,6 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Shelf</title>
+<link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Geist:wght@300;400&display=swap" rel="stylesheet"/>
 <style>
@@ -17,7 +18,7 @@ html,body{height:100%}
 }
 body{background:var(--bg);color:var(--text);font-family:'Geist',sans-serif;font-weight:300;min-height:100vh}
 
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:28px 48px 0}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:20px 48px 0}
 .brand{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:300;letter-spacing:.4em;text-transform:uppercase;color:var(--gold)}
 .topbar-right{display:flex;align-items:center;gap:16px}
 .avatar-chip{display:flex;align-items:center;gap:8px;padding:5px 16px 5px 5px;border:0.5px solid var(--border);border-radius:20px;cursor:pointer;transition:border-color .2s}
@@ -27,25 +28,20 @@ body{background:var(--bg);color:var(--text);font-family:'Geist',sans-serif;font-
 .btn-signin{font-family:'Geist',sans-serif;font-size:13px;font-weight:300;letter-spacing:.15em;text-transform:uppercase;padding:10px 24px;background:transparent;border:0.5px solid var(--gold-dim);color:var(--gold);cursor:pointer;border-radius:1px;transition:background .15s,border-color .15s}
 .btn-signin:hover{background:var(--gold-faint);border-color:var(--gold)}
 
-.hero{padding:28px 48px 32px}
-.library-label{font-family:'Cormorant Garamond',serif;font-size:38px;font-weight:300;color:var(--text)}
-.library-label em{color:var(--gold);font-style:italic}
-.hero-sub{font-size:13px;font-weight:300;letter-spacing:.15em;text-transform:uppercase;color:var(--text3);margin-top:8px}
-
 .api-notice{margin:0 48px 20px;padding:16px 20px;border:0.5px solid #3a2a10;border-radius:2px;background:#1a1208;font-size:13px;font-weight:300;color:#8a7040;line-height:1.7;letter-spacing:.02em}
 .api-notice strong{color:var(--gold);font-weight:400}
 .api-notice a{color:var(--gold);text-decoration:none}
 .api-notice a:hover{text-decoration:underline}
 
-.shelves{padding:0 48px 48px;display:flex;flex-direction:column;gap:26px}
+.shelves{padding:16px 48px 48px;display:flex;flex-direction:column;gap:26px}
 
-.shelf-row{display:flex;align-items:center;gap:18px;min-height:112px;animation:fadeUp .3s ease both}
+.shelf-row{display:flex;align-items:center;gap:18px;min-height:200px;animation:fadeUp .3s ease both}
 @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
-.shelf-icon-block{width:60px;height:60px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border:0.5px solid var(--border);border-radius:2px;background:var(--bg3)}
-.shelf-icon-block svg{width:26px;height:26px;opacity:.5}
+.shelf-icon-block{width:120px;height:120px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border:0.5px solid var(--border);border-radius:2px;background:var(--bg3)}
+.shelf-icon-block svg{width:52px;height:52px;opacity:.5}
 
-.shelf-empty{flex:1;height:104px;border:0.5px dashed var(--border);border-radius:2px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:border-color .2s,background .2s;gap:12px;color:var(--text3);font-size:13px;font-weight:300;letter-spacing:.15em;text-transform:uppercase}
+.shelf-empty{flex:1;height:180px;border:0.5px dashed var(--border);border-radius:2px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:border-color .2s,background .2s;gap:12px;color:var(--text3);font-size:13px;font-weight:300;letter-spacing:.15em;text-transform:uppercase}
 .shelf-empty:hover{border-color:var(--gold-dim);background:var(--gold-faint);color:var(--gold)}
 
 .shelf-items{flex:1;display:flex;gap:12px;align-items:flex-end;overflow:hidden}
@@ -145,7 +141,7 @@ body{background:var(--bg);color:var(--text);font-family:'Geist',sans-serif;font-
 
 .toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:var(--bg3);border:0.5px solid var(--border);border-radius:2px;padding:14px 28px;font-size:14px;font-weight:300;letter-spacing:.08em;color:var(--text2);z-index:200;animation:fade-in .2s ease;white-space:nowrap}
 
-.footer{padding:10px 48px 32px;display:flex;align-items:center;justify-content:space-between}
+.friends-sidebar{position:fixed;top:0;right:0;width:400px;height:100vh;background:#0f0d0a;border-left:0.5px solid var(--border);display:flex;flex-direction:column;z-index:50;padding:28px 0 0}.friends-header{padding:0 24px 18px;border-bottom:0.5px solid var(--border2)}.friends-title{font-size:13px;font-weight:300;letter-spacing:.2em;text-transform:uppercase;color:var(--text3)}.friends-list{flex:1;overflow-y:auto;padding:12px 0;scrollbar-width:none}.friends-list::-webkit-scrollbar{display:none}.friend-item{display:flex;align-items:center;gap:14px;padding:10px 24px;cursor:pointer;transition:background .15s}.friend-item:hover{background:var(--bg3)}.friend-avatar{width:46px;height:46px;border-radius:50%;background:var(--bg3);border:0.5px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:"Cormorant Garamond",serif;font-size:16px;color:var(--gold);position:relative}.friend-online{position:absolute;bottom:1px;right:1px;width:10px;height:10px;border-radius:50%;background:#4a8c5c;border:1.5px solid #0f0d0a}.friend-offline{position:absolute;bottom:1px;right:1px;width:10px;height:10px;border-radius:50%;background:var(--border);border:1.5px solid #0f0d0a}.friend-info{flex:1;min-width:0}.friend-name{font-size:14px;font-weight:300;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.friend-status{font-size:12px;font-weight:300;color:var(--text3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.friends-section-label{padding:12px 24px 6px;font-size:11px;font-weight:300;letter-spacing:.2em;text-transform:uppercase;color:var(--text3)}.friends-add{padding:18px 24px;border-top:0.5px solid var(--border2)}.friends-add-btn{width:100%;padding:12px;background:transparent;border:0.5px dashed var(--border);border-radius:1px;color:var(--text3);font-family:"Geist",sans-serif;font-size:11px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;transition:border-color .15s,color .15s}.friends-add-btn:hover{border-color:var(--gold-dim);color:var(--gold)}.friends-add-btn{font-size:13px}.app-layout{display:flex}.main-content{flex:1;padding-right:400px}.footer{padding:10px 48px 32px;display:flex;align-items:center;justify-content:space-between}
 .footer-label{font-size:12px;font-weight:300;letter-spacing:.15em;text-transform:uppercase;color:var(--text3)}
 </style>
 </head>
@@ -163,7 +159,7 @@ const { useState, useEffect, useRef } = React;
    IGDB (games):  https://dev.twitch.tv/console  → create app → get token
    Books (Open Library) + Music (MusicBrainz): no key needed
 */
-const TMDB_KEY  = '';
+const TMDB_KEY  = 'bf94a83bd4f8d19b63e33ffaa6129e27';
 const IGDB_CLIENT_ID    = '';
 const IGDB_ACCESS_TOKEN = '';
 
@@ -171,10 +167,10 @@ const TMDB_IMG  = 'https://image.tmdb.org/t/p/w185';
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 
 const LIBRARY_TYPES = [
-  { key:'films',  label:'Films & TV', icon:'film',  w:58,  h:86  },
-  { key:'books',  label:'Books',      icon:'book',  w:62,  h:90  },
-  { key:'music',  label:'Music',      icon:'music', w:76,  h:76  },
-  { key:'games',  label:'Games',      icon:'game',  w:66,  h:88  },
+  { key:'films',  label:'Films & TV', icon:'film',  w:116, h:172 },
+  { key:'books',  label:'Books',      icon:'book',  w:124, h:180 },
+  { key:'music',  label:'Music',      icon:'music', w:152, h:152 },
+  { key:'games',  label:'Games',      icon:'game',  w:132, h:176 },
 ];
 
 /* ─── Icons ──────────────────────────────────────────────────────────────── */
@@ -191,14 +187,24 @@ function Icon({ t, s }) {
 
 /* ─── API search functions ───────────────────────────────────────────────── */
 async function apiFilms(q) {
+  // When opened via `file://`, browsers often block API calls.
+  // Fall back to demo data in that case so the app still works.
+  if (location.protocol === 'file:') return demoFilms(q);
   if (!TMDB_KEY) return demoFilms(q);
-  const r = await fetch(`${TMDB_BASE}/search/multi?api_key=${TMDB_KEY}&query=${encodeURIComponent(q)}&include_adult=false`);
-  const d = await r.json();
-  return (d.results||[]).filter(x=>x.poster_path).slice(0,14).map(x=>({
-    ext_id:String(x.id), title:x.title||x.name,
-    subtitle:(x.release_date||x.first_air_date||'').slice(0,4),
-    cover_url:TMDB_IMG+x.poster_path, metadata:{media_type:x.media_type}
-  }));
+
+  const url = `${TMDB_BASE}/search/multi?api_key=${TMDB_KEY}&query=${encodeURIComponent(q)}&include_adult=false`;
+  try {
+    const r = await fetch(url);
+    const d = await r.json();
+    if (!r.ok || d?.success === false) return demoFilms(q);
+    return (d.results||[]).filter(x=>x.poster_path).slice(0,14).map(x=>({
+      ext_id:String(x.id), title:x.title||x.name,
+      subtitle:(x.release_date||x.first_air_date||'').slice(0,4),
+      cover_url:TMDB_IMG+x.poster_path, metadata:{media_type:x.media_type}
+    }));
+  } catch {
+    return demoFilms(q);
+  }
 }
 
 async function apiBooks(q) {
@@ -435,6 +441,49 @@ function AuthModal({ onClose, onAuth }) {
   );
 }
 
+/* ─── Friends Sidebar ────────────────────────────────────────────────────── */
+const DEMO_FRIENDS = [
+  {id:1,name:"alex_m",initials:"AM",online:true,status:"Added Dune · 2m ago"},
+  {id:2,name:"sofia_r",initials:"SR",online:true,status:"Added Elden Ring · 5m ago"},
+  {id:3,name:"lucas_t",initials:"LT",online:true,status:"Online"},
+  {id:4,name:"mia_k",initials:"MK",online:false,status:"Added OK Computer · 1h ago"},
+  {id:5,name:"james_w",initials:"JW",online:false,status:"Added 1984 · 3h ago"},
+  {id:6,name:"priya_s",initials:"PS",online:false,status:"Offline"},
+  {id:7,name:"noah_c",initials:"NC",online:false,status:"Added Inception · 1d ago"},
+  {id:8,name:"elena_v",initials:"EV",online:false,status:"Offline"},
+];
+
+function FriendsSidebar() {
+  const online = DEMO_FRIENDS.filter(f=>f.online);
+  const offline = DEMO_FRIENDS.filter(f=>!f.online);
+  return (
+    <div className="friends-sidebar">
+      <div className="friends-header"><div className="friends-title">Friends</div></div>
+      <div className="friends-list">
+        {online.length>0 && (
+          <div className="friends-section-label">Online · {online.length}</div>
+        )}
+        {online.map(f=>(
+          <div key={f.id} className="friend-item">
+            <div className="friend-avatar">{f.initials}<span className="friend-online"/></div>
+            <div className="friend-info"><div className="friend-name">{f.name}</div><div className="friend-status">{f.status}</div></div>
+          </div>
+        ))}
+        {offline.length>0 && (
+          <div className="friends-section-label" style={{marginTop:8}}>Offline · {offline.length}</div>
+        )}
+        {offline.map(f=>(
+          <div key={f.id} className="friend-item">
+            <div className="friend-avatar" style={{opacity:.5}}>{f.initials}<span className="friend-offline"/></div>
+            <div className="friend-info"><div className="friend-name" style={{opacity:.5}}>{f.name}</div><div className="friend-status">{f.status}</div></div>
+          </div>
+        ))}
+      </div>
+      <div className="friends-add"><button className="friends-add-btn">+ Add Friend</button></div>
+    </div>
+  );
+}
+
 /* ─── Toast ──────────────────────────────────────────────────────────────── */
 function Toast({ msg, onDone }) {
   useEffect(()=>{const t=setTimeout(onDone,2600);return()=>clearTimeout(t);},[]);
@@ -453,7 +502,8 @@ function App() {
   const existing=libraries.map(l=>l.type);
   const canCreate=existing.length<4;
   const totalItems=libraries.reduce((s,l)=>s+l.items.length,0);
-  const demoMode=!TMDB_KEY;
+  const fileMode = location.protocol === 'file:';
+  const demoMode = !TMDB_KEY || fileMode;
 
   const showT=msg=>setToast(msg);
   const handleAuth=u=>{setUser(u);setShowAuth(false);showT(`Welcome, ${u.username}`);};
@@ -473,6 +523,8 @@ function App() {
 
   return (
     <>
+      <FriendsSidebar/>
+      <div className="main-content">
       <div className="topbar">
         <div className="brand">Shelf</div>
         <div className="topbar-right">
@@ -482,22 +534,23 @@ function App() {
         </div>
       </div>
 
-      <div className="hero">
-        <div className="library-label">{user?<><em>{user.username}</em>'s library</>:'Library'}</div>
-        {user&&totalItems>0&&<div className="hero-sub">{existing.length} shelf{existing.length!==1?'ves':''} · {totalItems} items</div>}
-      </div>
-
       {demoMode&&(
         <div className="api-notice">
-          <strong>Demo mode</strong> — Films & Games use sample data. Books &amp; Music search live via Open Library &amp; MusicBrainz.
-          For full live search: get a free <a href="https://www.themoviedb.org/settings/api" target="_blank">TMDB key</a> (films) and <a href="https://api.igdb.com" target="_blank">IGDB key</a> (games), then paste them at the top of index.html.
+          <strong>{fileMode ? 'Local file mode' : 'Demo mode'}</strong>
+          {fileMode
+            ? <>Your browser blocks TMDB API calls when you open the page as <code>file://</code>. Open it using <a href="http://localhost:8000/" target="_blank">http://localhost:8000</a> instead.</>
+            : <>Films & Games use sample data. Books &amp; Music search live via Open Library &amp; MusicBrainz.</>
+          }
+          {!fileMode && <>
+            For full live search: get a free <a href="https://www.themoviedb.org/settings/api" target="_blank">TMDB key</a> (films) and <a href="https://api.igdb.com" target="_blank">IGDB key</a> (games), then paste them at the top of index.html.
+          </>}
         </div>
       )}
 
       <div className="shelves">
         {libraries.map((lib,i)=>(
           <div key={lib.type} className="shelf-row" style={{animationDelay:`${i*0.07}s`}}>
-            <div className="shelf-icon-block"><Icon t={LIBRARY_TYPES.find(t=>t.key===lib.type).icon} s={{width:22,height:22,fill:'none'}}/></div>
+            <div className="shelf-icon-block"><Icon t={LIBRARY_TYPES.find(t=>t.key===lib.type).icon} s={{width:52,height:52,fill:'none'}}/></div>
             {lib.items.length>0 ? (
               <>
                 <div className="shelf-items">
@@ -520,7 +573,7 @@ function App() {
         {canCreate&&(
           <div className="shelf-row" style={{animationDelay:`${libraries.length*0.07}s`}}>
             <div className="shelf-icon-block" style={{opacity:.2}}>
-              <Icon t="plus" s={{width:16,height:16,fill:'none'}}/>
+              <Icon t="plus" s={{width:32,height:32,fill:'none'}}/>
             </div>
             <div className="shelf-empty" onClick={()=>user?setShowCreate(true):setShowAuth(true)}>
               <Icon t="plus" s={{width:14,height:14,fill:'none'}}/>
@@ -535,6 +588,7 @@ function App() {
         {canCreate&&user&&<button className="btn-primary" style={{padding:'8px 20px'}} onClick={()=>setShowCreate(true)}>+ New library</button>}
       </div>
 
+      </div>
       {showCreate&&<CreateModal existing={existing} onClose={()=>setShowCreate(false)} onCreate={handleCreate}/>}
       {showAuth&&<AuthModal onClose={()=>setShowAuth(false)} onAuth={handleAuth}/>}
       {addPanel&&<AddPanel libType={addPanel} onClose={()=>setAddPanel(null)} onAdd={item=>handleAddItem(addPanel,item)}/>}
