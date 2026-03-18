@@ -1,474 +1,152 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Shelf</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Geist:wght@300;400&display=swap" rel="stylesheet" />
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Geist:wght@300;400&display=swap" rel="stylesheet"/>
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+:root{
+  --bg:#0d0b09;--bg2:#131008;--bg3:#1a1612;
+  --border:#2a2520;--border2:#1e1a14;
+  --gold:#b8965a;--gold-dim:#7a6038;--gold-faint:#1a160e;
+  --text:#e8e0d4;--text2:#7a7268;--text3:#5a5550;
+}
+body{background:var(--bg);color:var(--text);font-family:'Geist',sans-serif;font-weight:300;min-height:100vh}
 
-:root {
-  --bg:        #0d0b09;
-  --bg2:       #131008;
-  --bg3:       #1a1612;
-  --border:    #2a2520;
-  --border2:   #1e1a14;
-  --gold:      #b8965a;
-  --gold-dim:  #7a6038;
-  --text:      #e8e0d4;
-  --text2:     #7a7268;
-  --text3:     #3a3530;
-}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:28px 48px 0}
+.brand{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:300;letter-spacing:.4em;text-transform:uppercase;color:var(--gold)}
+.topbar-right{display:flex;align-items:center;gap:16px}
+.avatar-chip{display:flex;align-items:center;gap:8px;padding:5px 16px 5px 5px;border:0.5px solid var(--border);border-radius:20px;cursor:pointer;transition:border-color .2s}
+.avatar-chip:hover{border-color:var(--gold-dim)}
+.avatar-circle{width:32px;height:32px;border-radius:50%;background:var(--bg3);border:0.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:15px;color:var(--gold)}
+.avatar-name{font-size:14px;letter-spacing:.06em;color:var(--text2)}
+.btn-signin{font-family:'Geist',sans-serif;font-size:13px;font-weight:300;letter-spacing:.15em;text-transform:uppercase;padding:10px 24px;background:transparent;border:0.5px solid var(--gold-dim);color:var(--gold);cursor:pointer;border-radius:1px;transition:background .15s,border-color .15s}
+.btn-signin:hover{background:var(--gold-faint);border-color:var(--gold)}
 
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'Geist', sans-serif;
-  font-weight: 300;
-  min-height: 100vh;
-}
+.hero{padding:28px 48px 32px}
+.library-label{font-family:'Cormorant Garamond',serif;font-size:38px;font-weight:300;color:var(--text)}
+.library-label em{color:var(--gold);font-style:italic}
+.hero-sub{font-size:13px;font-weight:300;letter-spacing:.15em;text-transform:uppercase;color:var(--text3);margin-top:8px}
 
-/* ─── TOP BAR ─────────────────────────────────── */
-.topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 28px 48px 0;
-}
+.api-notice{margin:0 48px 20px;padding:16px 20px;border:0.5px solid #3a2a10;border-radius:2px;background:#1a1208;font-size:13px;font-weight:300;color:#8a7040;line-height:1.7;letter-spacing:.02em}
+.api-notice strong{color:var(--gold);font-weight:400}
+.api-notice a{color:var(--gold);text-decoration:none}
+.api-notice a:hover{text-decoration:underline}
 
-.brand {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 15px;
-  font-weight: 300;
-  letter-spacing: 0.4em;
-  text-transform: uppercase;
-  color: var(--gold);
-}
+.shelves{padding:0 48px 48px;display:flex;flex-direction:column;gap:26px}
 
-.topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
+.shelf-row{display:flex;align-items:center;gap:18px;min-height:112px;animation:fadeUp .3s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
-.avatar-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: var(--bg3);
-  border: 0.5px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 13px;
-  color: var(--gold);
-  cursor: pointer;
-  transition: border-color 0.2s;
-}
-.avatar-btn:hover { border-color: var(--gold); }
+.shelf-icon-block{width:60px;height:60px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border:0.5px solid var(--border);border-radius:2px;background:var(--bg3)}
+.shelf-icon-block svg{width:26px;height:26px;opacity:.5}
 
-/* ─── HERO ───────────────────────────────────── */
-.hero {
-  padding: 32px 48px 36px;
-}
+.shelf-empty{flex:1;height:104px;border:0.5px dashed var(--border);border-radius:2px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:border-color .2s,background .2s;gap:12px;color:var(--text3);font-size:13px;font-weight:300;letter-spacing:.15em;text-transform:uppercase}
+.shelf-empty:hover{border-color:var(--gold-dim);background:var(--gold-faint);color:var(--gold)}
 
-.library-label {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 32px;
-  font-weight: 300;
-  color: var(--text);
-}
+.shelf-items{flex:1;display:flex;gap:12px;align-items:flex-end;overflow:hidden}
+.shelf-end{flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:68px}
+.shelf-count{font-size:12px;font-weight:300;letter-spacing:.15em;text-transform:uppercase;color:var(--text3)}
+.shelf-all{font-size:12px;font-weight:300;letter-spacing:.15em;text-transform:uppercase;color:var(--text3);cursor:pointer;background:none;border:none;font-family:inherit;transition:color .2s}
+.shelf-all:hover{color:var(--gold)}
 
-.library-label em { color: var(--gold); font-style: italic; }
+.media-card{flex:0 0 auto;cursor:pointer;transition:opacity .18s,transform .18s}
+.media-card:hover{opacity:.8;transform:translateY(-2px)}
 
-/* ─── SHELVES ────────────────────────────────── */
-.shelves {
-  padding: 0 48px 48px;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
+.cover-wrap{position:relative;overflow:hidden;border:0.5px solid var(--border)}
+.cover-wrap img{width:100%;height:100%;object-fit:cover;display:block;background:var(--bg3)}
+.cover-fallback{width:100%;height:100%;display:flex;flex-direction:column;justify-content:flex-end;padding:8px;background:var(--bg3)}
+.cover-fallback .f-title{font-family:'Cormorant Garamond',serif;font-size:11px;color:#c9b07a;line-height:1.3}
 
-.shelf-row {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  min-height: 100px;
-}
+.book-wrap{border-radius:1px 3px 3px 1px}
+.book-wrap::before{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:#0d0a06;border-right:0.5px solid #222018;z-index:1;pointer-events:none}
+.film-wrap{border-radius:2px}
+.album-wrap{}
+.game-wrap{border-radius:1px}
 
-/* icon block */
-.shelf-icon-block {
-  width: 52px;
-  height: 52px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 0.5px solid var(--border);
-  border-radius: 2px;
-  background: var(--bg3);
-}
-.shelf-icon-block svg { width: 22px; height: 22px; opacity: 0.5; }
+.card-label{font-size:12px;font-weight:300;color:var(--text2);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* empty shelf — the + row */
-.shelf-empty {
-  flex: 1;
-  height: 92px;
-  border: 0.5px dashed var(--border);
-  border-radius: 2px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
-  gap: 12px;
-  color: var(--text3);
-  font-size: 11px;
-  font-weight: 300;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-}
-.shelf-empty:hover {
-  border-color: var(--gold-dim);
-  background: #1a160e;
-  color: var(--gold);
-}
-.shelf-empty:hover .plus-icon { stroke: var(--gold); }
+/* Add panel */
+.add-panel-back{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:90;display:flex;align-items:flex-end;justify-content:flex-end;animation:fade-in .15s ease}
+.add-panel{width:460px;height:100vh;background:#0f0d0a;border-left:0.5px solid var(--border);display:flex;flex-direction:column;animation:slide-left .2s ease}
+@keyframes slide-left{from{transform:translateX(40px);opacity:0}to{transform:none;opacity:1}}
+.panel-header{padding:32px 32px 22px;border-bottom:0.5px solid var(--border2)}
+.panel-title{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:300;color:var(--text);margin-bottom:5px}
+.panel-sub{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--text3)}
+.panel-body{flex:1;overflow-y:auto;padding:20px 32px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.panel-footer{padding:18px 32px 32px;border-top:0.5px solid var(--border2)}
 
-.plus-icon { width: 18px; height: 18px; flex-shrink: 0; }
+.search-row{display:flex;gap:8px;margin-bottom:16px}
+.search-field{flex:1;background:var(--bg);border:0.5px solid var(--border);border-radius:1px;padding:12px 14px;font-family:'Geist',sans-serif;font-size:14px;font-weight:300;color:var(--text);outline:none;transition:border-color .15s}
+.search-field:focus{border-color:var(--gold-dim)}
+.search-field::placeholder{color:var(--text3)}
+.btn-search{padding:12px 18px;background:transparent;border:0.5px solid var(--border);border-radius:1px;color:var(--text3);font-family:'Geist',sans-serif;font-size:13px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;white-space:nowrap;transition:border-color .15s,color .15s}
+.btn-search:hover{border-color:var(--gold-dim);color:var(--gold)}
 
-/* items strip */
-.shelf-items {
-  flex: 1;
-  display: flex;
-  gap: 10px;
-  align-items: flex-end;
-  overflow: hidden;
-}
+.results-list{display:flex;flex-direction:column;gap:8px}
+.result-item{display:flex;align-items:center;gap:14px;padding:11px 12px;border:0.5px solid var(--border2);border-radius:2px;cursor:pointer;transition:border-color .15s,background .15s}
+.result-item:hover{border-color:var(--border);background:var(--bg3)}
+.result-item.selected{border-color:var(--gold);background:var(--gold-faint)}
+.result-thumb{flex-shrink:0;overflow:hidden;background:var(--bg3);border-radius:1px}
+.result-thumb img{display:block;object-fit:cover}
+.result-info{flex:1;min-width:0}
+.result-title{font-size:14px;font-weight:400;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.result-meta{font-size:12px;font-weight:300;color:var(--text3);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.check-dot{width:20px;height:20px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 
-.shelf-end {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-}
-.shelf-count {
-  font-size: 9px;
-  font-weight: 300;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--text3);
-}
-.shelf-view-all {
-  font-size: 9px;
-  font-weight: 300;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--text3);
-  cursor: pointer;
-  transition: color 0.2s;
-  background: none;
-  border: none;
-  font-family: inherit;
-}
-.shelf-view-all:hover { color: var(--gold); }
+.loading-dots{display:flex;gap:5px;justify-content:center;padding:24px}
+.loading-dots span{width:6px;height:6px;border-radius:50%;background:var(--text3);animation:dot 1.2s ease infinite}
+.loading-dots span:nth-child(2){animation-delay:.2s}
+.loading-dots span:nth-child(3){animation-delay:.4s}
+@keyframes dot{0%,80%,100%{opacity:.2}40%{opacity:1}}
 
-/* ─── MEDIA CARDS ─────────────────────────────── */
-.media-card {
-  flex: 0 0 auto;
-  cursor: pointer;
-  transition: opacity 0.18s;
-}
-.media-card:hover { opacity: 0.72; }
+.no-results{text-align:center;padding:32px;font-size:14px;color:var(--text3);letter-spacing:.1em}
 
-.book-cover {
-  width: 62px;
-  height: 88px;
-  border: 0.5px solid var(--border);
-  border-radius: 1px 3px 3px 1px;
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-.book-cover::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 0; bottom: 0;
-  width: 5px;
-  background: #0d0a06;
-  border-right: 0.5px solid #222018;
-  z-index: 1;
-}
-.book-accent {
-  position: absolute;
-  top: 0; left: 5px; right: 0;
-  height: 3px;
-}
-.book-body {
-  position: absolute;
-  left: 10px; bottom: 6px; right: 4px;
-}
+.status-sel{width:100%;background:var(--bg);border:0.5px solid var(--border);border-radius:1px;padding:11px 14px;font-family:'Geist',sans-serif;font-size:14px;font-weight:300;color:var(--text);outline:none;margin-bottom:12px;cursor:pointer}
+.status-sel option{background:var(--bg)}
 
-.film-cover {
-  width: 56px;
-  height: 82px;
-  border: 0.5px solid var(--border);
-  border-radius: 1px;
-  position: relative;
-  overflow: hidden;
-}
-.film-accent {
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-}
-.film-body {
-  position: absolute;
-  bottom: 5px; left: 5px; right: 5px;
-}
+/* Modal */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;z-index:100;animation:fade-in .15s ease}
+@keyframes fade-in{from{opacity:0}to{opacity:1}}
+.modal{background:#131008;border:0.5px solid var(--border);border-radius:3px;padding:40px 44px;width:520px;max-width:calc(100vw - 32px);animation:slide-up .18s ease}
+@keyframes slide-up{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
+.modal-title{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:300;color:var(--text);margin-bottom:6px}
+.modal-sub{font-size:13px;font-weight:300;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:28px}
 
-.album-cover {
-  width: 74px;
-  height: 74px;
-  border: 0.5px solid var(--border);
-  position: relative;
-  overflow: hidden;
-}
-.vinyl {
-  position: absolute;
-  right: 5px;
-  top: 50%; transform: translateY(-50%);
-  width: 36px; height: 36px;
-  border-radius: 50%;
-  background: #060504;
-  border: 0.5px solid #333;
-  display: flex; align-items: center; justify-content: center;
-}
-.vinyl-dot { width: 12px; height: 12px; border-radius: 50%; }
-.album-body { position: absolute; left: 5px; bottom: 5px; right: 26px; }
+.lib-options{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px}
+.lib-opt{padding:20px 18px;border:0.5px solid var(--border);border-radius:2px;cursor:pointer;transition:border-color .15s,background .15s;display:flex;flex-direction:column;gap:10px;background:transparent;text-align:left}
+.lib-opt:hover{border-color:var(--gold-dim);background:var(--gold-faint)}
+.lib-opt.selected{border-color:var(--gold);background:var(--gold-faint)}
+.lib-opt.disabled{opacity:.28;cursor:not-allowed;pointer-events:none}
+.lib-opt svg{width:24px;height:24px}
+.opt-name{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:300;color:var(--gold)}
+.opt-note{font-size:12px;font-weight:300;letter-spacing:.12em;text-transform:uppercase;color:var(--text3)}
 
-.game-cover {
-  width: 66px;
-  height: 82px;
-  border: 0.5px solid var(--border);
-  border-radius: 1px;
-  overflow: hidden;
-  display: flex; flex-direction: column;
-}
-.game-band {
-  height: 22px;
-  display: flex; align-items: center; justify-content: center;
-}
-.game-platform {
-  font-size: 6px; font-weight: 400;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--text3);
-}
-.game-body {
-  flex: 1;
-  display: flex; flex-direction: column; justify-content: flex-end;
-  padding: 4px 5px 5px;
-}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end}
+.btn-cancel{font-family:'Geist',sans-serif;font-size:13px;font-weight:300;letter-spacing:.15em;text-transform:uppercase;padding:11px 26px;border-radius:1px;cursor:pointer;background:transparent;border:0.5px solid var(--border);color:var(--text3);transition:border-color .15s,color .15s}
+.btn-cancel:hover{border-color:var(--text3);color:var(--text2)}
+.btn-primary{font-family:'Geist',sans-serif;font-size:13px;font-weight:300;letter-spacing:.15em;text-transform:uppercase;padding:11px 26px;border-radius:1px;cursor:pointer;background:transparent;border:0.5px solid var(--gold-dim);color:var(--gold);transition:background .15s,border-color .15s}
+.btn-primary:hover{background:var(--gold-faint);border-color:var(--gold)}
+.btn-primary:disabled{opacity:.3;cursor:not-allowed}
 
-.cover-title {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 9px; font-weight: 400;
-  color: #c9b07a; line-height: 1.2;
-}
-.cover-sub { font-size: 7px; font-weight: 300; color: var(--text3); margin-top: 1px; }
-.card-label {
-  font-size: 9px; font-weight: 300;
-  color: var(--text3); margin-top: 5px;
-  white-space: nowrap; overflow: hidden;
-  text-overflow: ellipsis; max-width: 74px;
-}
+.auth-modal{width:400px}
+.form-field{margin-bottom:14px}
+.form-label{display:block;font-size:12px;font-weight:300;letter-spacing:.18em;text-transform:uppercase;color:var(--text3);margin-bottom:6px}
+.form-input{width:100%;background:var(--bg);border:0.5px solid var(--border);border-radius:1px;padding:12px 14px;font-family:'Geist',sans-serif;font-size:15px;font-weight:300;color:var(--text);outline:none;transition:border-color .15s}
+.form-input:focus{border-color:var(--gold-dim)}
+.form-input::placeholder{color:var(--text3)}
+.form-toggle{font-size:13px;font-weight:300;color:var(--text3);margin-top:16px;text-align:center}
+.form-toggle span{color:var(--gold);cursor:pointer;text-decoration:underline}
+.err-msg{font-size:13px;color:#c04040;margin-bottom:12px;letter-spacing:.04em}
 
-/* ─── MODAL ───────────────────────────────────── */
-.modal-backdrop {
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,0.75);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 100;
-  animation: fade-in 0.15s ease;
-}
-@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:var(--bg3);border:0.5px solid var(--border);border-radius:2px;padding:14px 28px;font-size:14px;font-weight:300;letter-spacing:.08em;color:var(--text2);z-index:200;animation:fade-in .2s ease;white-space:nowrap}
 
-.modal {
-  background: #131008;
-  border: 0.5px solid var(--border);
-  border-radius: 3px;
-  padding: 36px 40px;
-  width: 480px;
-  max-width: calc(100vw - 32px);
-  animation: slide-up 0.18s ease;
-}
-@keyframes slide-up { from { transform: translateY(10px); opacity: 0; } to { transform: none; opacity: 1; } }
-
-.modal-title {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 22px; font-weight: 300;
-  color: var(--text);
-  margin-bottom: 6px;
-}
-.modal-sub {
-  font-size: 11px; font-weight: 300;
-  letter-spacing: 0.12em;
-  color: var(--text3);
-  margin-bottom: 28px;
-}
-
-.lib-options {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-bottom: 24px;
-}
-
-.lib-option {
-  padding: 20px 16px;
-  border: 0.5px solid var(--border);
-  border-radius: 2px;
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
-  display: flex; flex-direction: column; gap: 10px;
-  background: transparent;
-  text-align: left;
-}
-.lib-option:hover {
-  border-color: var(--gold-dim);
-  background: #1a160e;
-}
-.lib-option.selected {
-  border-color: var(--gold);
-  background: #1a160e;
-}
-.lib-option.disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-.lib-option svg { width: 20px; height: 20px; opacity: 0.6; }
-.lib-option.selected svg { opacity: 0.85; }
-
-.option-name {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 16px; font-weight: 300;
-  color: var(--gold);
-}
-.option-note {
-  font-size: 9px; font-weight: 300;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--text3);
-}
-
-.modal-actions {
-  display: flex; gap: 10px; justify-content: flex-end;
-}
-
-.btn-cancel, .btn-create {
-  font-family: 'Geist', sans-serif;
-  font-size: 10px; font-weight: 300;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  padding: 9px 22px;
-  border-radius: 1px;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
-}
-.btn-cancel {
-  background: transparent;
-  border: 0.5px solid var(--border);
-  color: var(--text3);
-}
-.btn-cancel:hover { border-color: var(--text3); color: var(--text2); }
-
-.btn-create {
-  background: transparent;
-  border: 0.5px solid var(--gold-dim);
-  color: var(--gold);
-}
-.btn-create:hover { background: #1a160e; border-color: var(--gold); }
-.btn-create:disabled { opacity: 0.3; cursor: not-allowed; }
-
-/* ─── AUTH MODAL ──────────────────────────────── */
-.auth-modal { width: 380px; }
-.form-field { margin-bottom: 14px; }
-.form-label {
-  display: block;
-  font-size: 9px; font-weight: 300;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--text3);
-  margin-bottom: 6px;
-}
-.form-input {
-  width: 100%;
-  background: var(--bg);
-  border: 0.5px solid var(--border);
-  border-radius: 1px;
-  padding: 10px 12px;
-  font-family: 'Geist', sans-serif;
-  font-size: 13px; font-weight: 300;
-  color: var(--text);
-  outline: none;
-  transition: border-color 0.15s;
-}
-.form-input:focus { border-color: var(--gold-dim); }
-.form-input::placeholder { color: var(--text3); }
-
-.form-toggle {
-  font-size: 11px; font-weight: 300;
-  color: var(--text3);
-  margin-top: 16px;
-  text-align: center;
-}
-.form-toggle span {
-  color: var(--gold);
-  cursor: pointer;
-  text-decoration: underline;
-}
-
-.error-msg {
-  font-size: 10px;
-  color: #c94040;
-  margin-bottom: 12px;
-  letter-spacing: 0.05em;
-}
-
-/* ─── TOAST ───────────────────────────────────── */
-.toast {
-  position: fixed; bottom: 32px; left: 50%;
-  transform: translateX(-50%);
-  background: var(--bg3);
-  border: 0.5px solid var(--border);
-  border-radius: 2px;
-  padding: 12px 24px;
-  font-size: 11px; font-weight: 300;
-  letter-spacing: 0.1em;
-  color: var(--text2);
-  z-index: 200;
-  animation: fade-in 0.2s ease;
-  white-space: nowrap;
-}
-
-/* ─── FOOTER ──────────────────────────────────── */
-.footer {
-  padding: 12px 48px 32px;
-  display: flex; align-items: center; justify-content: space-between;
-}
-.footer-label {
-  font-size: 9px; font-weight: 300;
-  letter-spacing: 0.2em; text-transform: uppercase;
-  color: var(--text3);
-}
+.footer{padding:10px 48px 32px;display:flex;align-items:center;justify-content:space-between}
+.footer-label{font-size:12px;font-weight:300;letter-spacing:.15em;text-transform:uppercase;color:var(--text3)}
 </style>
 </head>
 <body>
@@ -478,456 +156,394 @@ body {
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script type="text/babel">
-const { useState, useEffect, useCallback } = React;
+const { useState, useEffect, useRef } = React;
 
-// ─── Types & Constants ────────────────────────────────────────────────────────
+/* ─── API KEYS — paste yours here ────────────────────────────────────────────
+   TMDB (films):  https://www.themoviedb.org/settings/api  → free, instant
+   IGDB (games):  https://dev.twitch.tv/console  → create app → get token
+   Books (Open Library) + Music (MusicBrainz): no key needed
+*/
+const TMDB_KEY  = '';
+const IGDB_CLIENT_ID    = '';
+const IGDB_ACCESS_TOKEN = '';
+
+const TMDB_IMG  = 'https://image.tmdb.org/t/p/w185';
+const TMDB_BASE = 'https://api.themoviedb.org/3';
+
 const LIBRARY_TYPES = [
-  { key: 'books',  label: 'Books',     icon: 'book'   },
-  { key: 'films',  label: 'Films & TV', icon: 'film'  },
-  { key: 'music',  label: 'Music',     icon: 'music'  },
-  { key: 'games',  label: 'Games',     icon: 'game'   },
+  { key:'films',  label:'Films & TV', icon:'film',  w:58,  h:86  },
+  { key:'books',  label:'Books',      icon:'book',  w:62,  h:90  },
+  { key:'music',  label:'Music',      icon:'music', w:76,  h:76  },
+  { key:'games',  label:'Games',      icon:'game',  w:66,  h:88  },
 ];
 
-// ─── Sample seed data ─────────────────────────────────────────────────────────
-const SEED_ITEMS = {
-  books: [
-    { id:1, title:'1984',          subtitle:'Orwell',   cover_color:'#12200e' },
-    { id:2, title:'Sapiens',       subtitle:'Harari',   cover_color:'#201408' },
-    { id:3, title:'Atomic Habits', subtitle:'Clear',    cover_color:'#0c1220' },
-    { id:4, title:'Dune',          subtitle:'Herbert',  cover_color:'#18100e' },
-    { id:5, title:'The Road',      subtitle:'McCarthy', cover_color:'#141414' },
-    { id:6, title:'Solaris',       subtitle:'Lem',      cover_color:'#0c1618' },
-  ],
-  films: [
-    { id:1, title:'Inception',    subtitle:'2010', cover_color:'#0e1420' },
-    { id:2, title:'Dune',         subtitle:'2021', cover_color:'#1a1408' },
-    { id:3, title:'Interstellar', subtitle:'2014', cover_color:'#100c1a' },
-    { id:4, title:'Blade Runner', subtitle:'2049', cover_color:'#180a0a' },
-    { id:5, title:'The Matrix',   subtitle:'1999', cover_color:'#0a1810' },
-    { id:6, title:'Alien',        subtitle:'1979', cover_color:'#140e0e' },
-    { id:7, title:'Arrival',      subtitle:'2016', cover_color:'#0a1414' },
-  ],
-  music: [
-    { id:1, title:'Kind of Blue',  subtitle:'Miles Davis',  vinyl:'#143020', cover_color:'#0a1208' },
-    { id:2, title:'Dark Side',     subtitle:'Pink Floyd',   vinyl:'#301820', cover_color:'#18100a' },
-    { id:3, title:'OK Computer',   subtitle:'Radiohead',    vinyl:'#141430', cover_color:'#0a0a18' },
-    { id:4, title:'Nevermind',     subtitle:'Nirvana',      vinyl:'#0a1428', cover_color:'#100a18' },
-    { id:5, title:'Thriller',      subtitle:'M. Jackson',   vinyl:'#301010', cover_color:'#180a0a' },
-    { id:6, title:'Abbey Road',    subtitle:'The Beatles',  vinyl:'#302818', cover_color:'#181410' },
-  ],
-  games: [
-    { id:1, title:'Elden Ring',    subtitle:'RPG · 2022',     band:'#0a1208', cover_color:'#12180e', platform:'PC'    },
-    { id:2, title:'Cyberpunk',     subtitle:'RPG · 2020',     band:'#100a18', cover_color:'#18100e', platform:'PC'    },
-    { id:3, title:'Minecraft',     subtitle:'Sandbox · 2011', band:'#0a1a10', cover_color:'#0e180e', platform:'Multi' },
-    { id:4, title:'FIFA 25',       subtitle:'Sports · 2024',  band:'#1a0a0a', cover_color:'#180e0e', platform:'PS5'   },
-    { id:5, title:'RDR2',          subtitle:'Adventure',      band:'#181408', cover_color:'#16120a', platform:'PC'    },
-    { id:6, title:'Half-Life 2',   subtitle:'FPS · 2004',     band:'#0a1418', cover_color:'#0c1418', platform:'PC'    },
-  ],
-};
-
-// ─── Icons ────────────────────────────────────────────────────────────────────
-function Icon({ type, ...props }) {
-  const g = '#b8965a';
-  if (type === 'book') return (
-    <svg viewBox="0 0 22 22" fill="none" {...props}>
-      <rect x="4" y="2" width="10" height="18" rx="0.5" stroke={g} strokeWidth="0.9"/>
-      <rect x="7" y="2" width="10" height="18" rx="0.5" stroke={g} strokeWidth="0.9" fill="#0d0b09"/>
-      <line x1="10" y1="7" x2="14" y2="7" stroke={g} strokeWidth="0.6"/>
-      <line x1="10" y1="11" x2="14" y2="11" stroke={g} strokeWidth="0.6"/>
-    </svg>
-  );
-  if (type === 'film') return (
-    <svg viewBox="0 0 22 22" fill="none" {...props}>
-      <rect x="2" y="4" width="18" height="14" rx="1" stroke={g} strokeWidth="0.9"/>
-      <circle cx="11" cy="11" r="3.5" stroke={g} strokeWidth="0.9"/>
-      <circle cx="11" cy="11" r="1" fill={g}/>
-    </svg>
-  );
-  if (type === 'music') return (
-    <svg viewBox="0 0 22 22" fill="none" {...props}>
-      <circle cx="11" cy="11" r="8.5" stroke={g} strokeWidth="0.9"/>
-      <circle cx="11" cy="11" r="2.8" stroke={g} strokeWidth="0.9"/>
-      <circle cx="11" cy="11" r="0.9" fill={g}/>
-    </svg>
-  );
-  if (type === 'game') return (
-    <svg viewBox="0 0 22 22" fill="none" {...props}>
-      <rect x="2" y="6" width="18" height="12" rx="1" stroke={g} strokeWidth="0.9"/>
-      <circle cx="7" cy="12" r="2" stroke={g} strokeWidth="0.8"/>
-      <circle cx="15" cy="12" r="2" stroke={g} strokeWidth="0.8"/>
-      <circle cx="11" cy="12" r="0.8" fill={g}/>
-    </svg>
-  );
-  if (type === 'plus') return (
-    <svg className="plus-icon" viewBox="0 0 18 18" fill="none" {...props}>
-      <line x1="9" y1="3" x2="9" y2="15" stroke="currentColor" strokeWidth="1"/>
-      <line x1="3" y1="9" x2="15" y2="9" stroke="currentColor" strokeWidth="1"/>
-    </svg>
-  );
+/* ─── Icons ──────────────────────────────────────────────────────────────── */
+function Icon({ t, s }) {
+  const g = '#b8965a', p = { fill:'none', ...s };
+  if (t==='book')  return <svg viewBox="0 0 22 22" {...p}><rect x="4" y="2" width="10" height="18" rx=".5" stroke={g} strokeWidth=".9"/><rect x="7" y="2" width="10" height="18" rx=".5" stroke={g} strokeWidth=".9" fill="#0d0b09"/><line x1="10" y1="7" x2="14" y2="7" stroke={g} strokeWidth=".6"/><line x1="10" y1="11" x2="14" y2="11" stroke={g} strokeWidth=".6"/></svg>;
+  if (t==='film')  return <svg viewBox="0 0 22 22" {...p}><rect x="2" y="4" width="18" height="14" rx="1" stroke={g} strokeWidth=".9"/><circle cx="11" cy="11" r="3.5" stroke={g} strokeWidth=".9"/><circle cx="11" cy="11" r="1" fill={g}/></svg>;
+  if (t==='music') return <svg viewBox="0 0 22 22" {...p}><circle cx="11" cy="11" r="8.5" stroke={g} strokeWidth=".9"/><circle cx="11" cy="11" r="2.8" stroke={g} strokeWidth=".9"/><circle cx="11" cy="11" r=".9" fill={g}/></svg>;
+  if (t==='game')  return <svg viewBox="0 0 22 22" {...p}><rect x="2" y="6" width="18" height="12" rx="1" stroke={g} strokeWidth=".9"/><circle cx="7" cy="12" r="2" stroke={g} strokeWidth=".8"/><circle cx="15" cy="12" r="2" stroke={g} strokeWidth=".8"/><circle cx="11" cy="12" r=".8" fill={g}/></svg>;
+  if (t==='plus')  return <svg viewBox="0 0 16 16" {...p}><line x1="8" y1="2" x2="8" y2="14" stroke="currentColor" strokeWidth="1"/><line x1="2" y1="8" x2="14" y2="8" stroke="currentColor" strokeWidth="1"/></svg>;
+  if (t==='check') return <svg viewBox="0 0 12 12" {...p}><polyline points="2,6 5,9 10,3" stroke="#0d0b09" strokeWidth="1.5" strokeLinecap="round"/></svg>;
   return null;
 }
 
-// ─── Media Cards ──────────────────────────────────────────────────────────────
-function BookCard({ item }) {
+/* ─── API search functions ───────────────────────────────────────────────── */
+async function apiFilms(q) {
+  if (!TMDB_KEY) return demoFilms(q);
+  const r = await fetch(`${TMDB_BASE}/search/multi?api_key=${TMDB_KEY}&query=${encodeURIComponent(q)}&include_adult=false`);
+  const d = await r.json();
+  return (d.results||[]).filter(x=>x.poster_path).slice(0,14).map(x=>({
+    ext_id:String(x.id), title:x.title||x.name,
+    subtitle:(x.release_date||x.first_air_date||'').slice(0,4),
+    cover_url:TMDB_IMG+x.poster_path, metadata:{media_type:x.media_type}
+  }));
+}
+
+async function apiBooks(q) {
+  const r = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=14&fields=key,title,author_name,cover_i,first_publish_year`);
+  const d = await r.json();
+  return (d.docs||[]).filter(x=>x.cover_i).slice(0,14).map(x=>({
+    ext_id:x.key, title:x.title,
+    subtitle:(x.author_name||[])[0]||'',
+    cover_url:`https://covers.openlibrary.org/b/id/${x.cover_i}-M.jpg`,
+    metadata:{year:x.first_publish_year}
+  }));
+}
+
+async function apiMusic(q) {
+  const r = await fetch(
+    `https://musicbrainz.org/ws/2/release/?query=release:${encodeURIComponent(q)}&limit=14&fmt=json`,
+    { headers:{'User-Agent':'ShelfApp/1.0 (https://shelf.app)'} }
+  );
+  const d = await r.json();
+  return (d.releases||[]).slice(0,14).map(rel=>({
+    ext_id:rel.id, title:rel.title,
+    subtitle:(rel['artist-credit']||[]).map(a=>a.name||a?.artist?.name).filter(Boolean).join(', '),
+    cover_url:`https://coverartarchive.org/release/${rel.id}/front-250`,
+    metadata:{date:rel.date}
+  }));
+}
+
+async function apiGames(q) {
+  if (!IGDB_ACCESS_TOKEN) return demoGames(q);
+  // IGDB requires server-side proxy (CORS); use backend route /api/search/games?q=
+  return demoGames(q);
+}
+
+/* ─── Demo fallback data ─────────────────────────────────────────────────── */
+function demoFilms(q='') {
+  const all = [
+    {ext_id:'27205',title:'Inception',subtitle:'2010',cover_url:'https://image.tmdb.org/t/p/w185/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg',metadata:{}},
+    {ext_id:'438631',title:'Dune',subtitle:'2021',cover_url:'https://image.tmdb.org/t/p/w185/d5NXSklpcvzeAbgEW2i2GzNFBac.jpg',metadata:{}},
+    {ext_id:'157336',title:'Interstellar',subtitle:'2014',cover_url:'https://image.tmdb.org/t/p/w185/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg',metadata:{}},
+    {ext_id:'335984',title:'Blade Runner 2049',subtitle:'2017',cover_url:'https://image.tmdb.org/t/p/w185/gajva2L0rPYkEWjzgFlBXCAVBE5.jpg',metadata:{}},
+    {ext_id:'603',title:'The Matrix',subtitle:'1999',cover_url:'https://image.tmdb.org/t/p/w185/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg',metadata:{}},
+    {ext_id:'11324',title:'Shutter Island',subtitle:'2010',cover_url:'https://image.tmdb.org/t/p/w185/52d4B6N4MCT8BgPHjGnSzXtZKKI.jpg',metadata:{}},
+    {ext_id:'120',title:'The Lord of the Rings',subtitle:'2001',cover_url:'https://image.tmdb.org/t/p/w185/6oom5QYQ2yQTMJIbnvbkBL9cHo6.jpg',metadata:{}},
+    {ext_id:'424',title:'Schindler\'s List',subtitle:'1993',cover_url:'https://image.tmdb.org/t/p/w185/sF1U4EUQS8YHUYjNl3pMGNIQyr0.jpg',metadata:{}},
+  ];
+  return all.filter(f=>!q||f.title.toLowerCase().includes(q.toLowerCase()));
+}
+
+function demoGames(q='') {
+  const all = [
+    {ext_id:'g1',title:'Elden Ring',subtitle:'FromSoftware · 2022',cover_url:'https://images.igdb.com/igdb/image/upload/t_cover_big/co4jni.jpg',metadata:{platform:'PC'}},
+    {ext_id:'g2',title:'Cyberpunk 2077',subtitle:'CD Projekt · 2020',cover_url:'https://images.igdb.com/igdb/image/upload/t_cover_big/co4hk6.jpg',metadata:{platform:'PC'}},
+    {ext_id:'g3',title:'Minecraft',subtitle:'Mojang · 2011',cover_url:'https://images.igdb.com/igdb/image/upload/t_cover_big/co49x5.jpg',metadata:{platform:'Multi'}},
+    {ext_id:'g4',title:'Red Dead Redemption 2',subtitle:'Rockstar · 2018',cover_url:'https://images.igdb.com/igdb/image/upload/t_cover_big/co1q1f.jpg',metadata:{platform:'PC'}},
+    {ext_id:'g5',title:'The Witcher 3',subtitle:'CD Projekt · 2015',cover_url:'https://images.igdb.com/igdb/image/upload/t_cover_big/co1wyy.jpg',metadata:{platform:'PC'}},
+    {ext_id:'g6',title:'Dark Souls III',subtitle:'FromSoftware · 2016',cover_url:'https://images.igdb.com/igdb/image/upload/t_cover_big/co1vcf.jpg',metadata:{platform:'PC'}},
+  ];
+  return all.filter(g=>!q||g.title.toLowerCase().includes(q.toLowerCase()));
+}
+
+/* ─── Cover image ────────────────────────────────────────────────────────── */
+function Cover({ src, alt, w, h, cls }) {
+  const [err,setErr] = useState(false);
   return (
-    <div className="media-card">
-      <div className="book-cover" style={{ background: item.cover_color }}>
-        <div className="book-accent" style={{ background: item.cover_color + 'cc' }}/>
-        <div className="book-body">
-          <div className="cover-title">{item.title}</div>
-          <div className="cover-sub">{item.subtitle}</div>
-        </div>
-      </div>
-      <div className="card-label">{item.title}</div>
+    <div className={`cover-wrap ${cls||''}`} style={{width:w,height:h}}>
+      {src&&!err
+        ? <img src={src} alt={alt} onError={()=>setErr(true)}/>
+        : <div className="cover-fallback"><span className="f-title">{alt}</span></div>}
     </div>
   );
 }
 
-function FilmCard({ item }) {
+/* ─── Media card ─────────────────────────────────────────────────────────── */
+function MediaCard({ libType, item }) {
+  const def = LIBRARY_TYPES.find(t=>t.key===libType);
+  const lbl = item.title?.length>16 ? item.title.slice(0,15)+'…' : item.title;
+  const clsMap = {films:'film-wrap',books:'book-wrap',music:'album-wrap',games:'game-wrap'};
   return (
     <div className="media-card">
-      <div className="film-cover" style={{ background: item.cover_color }}>
-        <div className="film-accent" style={{ background: item.cover_color + 'cc' }}/>
-        <div className="film-body">
-          <div className="cover-title">{item.title}</div>
-          <div className="cover-sub">{item.subtitle}</div>
-        </div>
-      </div>
-      <div className="card-label" style={{ maxWidth: 56 }}>{item.title}</div>
+      <Cover src={item.cover_url} alt={item.title} w={def.w} h={def.h} cls={clsMap[libType]}/>
+      <div className="card-label" style={{maxWidth:def.w}}>{lbl}</div>
     </div>
   );
 }
 
-function AlbumCard({ item }) {
+/* ─── Add Item Side Panel ────────────────────────────────────────────────── */
+function AddPanel({ libType, onClose, onAdd }) {
+  const def = LIBRARY_TYPES.find(t=>t.key===libType);
+  const searchFns = { films:apiFilms, books:apiBooks, music:apiMusic, games:apiGames };
+  const [q,setQ] = useState('');
+  const [results,setResults] = useState([]);
+  const [loading,setLoading] = useState(false);
+  const [sel,setSel] = useState(null);
+  const [status,setStatus] = useState('collected');
+  const inputRef = useRef();
+
+  useEffect(()=>{
+    inputRef.current?.focus();
+    setLoading(true);
+    const defaults={films:'popular',books:'fiction',music:'classic',games:'adventure'};
+    searchFns[libType](defaults[libType]).then(r=>{setResults(r);setLoading(false);}).catch(()=>setLoading(false));
+  },[libType]);
+
+  const doSearch = async()=>{
+    if(!q.trim())return;
+    setLoading(true);setSel(null);setResults([]);
+    try{const r=await searchFns[libType](q);setResults(r);}catch(e){setResults([]);}
+    setLoading(false);
+  };
+
+  const statusLabels={
+    films:{in_progress:'Watching'},
+    books:{in_progress:'Reading'},
+    music:{in_progress:'Listening'},
+    games:{in_progress:'Playing'},
+  };
+
   return (
-    <div className="media-card">
-      <div className="album-cover" style={{ background: item.cover_color }}>
-        <div className="album-body">
-          <div className="cover-title">{item.title}</div>
-          <div className="cover-sub">{item.subtitle}</div>
+    <div className="add-panel-back" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="add-panel">
+        <div className="panel-header">
+          <div className="panel-title">Add to {def.label}</div>
+          <div className="panel-sub">Search · Select · Save</div>
         </div>
-        <div className="vinyl">
-          <div className="vinyl-dot" style={{ background: item.vinyl || '#1a2a1a' }}/>
+        <div className="panel-body">
+          <div className="search-row">
+            <input ref={inputRef} className="search-field" value={q}
+              placeholder={`Search ${def.label.toLowerCase()}…`}
+              onChange={e=>setQ(e.target.value)}
+              onKeyDown={e=>e.key==='Enter'&&doSearch()} />
+            <button className="btn-search" onClick={doSearch}>Search</button>
+          </div>
+          {loading && <div className="loading-dots"><span/><span/><span/></div>}
+          {!loading&&results.length===0&&q && <div className="no-results">No results</div>}
+          <div className="results-list">
+            {results.map(item=>(
+              <div key={item.ext_id} className={`result-item ${sel?.ext_id===item.ext_id?'selected':''}`}
+                onClick={()=>setSel(s=>s?.ext_id===item.ext_id?null:item)}>
+                <div className="result-thumb">
+                  <img src={item.cover_url} alt={item.title}
+                    style={{width:libType==='music'?42:36,height:libType==='music'?42:52,objectFit:'cover',display:'block',background:'#1a1612'}}
+                    onError={e=>{e.target.style.visibility='hidden';}}/>
+                </div>
+                <div className="result-info">
+                  <div className="result-title">{item.title}</div>
+                  <div className="result-meta">{item.subtitle}</div>
+                </div>
+                {sel?.ext_id===item.ext_id&&<div className="check-dot"><Icon t="check" s={{width:10,height:10}}/></div>}
+              </div>
+            ))}
+          </div>
         </div>
+        {sel&&(
+          <div className="panel-footer">
+            <div className="form-label" style={{marginBottom:7}}>Status</div>
+            <select className="status-sel" value={status} onChange={e=>setStatus(e.target.value)}>
+              <option value="collected">Collected</option>
+              <option value="in_progress">{statusLabels[libType]?.in_progress||'In progress'}</option>
+              <option value="wishlist">Wishlist</option>
+            </select>
+            <div className="modal-actions">
+              <button className="btn-cancel" onClick={()=>setSel(null)}>Clear</button>
+              <button className="btn-primary" onClick={()=>{onAdd({...sel,status});onClose();}}>Add to shelf</button>
+            </div>
+          </div>
+        )}
       </div>
-      <div className="card-label" style={{ maxWidth: 74 }}>{item.title}</div>
     </div>
   );
 }
 
-function GameCard({ item }) {
+/* ─── Create Library Modal ───────────────────────────────────────────────── */
+function CreateModal({ existing, onClose, onCreate }) {
+  const [sel,setSel]=useState(null);
   return (
-    <div className="media-card">
-      <div className="game-cover">
-        <div className="game-band" style={{ background: item.band }}>
-          <span className="game-platform">{item.platform}</span>
-        </div>
-        <div className="game-body" style={{ background: item.cover_color }}>
-          <div className="cover-title">{item.title}</div>
-          <div className="cover-sub">{item.subtitle}</div>
-        </div>
-      </div>
-      <div className="card-label" style={{ maxWidth: 66 }}>{item.title}</div>
-    </div>
-  );
-}
-
-function MediaCard({ type, item }) {
-  if (type === 'books') return <BookCard item={item} />;
-  if (type === 'films') return <FilmCard item={item} />;
-  if (type === 'music') return <AlbumCard item={item} />;
-  if (type === 'games') return <GameCard item={item} />;
-  return null;
-}
-
-// ─── Create Library Modal ─────────────────────────────────────────────────────
-function CreateLibraryModal({ existing, onClose, onCreate }) {
-  const [selected, setSelected] = useState(null);
-
-  const available = LIBRARY_TYPES.filter(t => !existing.includes(t.key));
-
-  return (
-    <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && onClose()}>
+    <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal">
         <div className="modal-title">Add a library</div>
-        <div className="modal-sub">One of each type per profile · Choose what to create</div>
+        <div className="modal-sub">One per type · Choose what to create</div>
         <div className="lib-options">
-          {LIBRARY_TYPES.map(t => {
-            const taken = existing.includes(t.key);
+          {LIBRARY_TYPES.map(t=>{
+            const taken=existing.includes(t.key);
             return (
-              <button
-                key={t.key}
-                className={`lib-option ${selected === t.key ? 'selected' : ''} ${taken ? 'disabled' : ''}`}
-                onClick={() => !taken && setSelected(t.key)}
-              >
-                <Icon type={t.icon} style={{ width: 20, height: 20 }} />
-                <div className="option-name">{t.label}</div>
-                <div className="option-note">{taken ? 'Already created' : 'Empty · Ready to fill'}</div>
+              <button key={t.key} className={`lib-opt ${sel===t.key?'selected':''} ${taken?'disabled':''}`}
+                onClick={()=>!taken&&setSel(t.key)}>
+                <Icon t={t.icon} s={{width:20,height:20,fill:'none'}}/>
+                <div className="opt-name">{t.label}</div>
+                <div className="opt-note">{taken?'Already created':'Empty · Ready to fill'}</div>
               </button>
             );
           })}
         </div>
         <div className="modal-actions">
           <button className="btn-cancel" onClick={onClose}>Cancel</button>
-          <button className="btn-create" disabled={!selected} onClick={() => selected && onCreate(selected)}>
-            Create library
-          </button>
+          <button className="btn-primary" disabled={!sel} onClick={()=>sel&&onCreate(sel)}>Create library</button>
         </div>
       </div>
     </div>
   );
 }
 
-// ─── Auth Modal ───────────────────────────────────────────────────────────────
+/* ─── Auth Modal ─────────────────────────────────────────────────────────── */
 function AuthModal({ onClose, onAuth }) {
-  const [mode, setMode] = useState('login');
-  const [form, setForm] = useState({ username: '', email: '', password: '' });
-  const [error, setError] = useState('');
-
-  const handle = (e) => {
-    e.preventDefault();
-    setError('');
-    if (mode === 'register' && form.username.length < 2) {
-      return setError('Username must be at least 2 characters');
-    }
-    if (!form.email.includes('@')) return setError('Enter a valid email');
-    if (form.password.length < 6) return setError('Password must be at least 6 characters');
-    // In production: POST /api/auth/login or /register
-    onAuth({ username: form.username || form.email.split('@')[0], email: form.email });
+  const [mode,setMode]=useState('login');
+  const [form,setForm]=useState({username:'',email:'',password:''});
+  const [err,setErr]=useState('');
+  const submit=e=>{
+    e.preventDefault();setErr('');
+    if(mode==='register'&&form.username.length<2)return setErr('Username must be at least 2 characters');
+    if(!form.email.includes('@'))return setErr('Enter a valid email');
+    if(form.password.length<6)return setErr('Password must be 6+ characters');
+    onAuth({username:form.username||form.email.split('@')[0],email:form.email});
   };
-
   return (
-    <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && onClose()}>
+    <div className="modal-backdrop" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal auth-modal">
-        <div className="modal-title">{mode === 'login' ? 'Sign in' : 'Create account'}</div>
-        <div className="modal-sub" style={{ marginBottom: 20 }}>
-          {mode === 'login' ? 'Access your collection' : 'Start building your library'}
-        </div>
-        {error && <div className="error-msg">{error}</div>}
-        <form onSubmit={handle}>
-          {mode === 'register' && (
-            <div className="form-field">
-              <label className="form-label">Username</label>
-              <input className="form-input" placeholder="your_handle"
-                value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} />
-            </div>
-          )}
-          <div className="form-field">
-            <label className="form-label">Email</label>
-            <input className="form-input" type="email" placeholder="you@example.com"
-              value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
-          </div>
-          <div className="form-field">
-            <label className="form-label">Password</label>
-            <input className="form-input" type="password" placeholder="••••••••"
-              value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} />
-          </div>
-          <div className="modal-actions" style={{ marginTop: 20 }}>
+        <div className="modal-title">{mode==='login'?'Sign in':'Create account'}</div>
+        <div className="modal-sub">{mode==='login'?'Access your collection':'Start building your library'}</div>
+        {err&&<div className="err-msg">{err}</div>}
+        <form onSubmit={submit}>
+          {mode==='register'&&<div className="form-field"><label className="form-label">Username</label><input className="form-input" placeholder="your_handle" value={form.username} onChange={e=>setForm({...form,username:e.target.value})}/></div>}
+          <div className="form-field"><label className="form-label">Email</label><input className="form-input" type="email" placeholder="you@example.com" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></div>
+          <div className="form-field"><label className="form-label">Password</label><input className="form-input" type="password" placeholder="••••••••" value={form.password} onChange={e=>setForm({...form,password:e.target.value})}/></div>
+          <div className="modal-actions" style={{marginTop:18}}>
             <button type="button" className="btn-cancel" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn-create">
-              {mode === 'login' ? 'Sign in' : 'Create account'}
-            </button>
+            <button type="submit" className="btn-primary">{mode==='login'?'Sign in':'Create account'}</button>
           </div>
         </form>
         <div className="form-toggle">
-          {mode === 'login'
-            ? <>No account? <span onClick={() => setMode('register')}>Sign up</span></>
-            : <>Have an account? <span onClick={() => setMode('login')}>Sign in</span></>}
+          {mode==='login'?<>No account? <span onClick={()=>setMode('register')}>Sign up</span></>:<>Have an account? <span onClick={()=>setMode('login')}>Sign in</span></>}
         </div>
       </div>
     </div>
   );
 }
 
-// ─── Toast ────────────────────────────────────────────────────────────────────
-function Toast({ message, onDone }) {
-  useEffect(() => {
-    const t = setTimeout(onDone, 2400);
-    return () => clearTimeout(t);
-  }, []);
-  return <div className="toast">{message}</div>;
+/* ─── Toast ──────────────────────────────────────────────────────────────── */
+function Toast({ msg, onDone }) {
+  useEffect(()=>{const t=setTimeout(onDone,2600);return()=>clearTimeout(t);},[]);
+  return <div className="toast">{msg}</div>;
 }
 
-// ─── Shelf Row ────────────────────────────────────────────────────────────────
-function ShelfRow({ libraryType, items, onAddClick }) {
-  const def = LIBRARY_TYPES.find(t => t.key === libraryType);
-  const hasItems = items && items.length > 0;
-
-  return (
-    <div className="shelf-row">
-      <div className="shelf-icon-block">
-        <Icon type={def.icon} />
-      </div>
-
-      {hasItems ? (
-        <>
-          <div className="shelf-items">
-            {items.map(item => (
-              <MediaCard key={item.id} type={libraryType} item={item} />
-            ))}
-          </div>
-          <div className="shelf-end">
-            <div className="shelf-count">{items.length} items</div>
-            <button className="shelf-view-all">All →</button>
-          </div>
-        </>
-      ) : (
-        <div className="shelf-empty" onClick={onAddClick}>
-          <Icon type="plus" />
-          <span>Add your first {def.label.toLowerCase()}</span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Empty Shelf Placeholder (not yet created) ────────────────────────────────
-function EmptyShelfPlaceholder({ onCreateClick }) {
-  return (
-    <div className="shelf-row">
-      <div className="shelf-icon-block" style={{ opacity: 0.25 }}>
-        <svg viewBox="0 0 22 22" fill="none" style={{ width: 22, height: 22 }}>
-          <line x1="11" y1="4" x2="11" y2="18" stroke="#b8965a" strokeWidth="1"/>
-          <line x1="4" y1="11" x2="18" y2="11" stroke="#b8965a" strokeWidth="1"/>
-        </svg>
-      </div>
-      <div className="shelf-empty" onClick={onCreateClick}>
-        <Icon type="plus" />
-        <span>Create a new library</span>
-      </div>
-    </div>
-  );
-}
-
-// ─── App ──────────────────────────────────────────────────────────────────────
+/* ─── App ────────────────────────────────────────────────────────────────── */
 function App() {
-  const [user, setUser] = useState(null);
-  const [libraries, setLibraries] = useState([]);   // array of {type, items}
-  const [showCreate, setShowCreate] = useState(false);
-  const [showAuth, setShowAuth] = useState(false);
-  const [toast, setToast] = useState(null);
+  const [user,setUser]=useState(null);
+  const [libraries,setLibraries]=useState([]);
+  const [showCreate,setShowCreate]=useState(false);
+  const [showAuth,setShowAuth]=useState(false);
+  const [addPanel,setAddPanel]=useState(null);
+  const [toast,setToast]=useState(null);
 
-  // How many "slots" to show — always show existing + at least 1 empty row (up to 4 total)
-  const existingTypes = libraries.map(l => l.type);
-  const canCreate = existingTypes.length < 4;
+  const existing=libraries.map(l=>l.type);
+  const canCreate=existing.length<4;
+  const totalItems=libraries.reduce((s,l)=>s+l.items.length,0);
+  const demoMode=!TMDB_KEY;
 
-  // Rows to render: existing libraries + one "add" row if space remains
-  const rows = [...libraries];
-
-  const showToast = (msg) => setToast(msg);
-
-  const handleAuth = (userData) => {
-    setUser(userData);
-    setShowAuth(false);
-    showToast(`Welcome, ${userData.username}`);
-  };
-
-  const handleCreateLibrary = (type) => {
-    if (existingTypes.includes(type)) return;
-    const newLib = { type, items: [] };
-    setLibraries(prev => [...prev, newLib]);
+  const showT=msg=>setToast(msg);
+  const handleAuth=u=>{setUser(u);setShowAuth(false);showT(`Welcome, ${u.username}`);};
+  const handleCreate=type=>{
+    setLibraries(prev=>[...prev,{type,items:[]}]);
     setShowCreate(false);
-    const def = LIBRARY_TYPES.find(t => t.key === type);
-    showToast(`${def.label} library created`);
-    // In production: POST /api/libraries { type }
+    showT(`${LIBRARY_TYPES.find(t=>t.key===type).label} library created`);
   };
-
-  const handleCreateClick = () => {
-    if (!user) {
-      setShowAuth(true);
-    } else {
-      setShowCreate(true);
-    }
+  const handleAddClick=type=>{
+    if(!user){setShowAuth(true);return;}
+    setAddPanel(type);
   };
-
-  // Simulate loading seed data for demo purposes
-  const handleSeedDemo = () => {
-    if (!user) { setShowAuth(true); return; }
-    const types = ['books', 'films', 'music', 'games'];
-    const demo = types.map(type => ({ type, items: SEED_ITEMS[type] }));
-    setLibraries(demo);
-    showToast('Demo collection loaded');
+  const handleAddItem=(libType,item)=>{
+    setLibraries(prev=>prev.map(l=>l.type===libType?{...l,items:[item,...l.items]}:l));
+    showT(`"${item.title}" added`);
   };
-
-  const initials = user ? user.username.slice(0, 2).toUpperCase() : '?';
 
   return (
     <>
-      {/* TOP BAR */}
       <div className="topbar">
         <div className="brand">Shelf</div>
         <div className="topbar-right">
-          {user ? (
-            <>
-              <button className="shelf-view-all" style={{ color: 'var(--text3)', fontSize: 10 }}
-                onClick={handleSeedDemo}>
-                Load demo
-              </button>
-              <div className="avatar-btn" title={user.username}>{initials}</div>
-            </>
-          ) : (
-            <button className="btn-create" style={{ padding: '7px 18px' }}
-              onClick={() => setShowAuth(true)}>
-              Sign in
-            </button>
-          )}
+          {user
+            ? <div className="avatar-chip"><div className="avatar-circle">{user.username.slice(0,2).toUpperCase()}</div><span className="avatar-name">{user.username}</span></div>
+            : <button className="btn-signin" onClick={()=>setShowAuth(true)}>Sign in</button>}
         </div>
       </div>
 
-      {/* HERO */}
       <div className="hero">
-        <div className="library-label">
-          {user ? <><em>{user.username}</em>'s library</> : 'Library'}
-        </div>
+        <div className="library-label">{user?<><em>{user.username}</em>'s library</>:'Library'}</div>
+        {user&&totalItems>0&&<div className="hero-sub">{existing.length} shelf{existing.length!==1?'ves':''} · {totalItems} items</div>}
       </div>
 
-      {/* SHELVES */}
+      {demoMode&&(
+        <div className="api-notice">
+          <strong>Demo mode</strong> — Films & Games use sample data. Books &amp; Music search live via Open Library &amp; MusicBrainz.
+          For full live search: get a free <a href="https://www.themoviedb.org/settings/api" target="_blank">TMDB key</a> (films) and <a href="https://api.igdb.com" target="_blank">IGDB key</a> (games), then paste them at the top of index.html.
+        </div>
+      )}
+
       <div className="shelves">
-        {rows.map(lib => (
-          <ShelfRow
-            key={lib.type}
-            libraryType={lib.type}
-            items={lib.items}
-            onAddClick={() => showToast('Item adding coming soon')}
-          />
+        {libraries.map((lib,i)=>(
+          <div key={lib.type} className="shelf-row" style={{animationDelay:`${i*0.07}s`}}>
+            <div className="shelf-icon-block"><Icon t={LIBRARY_TYPES.find(t=>t.key===lib.type).icon} s={{width:22,height:22,fill:'none'}}/></div>
+            {lib.items.length>0 ? (
+              <>
+                <div className="shelf-items">
+                  {lib.items.map((item,j)=><MediaCard key={item.ext_id||j} libType={lib.type} item={item}/>)}
+                </div>
+                <div className="shelf-end">
+                  <div className="shelf-count">{lib.items.length} item{lib.items.length!==1?'s':''}</div>
+                  <button className="shelf-all" onClick={()=>handleAddClick(lib.type)}>+ Add</button>
+                </div>
+              </>
+            ) : (
+              <div className="shelf-empty" onClick={()=>handleAddClick(lib.type)}>
+                <Icon t="plus" s={{width:14,height:14,fill:'none'}}/>
+                <span>Add your first {LIBRARY_TYPES.find(t=>t.key===lib.type).label.toLowerCase()}</span>
+              </div>
+            )}
+          </div>
         ))}
 
-        {/* Empty create rows: always show at least 1 if < 4 */}
-        {canCreate && (
-          <EmptyShelfPlaceholder onCreateClick={handleCreateClick} />
+        {canCreate&&(
+          <div className="shelf-row" style={{animationDelay:`${libraries.length*0.07}s`}}>
+            <div className="shelf-icon-block" style={{opacity:.2}}>
+              <Icon t="plus" s={{width:16,height:16,fill:'none'}}/>
+            </div>
+            <div className="shelf-empty" onClick={()=>user?setShowCreate(true):setShowAuth(true)}>
+              <Icon t="plus" s={{width:14,height:14,fill:'none'}}/>
+              <span>Create a new library</span>
+            </div>
+          </div>
         )}
       </div>
 
-      {/* FOOTER */}
       <div className="footer">
         <span className="footer-label">Shelf · Personal media library</span>
-        {canCreate && user && (
-          <button className="btn-create" style={{ padding: '8px 20px' }}
-            onClick={() => setShowCreate(true)}>
-            + New library
-          </button>
-        )}
+        {canCreate&&user&&<button className="btn-primary" style={{padding:'8px 20px'}} onClick={()=>setShowCreate(true)}>+ New library</button>}
       </div>
 
-      {/* MODALS */}
-      {showCreate && (
-        <CreateLibraryModal
-          existing={existingTypes}
-          onClose={() => setShowCreate(false)}
-          onCreate={handleCreateLibrary}
-        />
-      )}
-      {showAuth && (
-        <AuthModal onClose={() => setShowAuth(false)} onAuth={handleAuth} />
-      )}
-
-      {/* TOAST */}
-      {toast && <Toast message={toast} onDone={() => setToast(null)} />}
+      {showCreate&&<CreateModal existing={existing} onClose={()=>setShowCreate(false)} onCreate={handleCreate}/>}
+      {showAuth&&<AuthModal onClose={()=>setShowAuth(false)} onAuth={handleAuth}/>}
+      {addPanel&&<AddPanel libType={addPanel} onClose={()=>setAddPanel(null)} onAdd={item=>handleAddItem(addPanel,item)}/>}
+      {toast&&<Toast msg={toast} onDone={()=>setToast(null)}/>}
     </>
   );
 }
 
-ReactDOM.createRoot(document.getElementById('app')).render(<App />);
+ReactDOM.createRoot(document.getElementById('app')).render(<App/>);
 </script>
 </body>
 </html>
