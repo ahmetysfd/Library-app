@@ -1,121 +1,144 @@
-# Shelf — Personal Media Library Platform
+# Shelf — Personal Media Library
 
-A minimalist social platform for cataloguing Books, Films & TV, Music, and Games.
-Each user can have exactly **one library per media type** (enforced both in the UI and at the database level).
+A dark, minimal personal library app for tracking films, books, music, and games. Built with React (CDN), Express, and Supabase (PostgreSQL).
 
----
-
-## Project Structure
-
-```
-shelf-app/
-├── index.html           ← Frontend (standalone React app, no build step needed)
-└── backend/
-    ├── server.js        ← Express API server
-    ├── schema.sql       ← Supabase/PostgreSQL schema (run once)
-    └── package.json
-```
+**Full database + backend walkthrough:** see **[SETUP.md](./SETUP.md)** (step-by-step; includes what’s automated vs what you must do in Supabase).
 
 ---
 
-## Frontend
+## Quick Start (Frontend Only)
 
-Open `index.html` directly in a browser — no build step required.
-Uses React 18 via CDN + Babel standalone for JSX.
+Just open `index.html` in a browser — it works standalone with localStorage and demo data. No server needed for basic usage.
 
-**For production:** Migrate to Vite + React for proper bundling:
 ```bash
-npm create vite@latest shelf-frontend -- --template react
+# Or serve locally for API access:
+npx serve .
 ```
 
 ---
 
-## Backend Setup
+## Full Setup (With Database & Server)
 
-### 1. Supabase (Database)
+> **Detailed guide:** [SETUP.md](./SETUP.md)
 
-1. Create a project at https://supabase.com
-2. Go to SQL Editor → paste the entire contents of `backend/schema.sql` → Run
-3. Copy your **Project URL** and **service_role key** from Settings → API
+### 1. Supabase **(you, in browser)**
 
-### 2. Environment Variables
+1. Create a free project at [supabase.com](https://supabase.com)
+2. **SQL Editor** → paste all of `schema.sql` → **Run**
+3. **Settings → API** → copy **Project URL** and **service_role** key (keep secret)
 
-Create `backend/.env`:
+### 2. Environment **(you)**
+
+```bash
+# Windows PowerShell (if .env missing):
+Copy-Item .env.example .env
+# macOS/Linux:
+cp .env.example .env
 ```
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_KEY=your-service-role-key
-JWT_SECRET=a-long-random-secret-string
-PORT=3001
-```
+
+Edit `.env`: set `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, and `JWT_SECRET` (e.g. `openssl rand -hex 32`).
 
 ### 3. Install & Run
 
 ```bash
-cd backend
-npm install
-npm run dev        # development
-npm start          # production
+npm install   # already done if you followed SETUP.md
+npm start
+# Server: http://localhost:3001
 ```
 
----
+### 4. Open the App
 
-## API Reference
+With the server running (`npm start` or `npm run dev`), open **`http://localhost:3001/`** — the server serves `index.html` and the API on the same port.  
+(JSON-only check: **`http://localhost:3001/api/health`**.)
 
-### Auth
-| Method | Route | Description |
-|--------|-------|-------------|
-| POST | `/api/auth/register` | `{ username, email, password }` |
-| POST | `/api/auth/login`    | `{ email, password }` → `{ user, token }` |
-
-### Libraries
-| Method | Route | Description |
-|--------|-------|-------------|
-| GET    | `/api/libraries`               | Get your libraries (auth required) |
-| POST   | `/api/libraries`               | Create library `{ type }` — max 1 per type |
-| DELETE | `/api/libraries/:id`           | Delete a library |
-| GET    | `/api/users/:username/libraries` | Public profile libraries |
-
-### Items
-| Method | Route | Description |
-|--------|-------|-------------|
-| GET    | `/api/libraries/:id/items`           | List items (paginated) |
-| POST   | `/api/libraries/:id/items`           | Add item |
-| PATCH  | `/api/libraries/:id/items/:itemId`   | Update item |
-| DELETE | `/api/libraries/:id/items/:itemId`   | Remove item |
-
-### Social
-| Method | Route | Description |
-|--------|-------|-------------|
-| POST   | `/api/users/:id/follow`   | Follow a user |
-| DELETE | `/api/users/:id/follow`   | Unfollow |
-| GET    | `/api/feed`               | Activity feed from followed users |
-| GET    | `/api/search?q=&type=`    | Search users and items |
+Using `file://` on `index.html` still works but is limited; prefer **`http://localhost:3001/`** when the backend is on.
 
 ---
 
-## Key Design Decisions
+## API Keys (Optional)
 
-### 1 Library Per Type Per User
-Enforced at **3 layers**:
-- **UI**: already-created types are greyed out in the modal
-- **API**: returns 409 if type already exists for user
-- **Database**: `UNIQUE (user_id, type)` constraint on `libraries` table
+| Service | For | Get key at |
+|---------|-----|------------|
+| TMDB | Film & TV search | [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api) |
+| IGDB/Twitch | Game search | [dev.twitch.tv/console](https://dev.twitch.tv/console) |
+| Google OAuth | Sign in with Google | [console.cloud.google.com](https://console.cloud.google.com/apis/credentials) |
 
-### Scalability Notes
-- All tables use UUID primary keys (safe for distributed systems)
-- Row-Level Security (RLS) enabled on all tables
-- Activity feed is a database view — swap for a materialised table + triggers at scale
-- Add Redis caching for feed and search at 10k+ users
-- Add CDN (Cloudflare R2 / S3) for cover image uploads
+Books (Open Library) and Music (MusicBrainz) require no keys.
 
 ---
 
-## Roadmap
+## Features
 
-- [ ] Cover image uploads (Supabase Storage)
-- [ ] External metadata API (Open Library, TMDB, MusicBrainz, IGDB)
-- [ ] Item ratings & reviews
-- [ ] Social feed page
-- [ ] Profile pages (`/u/:username`)
-- [ ] Lists & shelves within a library
-- [ ] Mobile app (React Native, shared API)
+- **4 library types**: Films & TV, Books, Music, Games
+- **Auth**: Email/password registration & login, Google OAuth
+- **Database**: Supabase PostgreSQL with Row-Level Security
+- **Friends**: Search users by username, send/accept friend requests
+- **Library pages**: Grid & list views, filter by status, sort by title/rating/date
+- **Item statuses**: Collected, Watching/Reading/Playing, Wishlist
+- **Activity feed**: See what friends are adding
+- **Offline mode**: Works with localStorage when server is unavailable
+- **Responsive**: Adapts from desktop to mobile
+
+---
+
+## Architecture
+
+```
+index.html          — Single-file React frontend (CDN, no build step)
+server.js           — Express API server
+schema.sql          — Supabase/PostgreSQL schema with RLS policies
+package.json        — Node.js dependencies
+.env.example        — Environment variable template
+```
+
+### Database Schema
+
+- `users` — accounts with username, email, password hash
+- `libraries` — one per type per user (films, books, music, games)
+- `library_items` — media entries with status, rating, metadata (JSONB)
+- `friend_requests` — bidirectional friendship (pending → accepted)
+- `follows` — one-directional follow for activity feed
+- `item_likes` — like system for friends' items
+- Views: `user_friends`, `activity_feed`, `user_stats`
+
+### API Endpoints
+
+**Auth**: `POST /api/auth/register`, `/api/auth/login`, `/api/auth/google`, `GET /api/auth/me`
+
+**Libraries**: `GET /api/libraries`, `POST /api/libraries`, `DELETE /api/libraries/:id`
+
+**Items**: `GET /api/libraries/:id/items`, `POST /api/libraries/:id/items`, `PATCH /api/libraries/:lid/items/:iid`, `DELETE /api/libraries/:lid/items/:iid`
+
+**Friends**: `POST /api/friends/request`, `POST /api/friends/accept/:id`, `POST /api/friends/reject/:id`, `DELETE /api/friends/:id`, `GET /api/friends`, `GET /api/friends/requests`
+
+**Social**: `GET /api/users/:username`, `GET /api/users/search?q=`, `GET /api/feed`, `GET /api/search?q=`
+
+**Media Search**: `GET /api/search/films?q=`, `/books?q=`, `/music?q=`, `/games?q=`
+
+---
+
+## Deploying
+
+### Frontend
+Host `index.html` anywhere: Vercel, Netlify, GitHub Pages, S3, etc.  
+Update `API_BASE` in the script to point to your server URL.
+
+### Backend
+Deploy `server.js` to: Railway, Render, Fly.io, Heroku, etc.  
+Set environment variables from `.env`.
+
+### Database
+Supabase handles hosting, backups, and scaling automatically.
+
+---
+
+## Scaling Notes
+
+The schema is designed for scale from day one:
+
+- **Indexes** on all foreign keys, frequently queried columns, and full-text search
+- **Row-Level Security** policies ensure data isolation per user
+- **JSONB metadata** column allows flexible per-item data without schema changes
+- **Materialized views** for stats and activity feed
+- **Pagination** on all list endpoints (cursor-based upgrade path available)
+- **Supabase** auto-scales Postgres, with connection pooling via PgBouncer
