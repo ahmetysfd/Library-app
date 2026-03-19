@@ -266,24 +266,104 @@ body{background:var(--bg);color:var(--text);font-family:'Geist',sans-serif;font-
 .lib-grid-card-info-left{flex:1;min-width:0}
 .lib-grid-card-title{font-size:13px;font-weight:400;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lib-grid-card-sub{font-size:11px;font-weight:300;color:var(--text3);margin-top:2px;display:flex;align-items:center;gap:6px}
-.lib-grid-card-rating{display:flex;align-items:center;gap:3px;color:var(--gold);font-size:11px}
-.lib-grid-card-rating svg{width:11px;height:11px}
+/* Rating badge — overlaid on bottom-right of cover */
+.lib-grid-card-rating{
+  position:absolute;bottom:8px;right:8px;
+  display:flex;align-items:center;gap:4px;
+  background:rgba(10,9,8,.78);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  border:0.5px solid rgba(200,165,80,.25);
+  border-radius:4px;
+  padding:4px 7px 4px 5px;
+  color:var(--gold);
+  font-size:13px;font-weight:400;
+  letter-spacing:.02em;
+  pointer-events:none;
+}
+.lib-grid-card-rating svg{width:16px;height:16px;flex-shrink:0}
 .lib-grid-card-status{position:absolute;top:8px;right:8px;padding:3px 8px;border-radius:2px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:300;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
-.card-dots-btn{background:none;border:none;color:var(--text4);cursor:pointer;padding:2px 2px;line-height:1;transition:color .2s;flex-shrink:0;position:relative}
-.card-dots-btn:hover{color:var(--text2)}
-.card-dots-btn svg{display:block}
-.card-dropdown{position:absolute;right:0;top:100%;margin-top:4px;background:var(--bg2);border:0.5px solid var(--border);border-radius:4px;min-width:180px;z-index:20;animation:fade-in .12s ease;box-shadow:0 8px 28px rgba(0,0,0,.5)}
-.card-dropdown-item{display:flex;align-items:center;gap:8px;padding:10px 14px;font-size:12px;font-weight:300;letter-spacing:.06em;color:var(--text2);cursor:pointer;transition:all .15s;white-space:nowrap;border:none;background:none;width:100%;text-align:left;font-family:inherit}
-.card-dropdown-item:first-child{border-radius:4px 4px 0 0}
-.card-dropdown-item:last-child{border-radius:0 0 4px 4px}
+/* ─── Card menu button ─────────────────────────────────────────────────────── */
+.card-dots-btn{
+  background:none;border:none;cursor:pointer;flex-shrink:0;
+  width:26px;height:26px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text4);transition:background .18s,color .18s;
+  padding:0;
+}
+.card-dots-btn:hover{background:var(--bg4);color:var(--text2)}
+.card-dots-btn:active{background:var(--border)}
+.card-dots-btn svg{display:block;pointer-events:none}
+
+/* ─── Card dropdown — rendered in portal so z-index always wins ───────────── */
+.card-dropdown{
+  background:var(--bg2);
+  border:0.5px solid var(--border);
+  border-radius:6px;
+  min-width:192px;
+  overflow:hidden;
+  animation:card-drop-in .12s ease;
+  box-shadow:0 4px 8px rgba(0,0,0,.25),0 12px 32px rgba(0,0,0,.45),0 0 0 0.5px rgba(255,255,255,.03) inset;
+}
+@keyframes card-drop-in{from{opacity:0;transform:scale(.95) translateY(-4px)}to{opacity:1;transform:none}}
+.card-dropdown-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;
+  font-size:12px;font-weight:300;letter-spacing:.05em;
+  color:var(--text2);cursor:pointer;
+  transition:background .12s,color .12s;
+  white-space:nowrap;border:none;background:none;
+  width:100%;text-align:left;font-family:inherit;
+}
 .card-dropdown-item:hover{background:var(--bg3);color:var(--text)}
-.card-dropdown-item.danger:hover{background:rgba(176,64,64,.1);color:#e06060}
-.card-dropdown-sep{height:0.5px;background:var(--border2);margin:2px 0}
+.card-dropdown-item.danger{color:var(--text3)}
+.card-dropdown-item.danger:hover{background:rgba(176,64,64,.12);color:#e07070}
+.card-dropdown-item svg{opacity:.65;flex-shrink:0;transition:opacity .12s}
+.card-dropdown-item:hover svg{opacity:1}
+.card-dropdown-sep{height:0.5px;background:var(--border2);margin:0}
 .result-plus-btn{position:absolute;top:6px;left:6px;width:26px;height:26px;border-radius:50%;background:rgba(10,9,8,.82);border:0.5px solid rgba(200,165,80,.3);color:var(--gold);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;z-index:3;transition:all .2s;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
 .result-plus-btn:hover{background:rgba(200,165,80,.2);border-color:var(--gold);transform:scale(1.1)}
+
+/* ─── Quick-add status popup ───────────────────────────────────────────────── */
+.quick-add-popup{
+  position:absolute;top:36px;left:6px;
+  background:var(--bg2);border:0.5px solid var(--border);
+  border-radius:6px;z-index:10;overflow:hidden;
+  box-shadow:0 4px 8px rgba(0,0,0,.3),0 12px 28px rgba(0,0,0,.5);
+  animation:card-drop-in .12s ease;
+  min-width:136px;
+}
+.quick-add-opt{
+  display:flex;align-items:center;gap:8px;
+  padding:9px 12px;width:100%;border:none;
+  background:none;font-family:inherit;
+  font-size:12px;font-weight:300;letter-spacing:.05em;
+  color:var(--text2);cursor:pointer;text-align:left;
+  transition:background .12s,color .12s;white-space:nowrap;
+}
+.quick-add-opt:hover{background:var(--bg3);color:var(--text)}
+.quick-add-opt svg{flex-shrink:0;opacity:.7}
+.quick-add-opt:hover svg{opacity:1}
+.quick-add-sep{height:0.5px;background:var(--border2)}
 .status-collected{background:rgba(10,9,8,.7);color:var(--text2);border:0.5px solid var(--border)}
 .status-in_progress{background:rgba(74,140,92,.15);color:var(--success);border:0.5px solid rgba(74,140,92,.3)}
 .status-wishlist{background:rgba(200,165,80,.1);color:var(--gold);border:0.5px solid rgba(200,165,80,.2)}
+
+/* ─── Currently Watching section ─────────────────────────────────────────── */
+.cw-section{margin-bottom:32px}
+.cw-section-header{display:flex;align-items:baseline;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:0.5px solid var(--border2)}
+.cw-section-title{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:300;color:var(--text);display:flex;align-items:center;gap:9px}
+.cw-live-dot{width:7px;height:7px;border-radius:50%;background:var(--success);flex-shrink:0;animation:cw-pulse 2.2s ease-in-out infinite}
+@keyframes cw-pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(74,140,92,.5)}50%{opacity:.55;box-shadow:0 0 0 5px rgba(74,140,92,0)}}
+.cw-section-count{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--text4)}
+.cw-cards-row{display:flex;gap:16px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px}
+.cw-cards-row::-webkit-scrollbar{display:none}
+.cw-card{flex:0 0 auto;width:130px}
+.cw-card-info-row{display:flex;align-items:flex-start;justify-content:space-between;gap:2px;margin-top:8px}
+.cw-card-info-left{flex:1;min-width:0;cursor:pointer}
+.cw-card-title{font-size:12px;font-weight:400;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cw-card-sub{font-size:10px;font-weight:300;color:var(--text3);margin-top:2px}
+.cw-card-progress{height:2px;background:var(--border);border-radius:1px;margin-top:6px;overflow:hidden}
+.cw-card-progress-bar{height:100%;background:var(--gold);border-radius:1px;width:40%}
 
 .lib-empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 0;color:var(--text3)}
 .lib-empty-state svg{width:48px;height:48px;opacity:.2;margin-bottom:16px}
@@ -656,41 +736,122 @@ function SmallIcon({ type, size=20 }) {
 }
 
 /* ─── Card 3-Dot Dropdown Menu ────────────────────────────────────────────── */
-function CardMenu({ item, onRemove, onMoveToWatchlist }) {
+/* ─── Card Context Menu ───────────────────────────────────────────────────── */
+function CardMenu({ item, onRemove, onMoveToWatchlist, onMarkWatching, onMarkWatched }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef();
+  const [dropStyle, setDropStyle] = useState({});
+  const btnRef = useRef();
+  const dropRef = useRef();
 
+  // Close on outside click or scroll
   useEffect(()=>{
     if (!open) return;
-    const close = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const close = (e)=>{
+      if (btnRef.current?.contains(e.target)) return;
+      if (dropRef.current?.contains(e.target)) return;
+      setOpen(false);
+    };
     document.addEventListener('mousedown', close);
+    document.addEventListener('scroll', ()=>setOpen(false), { capture:true, once:true });
     return ()=>document.removeEventListener('mousedown', close);
   },[open]);
 
+  const handleOpen = (e)=>{
+    e.stopPropagation();
+    if (open) { setOpen(false); return; }
+    const r = btnRef.current.getBoundingClientRect();
+    const dropW = 196;
+    const dropH = 92;  // approx: two items + separator
+    const spaceBelow = window.innerHeight - r.bottom - 8;
+    const openUpward = spaceBelow < dropH;
+    // Prefer opening to the right edge of the button; flip left if near right edge
+    const rightEdge = window.innerWidth - r.right;
+    setDropStyle({
+      position: 'fixed',
+      top: openUpward ? r.top - dropH - 4 : r.bottom + 4,
+      right: rightEdge < dropW ? window.innerWidth - r.left - dropW : rightEdge - (dropW - r.width),
+      width: dropW,
+      zIndex: 9999,
+    });
+    setOpen(true);
+  };
+
+  const isWishlist = item.status === 'wishlist';
+
+  const MoveIcon = ()=> isWishlist ? (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <path d="M2 7h10M7 2v5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+      <circle cx="7" cy="11" r="1.2" fill="currentColor"/>
+    </svg>
+  ) : (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.1"/>
+      <path d="M7 4.5V7l2 1.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+
+  const TrashIcon = ()=>(
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <path d="M2 4h10M5 4V3a1 1 0 011-1h2a1 1 0 011 1v1M11 4l-.7 7A1 1 0 019.3 12H4.7a1 1 0 01-1-.9L3 4" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+
+  // Eye icon — "Currently Watching"
+  const EyeIcon = ()=>(
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <ellipse cx="7" cy="7" rx="5.5" ry="3.5" stroke="currentColor" strokeWidth="1.1"/>
+      <circle cx="7" cy="7" r="1.6" fill="currentColor"/>
+    </svg>
+  );
+
+  // Check icon — "Mark as Watched"
+  const WatchedIcon = ()=>(
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <path d="M2 7l3.5 3.5 6.5-6.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+
   return (
-    <div ref={ref} style={{position:'relative'}}>
-      <button className="card-dots-btn" onClick={(e)=>{e.stopPropagation();setOpen(!open);}}>
-        <SmallIcon type="dots" size={16}/>
+    <>
+      <button ref={btnRef} className="card-dots-btn" onClick={handleOpen} title="Options">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <circle cx="7" cy="2.5" r="1.1" fill="currentColor"/>
+          <circle cx="7" cy="7"   r="1.1" fill="currentColor"/>
+          <circle cx="7" cy="11.5" r="1.1" fill="currentColor"/>
+        </svg>
       </button>
-      {open && (
-        <div className="card-dropdown">
-          {item.status !== 'wishlist' && (
-            <button className="card-dropdown-item" onClick={(e)=>{e.stopPropagation();onMoveToWatchlist(item);setOpen(false);}}>
-              <span style={{fontSize:'14px'}}>🕐</span> Move to watchlist
-            </button>
+
+      {open && ReactDOM.createPortal(
+        <div ref={dropRef} className="card-dropdown" style={dropStyle}>
+          {onMarkWatching && (
+            <>
+              <button className="card-dropdown-item" onClick={(e)=>{e.stopPropagation();onMarkWatching(item);setOpen(false);}}>
+                <EyeIcon/> Currently Watching
+              </button>
+              <div className="card-dropdown-sep"/>
+            </>
           )}
-          {item.status === 'wishlist' && (
-            <button className="card-dropdown-item" onClick={(e)=>{e.stopPropagation();onMoveToWatchlist(item);setOpen(false);}}>
-              <span style={{fontSize:'14px'}}>📚</span> Move to collected
-            </button>
+          {onMarkWatched && (
+            <>
+              <button className="card-dropdown-item" onClick={(e)=>{e.stopPropagation();onMarkWatched(item);setOpen(false);}}>
+                <WatchedIcon/> Mark as Watched
+              </button>
+              <div className="card-dropdown-sep"/>
+            </>
           )}
+          <button className="card-dropdown-item" onClick={(e)=>{e.stopPropagation();onMoveToWatchlist(item);setOpen(false);}}>
+            <MoveIcon/>
+            {isWishlist ? 'Move to collected' : 'Move to watchlist'}
+          </button>
           <div className="card-dropdown-sep"/>
           <button className="card-dropdown-item danger" onClick={(e)=>{e.stopPropagation();onRemove(item);setOpen(false);}}>
-            <span style={{fontSize:'14px'}}>✕</span> Remove from list
+            <TrashIcon/>
+            Remove from library
           </button>
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 }
 
@@ -816,7 +977,7 @@ function MediaCard({ libType, item, onClick }) {
 }
 
 /* ─── Add Item Panel — Half-screen grid ───────────────────────────────────── */
-function AddPanel({ libType, onClose, onAdd }) {
+function AddPanel({ libType, onClose, onAdd, existingItems }) {
   const def = LIBRARY_TYPES.find(t=>t.key===libType);
   const searchFns = { films:apiFilms, books:apiBooks, music:apiMusic, games:apiGames };
   const [q,setQ] = useState('');
@@ -825,7 +986,16 @@ function AddPanel({ libType, onClose, onAdd }) {
   const [sel,setSel] = useState(null);
   const [addRating,setAddRating] = useState(0);
   const [addRatingHover,setAddRatingHover] = useState(null);
+  const [quickAddOpen, setQuickAddOpen] = useState(null); // ext_id of item with open popup
   const inputRef = useRef();
+
+  // Close quick-add popup on outside click
+  useEffect(()=>{
+    if (!quickAddOpen) return;
+    const handler = ()=> setQuickAddOpen(null);
+    document.addEventListener('mousedown', handler);
+    return ()=> document.removeEventListener('mousedown', handler);
+  }, [quickAddOpen]);
 
   useEffect(()=>{
     inputRef.current?.focus();
@@ -879,22 +1049,76 @@ function AddPanel({ libType, onClose, onAdd }) {
           {loading && <div className="loading-dots"><span/><span/><span/></div>}
           {!loading&&results.length===0&&q && <div className="no-results">No results found</div>}
           <div className="results-list">
-            {results.map(item=>(
-              <div key={item.ext_id} className={`result-item ${sel?.ext_id===item.ext_id?'selected':''}`}
-                onClick={()=>{setSel(s=>s?.ext_id===item.ext_id?null:item);setAddRating(0);setAddRatingHover(null);}}
-                style={{position:'relative'}}>
-                <div className="result-thumb" style={{position:'relative'}}>
-                  <img src={item.cover_url} alt={item.title}
-                    onError={e=>{e.target.style.visibility='hidden';}}/>
-                  <button className="result-plus-btn" title={`Add to ${watchlistLabel}`} onClick={(e)=>{e.stopPropagation();onAdd({...item, status:'wishlist'});}}>+</button>
+            {results.map(item=>{
+              const alreadyAdded = (existingItems||[]).some(i=>i.ext_id&&i.ext_id===item.ext_id);
+              const isPopupOpen = quickAddOpen === item.ext_id;
+              return (
+                <div key={item.ext_id} className={`result-item ${sel?.ext_id===item.ext_id?'selected':''}`}
+                  onClick={()=>{if(alreadyAdded)return;setQuickAddOpen(null);setSel(s=>s?.ext_id===item.ext_id?null:item);setAddRating(0);setAddRatingHover(null);}}
+                  style={{position:'relative',opacity:alreadyAdded?.6:1,cursor:alreadyAdded?'default':'pointer'}}>
+                  <div className="result-thumb" style={{position:'relative'}}>
+                    <img src={item.cover_url} alt={item.title}
+                      onError={e=>{e.target.style.visibility='hidden';}}/>
+                    {!alreadyAdded && (
+                      <div onMouseDown={e=>e.stopPropagation()}>
+                        <button
+                          className="result-plus-btn"
+                          title="Add…"
+                          onClick={(e)=>{e.stopPropagation();setQuickAddOpen(isPopupOpen?null:item.ext_id);}}>
+                          {isPopupOpen
+                            ? <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1 1l8 8M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                            : <span style={{fontSize:'16px',lineHeight:1}}>+</span>}
+                        </button>
+                        {isPopupOpen && (
+                          <div className="quick-add-popup" onMouseDown={e=>e.stopPropagation()}>
+                            {/* Currently Watching — only for TV shows */}
+                            {item.metadata?.media_type==='tv' && (
+                              <>
+                                <button className="quick-add-opt" onClick={(e)=>{e.stopPropagation();onAdd({...item,status:'in_progress'});setQuickAddOpen(null);}}>
+                                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                                    <ellipse cx="6.5" cy="6.5" rx="5.5" ry="3.5" stroke="var(--success)" strokeWidth="1.1"/>
+                                    <circle cx="6.5" cy="6.5" r="1.7" fill="var(--success)"/>
+                                  </svg>
+                                  Currently Watching
+                                </button>
+                                <div className="quick-add-sep"/>
+                              </>
+                            )}
+                            {/* Watched / Collected */}
+                            <button className="quick-add-opt" onClick={(e)=>{e.stopPropagation();onAdd({...item,status:'collected'});setQuickAddOpen(null);}}>
+                              <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                                <path d="M1.5 6.5l3 3 6.5-6.5" stroke="var(--gold)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                              {item.metadata?.media_type==='tv' ? 'Watched' : 'Watched'}
+                            </button>
+                            <div className="quick-add-sep"/>
+                            {/* Watchlist */}
+                            <button className="quick-add-opt" onClick={(e)=>{e.stopPropagation();onAdd({...item,status:'wishlist'});setQuickAddOpen(null);}}>
+                              <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                                <ellipse cx="6.5" cy="6.5" rx="5.5" ry="3.5" stroke="currentColor" strokeWidth="1.1"/>
+                                <circle cx="6.5" cy="6.5" r="1.5" fill="currentColor"/>
+                              </svg>
+                              Watchlist
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div className="result-info">
+                    <div className="result-title">{item.title}</div>
+                    <div className="result-meta">{item.subtitle}</div>
+                    {alreadyAdded && (
+                      <div style={{fontSize:'10px',letterSpacing:'.1em',textTransform:'uppercase',color:'var(--gold)',marginTop:4,display:'flex',alignItems:'center',gap:4}}>
+                        <svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        In library
+                      </div>
+                    )}
+                  </div>
+                  {sel?.ext_id===item.ext_id&&<div className="result-check"><div className="check-dot"><SmallIcon type="check" size={10}/></div></div>}
                 </div>
-                <div className="result-info">
-                  <div className="result-title">{item.title}</div>
-                  <div className="result-meta">{item.subtitle}</div>
-                </div>
-                {sel?.ext_id===item.ext_id&&<div className="result-check"><div className="check-dot"><SmallIcon type="check" size={10}/></div></div>}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
         {sel&&(
@@ -1126,12 +1350,11 @@ function LibraryPage({ library, onBack, onAddClick, onRemoveItem, onRateItem, on
   const [sortBy,setSortBy] = useState('recent');
   const [ratingItem,setRatingItem] = useState(null);
 
-  // Films: tabs are Movies / Shows / Watching / Watchlist
+  // Films: Movies / Shows / Watchlist  (Watching removed — lives inside Shows)
   // Others: All / In Progress / Watchlist
   const filmTabs = [
     { key:'movies', label:'Movies' },
-    { key:'shows', label:'Shows' },
-    { key:'watching', label:'Watching' },
+    { key:'shows',  label:'Shows'  },
     { key:'wishlist', label:'Watchlist' },
   ];
   const genericTabs = [
@@ -1141,18 +1364,25 @@ function LibraryPage({ library, onBack, onAddClick, onRemoveItem, onRateItem, on
   ];
   const tabs = isFilms ? filmTabs : genericTabs;
 
+  // Currently Watching = TV shows marked in_progress; shown as a section inside Shows tab
+  const currentlyWatchingShows = useMemo(()=>
+    (library.items||[]).filter(i=>i.metadata?.media_type==='tv' && i.status==='in_progress')
+  ,[library.items]);
+
   const items = useMemo(()=>{
     let filtered = [...(library.items||[])];
     if (isFilms) {
-      if (tab==='movies') filtered = filtered.filter(i=>i.metadata?.media_type!=='tv');
-      if (tab==='shows') filtered = filtered.filter(i=>i.metadata?.media_type==='tv');
-      if (tab==='watching') filtered = filtered.filter(i=>i.status==='in_progress');
+      // movies: non-TV, non-wishlist
+      if (tab==='movies')   filtered = filtered.filter(i=>i.metadata?.media_type!=='tv' && i.status!=='wishlist');
+      // shows grid: TV shows that are watched/collected (not in_progress, not wishlist)
+      if (tab==='shows')    filtered = filtered.filter(i=>i.metadata?.media_type==='tv'  && i.status==='collected');
       if (tab==='wishlist') filtered = filtered.filter(i=>i.status==='wishlist');
     } else {
+      if (tab==='all')         filtered = filtered.filter(i=>i.status!=='wishlist');
       if (tab==='in_progress') filtered = filtered.filter(i=>i.status==='in_progress');
-      if (tab==='wishlist') filtered = filtered.filter(i=>i.status==='wishlist');
+      if (tab==='wishlist')    filtered = filtered.filter(i=>i.status==='wishlist');
     }
-    if (sortBy==='rating') filtered.sort((a,b)=>(b.metadata?.vote_average||b.metadata?.rating||0)-(a.metadata?.vote_average||a.metadata?.rating||0));
+    if (sortBy==='rating')      filtered.sort((a,b)=>(b.metadata?.vote_average||b.metadata?.rating||0)-(a.metadata?.vote_average||a.metadata?.rating||0));
     if (sortBy==='user_rating') filtered.sort((a,b)=>(b.user_rating||0)-(a.user_rating||0));
     return filtered;
   },[library.items,tab,sortBy]);
@@ -1160,19 +1390,19 @@ function LibraryPage({ library, onBack, onAddClick, onRemoveItem, onRateItem, on
   const tabCounts = useMemo(()=>{
     const all = library.items||[];
     if (isFilms) return {
-      movies: all.filter(i=>i.metadata?.media_type!=='tv').length,
-      shows: all.filter(i=>i.metadata?.media_type==='tv').length,
-      watching: all.filter(i=>i.status==='in_progress').length,
+      // Shows tab count: both currently watching + watched (all non-wishlist TV)
+      movies:   all.filter(i=>i.metadata?.media_type!=='tv' && i.status!=='wishlist').length,
+      shows:    all.filter(i=>i.metadata?.media_type==='tv'  && i.status!=='wishlist').length,
       wishlist: all.filter(i=>i.status==='wishlist').length,
     };
     return {
-      all: all.length,
+      all:         all.filter(i=>i.status!=='wishlist').length,
       in_progress: all.filter(i=>i.status==='in_progress').length,
-      wishlist: all.filter(i=>i.status==='wishlist').length,
+      wishlist:    all.filter(i=>i.status==='wishlist').length,
     };
   },[library.items]);
 
-  const statusLabel = {collected:'Collected',in_progress:({films:'Watching',books:'Reading',music:'Listening',games:'Playing'})[library.type]||'In progress',wishlist:'Watchlist'};
+  const statusLabel = {collected:'Watched',in_progress:({films:'Watching',books:'Reading',music:'Listening',games:'Playing'})[library.type]||'In progress',wishlist:'Watchlist'};
 
   return (
     <div className="lib-page">
@@ -1209,42 +1439,88 @@ function LibraryPage({ library, onBack, onAddClick, onRemoveItem, onRateItem, on
         </div>
       </div>
 
-      {items.length === 0 ? (
+      {/* ── Currently Watching section (Shows tab only) ─────────────────────── */}
+      {isFilms && tab==='shows' && currentlyWatchingShows.length > 0 && (
+        <div className="cw-section">
+          <div className="cw-section-header">
+            <span className="cw-section-title">
+              <span className="cw-live-dot"/>
+              Currently Watching
+            </span>
+            <span className="cw-section-count">{currentlyWatchingShows.length} show{currentlyWatchingShows.length!==1?'s':''}</span>
+          </div>
+          <div className="cw-cards-row">
+            {currentlyWatchingShows.map((item,i)=>(
+              <div key={item.ext_id||item.id||i} className="cw-card" style={{animationDelay:`${i*0.04}s`,animation:'fadeUp .3s ease both'}}>
+                <div style={{cursor:'pointer',position:'relative'}} onClick={()=>setRatingItem(item)}>
+                  <Cover src={item.cover_url} alt={item.title} w="100%" h={null} cls="film-wrap" style={{aspectRatio:'2/3',height:'auto'}}/>
+                  {(item.user_rating||item.metadata?.vote_average||item.metadata?.rating) && (
+                    <span className="lib-grid-card-rating">
+                      <SmallIcon type="star" size={13}/>
+                      {item.user_rating
+                        ? item.user_rating.toFixed(1)
+                        : ((item.metadata?.vote_average||item.metadata?.rating)?.toFixed?.(1)||(item.metadata?.vote_average||item.metadata?.rating))}
+                    </span>
+                  )}
+                </div>
+                <div className="cw-card-info-row">
+                  <div className="cw-card-info-left" onClick={()=>setRatingItem(item)}>
+                    <div className="cw-card-title">{item.title}</div>
+                    <div className="cw-card-sub">{item.subtitle}</div>
+                  </div>
+                  <CardMenu
+                    item={item}
+                    onRemove={(it)=>onRemoveItem(library,it)}
+                    onMoveToWatchlist={(it)=>onMoveStatus(library,it,'wishlist')}
+                    onMarkWatched={(it)=>onMoveStatus(library,it,'collected')}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Main grid / list ────────────────────────────────────────────────── */}
+      {items.length === 0 && !(isFilms && tab==='shows' && currentlyWatchingShows.length > 0) ? (
         <div className="lib-empty-state">
           <ShelfIcon type={def.icon} active={false} size={48}/>
-          <p>{tab==='movies'||tab==='all'?'Your library is empty':'No items here yet'}</p>
+          <p>{tab==='movies'||tab==='all'?'Your library is empty':tab==='shows'?'No watched shows yet — add some above!':'No items here yet'}</p>
           {(tab==='movies'||tab==='all')&&<button className="btn-primary" onClick={onAddClick}>+ Add your first {isFilms?'film':def.label.split(' ')[0].toLowerCase()}</button>}
         </div>
-      ) : viewMode==='grid' ? (
+      ) : items.length > 0 && viewMode==='grid' ? (
         <div className="lib-grid">
           {items.map((item,i)=>(
             <div key={item.ext_id||item.id||i} className="lib-grid-card" style={{animationDelay:`${i*0.03}s`,animation:'fadeUp .3s ease both'}}>
-              <div style={{cursor:'pointer'}} onClick={()=>setRatingItem(item)}>
+              <div style={{cursor:'pointer',position:'relative'}} onClick={()=>setRatingItem(item)}>
                 <Cover src={item.cover_url} alt={item.title} w="100%" h={null} cls={library.type==='books'?'book-wrap':'film-wrap'} style={{aspectRatio:library.type==='music'?'1':'2/3',height:'auto'}}/>
+                {(item.user_rating||item.metadata?.vote_average||item.metadata?.rating) && (
+                  <span className="lib-grid-card-rating">
+                    <SmallIcon type="star" size={16}/>
+                    {item.user_rating
+                      ? item.user_rating.toFixed(1)
+                      : ((item.metadata?.vote_average||item.metadata?.rating)?.toFixed?.(1)||(item.metadata?.vote_average||item.metadata?.rating))}
+                  </span>
+                )}
               </div>
               <div className="lib-grid-card-info-row">
                 <div className="lib-grid-card-info-left" onClick={()=>setRatingItem(item)} style={{cursor:'pointer'}}>
                   <div className="lib-grid-card-title">{item.title}</div>
                   <div className="lib-grid-card-sub">
                     <span>{item.subtitle}</span>
-                    {(item.user_rating||item.metadata?.vote_average||item.metadata?.rating) ? (
-                      <span className="lib-grid-card-rating">
-                        <SmallIcon type="star" size={11}/>
-                        {item.user_rating ? item.user_rating.toFixed(1) : ((item.metadata?.vote_average||item.metadata?.rating)?.toFixed?.(1)||(item.metadata?.vote_average||item.metadata?.rating))}
-                      </span>
-                    ) : null}
                   </div>
                 </div>
                 <CardMenu
                   item={item}
                   onRemove={(it)=>onRemoveItem(library,it)}
                   onMoveToWatchlist={(it)=>onMoveStatus(library,it,it.status==='wishlist'?'collected':'wishlist')}
+                  onMarkWatching={isFilms && tab==='shows' ? (it)=>onMoveStatus(library,it,'in_progress') : undefined}
                 />
               </div>
             </div>
           ))}
         </div>
-      ) : (
+      ) : items.length > 0 ? (
         <div className="lib-list">
           {items.map((item,i)=>(
             <div key={item.ext_id||item.id||i} className="lib-list-item" style={{animationDelay:`${i*0.02}s`,animation:'fadeUp .3s ease both'}} onClick={()=>setRatingItem(item)}>
@@ -1267,12 +1543,13 @@ function LibraryPage({ library, onBack, onAddClick, onRemoveItem, onRateItem, on
                   item={item}
                   onRemove={(it)=>onRemoveItem(library,it)}
                   onMoveToWatchlist={(it)=>onMoveStatus(library,it,it.status==='wishlist'?'collected':'wishlist')}
+                  onMarkWatching={isFilms && tab==='shows' ? (it)=>onMoveStatus(library,it,'in_progress') : undefined}
                 />
               </div>
             </div>
           ))}
         </div>
-      )}
+      ) : null}
 
       {ratingItem && (
         <RatingModal
@@ -1446,6 +1723,11 @@ function App() {
   };
 
   const handleAddItem = (libType, item) => {
+    const lib = libraries.find(l=>l.type===libType);
+    if (lib && (lib.items||[]).some(i=>(i.ext_id&&i.ext_id===item.ext_id)||(i.title===item.title&&i.subtitle===item.subtitle))) {
+      showT(`"${item.title}" is already in your library`);
+      return;
+    }
     setLibraries(prev=>prev.map(l=>l.type===libType?{...l,items:[item,...(l.items||[])]}:l));
     showT(`"${item.title}" added`);
   };
@@ -1583,7 +1865,7 @@ function App() {
 
       {showCreate && <CreateModal existing={existing} onClose={()=>setShowCreate(false)} onCreate={handleCreate}/>}
       {showAuth && <AuthModal onClose={()=>setShowAuth(false)} onAuth={handleAuth}/>}
-      {addPanel && <AddPanel libType={addPanel} onClose={()=>setAddPanel(null)} onAdd={item=>handleAddItem(addPanel,item)}/>}
+      {addPanel && <AddPanel libType={addPanel} onClose={()=>setAddPanel(null)} onAdd={item=>handleAddItem(addPanel,item)} existingItems={(libraries.find(l=>l.type===addPanel)?.items)||[]}/>}
       {toast && <Toast msg={toast} onDone={()=>setToast(null)}/>}
     </>
   );
