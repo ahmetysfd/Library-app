@@ -208,38 +208,105 @@ body{background:var(--bg);color:var(--text);font-family:'Geist',sans-serif;font-
 .toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px 28px;font-size:13px;font-weight:300;letter-spacing:.08em;color:var(--text2);z-index:200;animation:toast-in .25s ease;white-space:nowrap}
 @keyframes toast-in{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
 
-/* ─── Friends Sidebar ─────────────────────────────────────────────────────── */
-.friends-sidebar{position:fixed;top:0;right:0;width:320px;height:100vh;background:var(--bg2);border-left:0.5px solid var(--border);display:flex;flex-direction:column;z-index:50;padding:24px 0 0;transition:transform .3s ease}
-.friends-header{padding:0 22px 16px;border-bottom:0.5px solid var(--border2);display:flex;align-items:center;justify-content:space-between}
-.friends-title{font-size:12px;font-weight:300;letter-spacing:.22em;text-transform:uppercase;color:var(--text3)}
-.friends-toggle{background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;line-height:1;padding:4px;transition:color .2s}
-.friends-toggle:hover{color:var(--text2)}
-.friends-list{flex:1;overflow-y:auto;padding:10px 0;scrollbar-width:none}
-.friends-list::-webkit-scrollbar{display:none}
-.friend-item{display:flex;align-items:center;gap:12px;padding:9px 22px;cursor:pointer;transition:background .2s}
-.friend-item:hover{background:var(--bg3)}
-.friend-avatar{width:40px;height:40px;border-radius:50%;background:var(--bg3);border:0.5px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:14px;color:var(--gold);position:relative}
-.friend-online{position:absolute;bottom:0;right:0;width:9px;height:9px;border-radius:50%;background:var(--success);border:1.5px solid var(--bg2)}
-.friend-offline{position:absolute;bottom:0;right:0;width:9px;height:9px;border-radius:50%;background:var(--text4);border:1.5px solid var(--bg2)}
-.friend-info{flex:1;min-width:0}
-.friend-name{font-size:13px;font-weight:300;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.friend-status{font-size:11px;font-weight:300;color:var(--text3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.friends-section-label{padding:12px 22px 6px;font-size:10px;font-weight:300;letter-spacing:.22em;text-transform:uppercase;color:var(--text4)}
-.friends-add{padding:16px 22px;border-top:0.5px solid var(--border2)}
-.friends-add-btn{width:100%;padding:11px;background:transparent;border:0.5px dashed var(--border);border-radius:var(--radius);color:var(--text3);font-family:'Geist',sans-serif;font-size:12px;letter-spacing:.15em;text-transform:uppercase;cursor:pointer;transition:all .2s}
-.friends-add-btn:hover{border-color:var(--gold-dim);color:var(--gold)}
-.friends-search-row{padding:12px 22px;display:flex;gap:6px}
-.friends-search-input{flex:1;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:9px 12px;font-family:'Geist',sans-serif;font-size:13px;font-weight:300;color:var(--text);outline:none;transition:border-color .2s}
-.friends-search-input:focus{border-color:var(--gold-dim)}
-.friends-search-input::placeholder{color:var(--text4)}
-.friends-search-results{padding:0 22px 12px}
-.friends-search-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border:0.5px solid var(--border2);border-radius:var(--radius);margin-bottom:6px;cursor:pointer;transition:all .2s}
-.friends-search-item:hover{border-color:var(--gold-dim);background:var(--gold-faint)}
-.friends-search-item .fsi-name{font-size:13px;color:var(--text);flex:1}
-.friends-search-item .fsi-btn{font-size:11px;color:var(--gold);letter-spacing:.1em;text-transform:uppercase}
+/* ─── Insights Panel ──────────────────────────────────────────────────────── */
+.insights-panel{position:fixed;top:0;right:0;width:672px;height:100vh;background:var(--bg2);border-left:0.5px solid var(--border);display:flex;flex-direction:column;z-index:50;overflow:hidden;transition:transform .3s ease}
+.insights-scroll{flex:1;overflow-y:auto;padding:0 0 32px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.insights-scroll::-webkit-scrollbar{width:4px}.insights-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.ins-header{padding:34px 38px 24px;border-bottom:0.5px solid var(--border2)}
+.ins-header-title{font-size:15px;font-weight:300;letter-spacing:.25em;text-transform:uppercase;color:var(--text3)}
+.ins-header-lib{font-family:'Cormorant Garamond',serif;font-size:31px;font-weight:300;color:var(--text);margin-top:6px}
+
+/* Stats row */
+.ins-stats-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border2);margin:0}
+.ins-stat{background:var(--bg2);padding:25px 28px;text-align:center}
+.ins-stat-value{font-family:'Cormorant Garamond',serif;font-size:39px;font-weight:400;color:var(--gold);line-height:1}
+.ins-stat-label{font-size:14px;font-weight:300;letter-spacing:.2em;text-transform:uppercase;color:var(--text4);margin-top:8px}
+
+/* Section blocks */
+.ins-section{padding:31px 38px 0}
+.ins-section-title{font-size:10px;font-weight:300;letter-spacing:.22em;text-transform:uppercase;color:var(--text4);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.ins-section-title::after{content:'';flex:1;height:0.5px;background:var(--border2)}
+
+/* Horizontal bar chart */
+.ins-bars{display:flex;flex-direction:column;gap:10px}
+.ins-bar-row{display:flex;align-items:center;gap:10px}
+.ins-bar-label{width:80px;font-size:11px;font-weight:300;color:var(--text2);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
+.ins-bar-track{flex:1;height:18px;background:var(--bg);border-radius:2px;overflow:hidden;position:relative}
+.ins-bar-fill{height:100%;border-radius:2px;transition:width .6s cubic-bezier(.22,.61,.36,1);position:relative}
+.ins-bar-fill::after{content:attr(data-count);position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:9px;font-weight:400;color:var(--bg);letter-spacing:.04em}
+.ins-bar-pct{width:32px;font-size:10px;font-weight:300;color:var(--text3);text-align:right;flex-shrink:0}
+
+/* Ring/Donut chart */
+.ins-ring-wrap{display:flex;align-items:center;gap:24px;padding:4px 0}
+.ins-ring-legend{display:flex;flex-direction:column;gap:6px;flex:1}
+.ins-ring-legend-item{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:300;color:var(--text2)}
+.ins-ring-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.ins-ring-count{margin-left:auto;font-size:11px;color:var(--text3)}
+
+/* People list */
+.ins-people{display:flex;flex-direction:column;gap:0}
+.ins-person{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:0.5px solid var(--border2)}
+.ins-person:last-child{border-bottom:none}
+.ins-person-rank{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:400;color:var(--text4);width:22px;text-align:center;flex-shrink:0}
+.ins-person-avatar{width:36px;height:36px;border-radius:50%;background:var(--bg3);border:0.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:13px;color:var(--gold);flex-shrink:0}
+.ins-person-info{flex:1;min-width:0}
+.ins-person-name{font-size:13px;font-weight:400;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ins-person-meta{font-size:11px;font-weight:300;color:var(--text3);margin-top:1px}
+.ins-person-count{font-family:'Cormorant Garamond',serif;font-size:16px;color:var(--gold-dim);flex-shrink:0}
+
+/* Rating histogram */
+.ins-histogram{display:flex;align-items:flex-end;gap:3px;height:64px;padding:0 2px}
+.ins-histo-bar{flex:1;background:var(--gold-dim);border-radius:1.5px 1.5px 0 0;transition:height .5s cubic-bezier(.22,.61,.36,1);min-height:2px;position:relative;cursor:default}
+.ins-histo-bar:hover{background:var(--gold)}
+.ins-histo-bar::after{content:attr(data-label);position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:8px;color:var(--text4);white-space:nowrap;opacity:0;transition:opacity .15s}
+.ins-histo-bar:hover::after{opacity:1}
+.ins-histo-labels{display:flex;gap:3px;padding:4px 2px 0}
+.ins-histo-labels span{flex:1;text-align:center;font-size:8px;color:var(--text4);letter-spacing:.02em}
+
+/* Empty state */
+.ins-empty{padding:84px 38px;text-align:center;color:var(--text4)}
+.ins-empty p{font-size:18px;letter-spacing:.06em;margin-top:16px}
+
+/* Type counts — Movies / Shows */
+.ins-type-row{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border2)}
+.ins-type-cell{background:var(--bg2);padding:28px 20px;text-align:center;position:relative}
+.ins-type-value{font-family:'Cormorant Garamond',serif;font-size:48px;font-weight:400;color:var(--gold);line-height:1}
+.ins-type-label{font-size:11px;font-weight:300;letter-spacing:.22em;text-transform:uppercase;color:var(--text4);margin-top:8px}
+.ins-type-cell::after{content:'';position:absolute;bottom:0;left:20%;right:20%;height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent)}
+
+/* Directors list — 3 cards */
+.ins-directors{padding:24px 38px 0}
+.ins-directors-title{font-size:10px;font-weight:300;letter-spacing:.22em;text-transform:uppercase;color:var(--text4);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.ins-directors-title::after{content:'';flex:1;height:0.5px;background:var(--border2)}
+.ins-dir-card{display:flex;gap:14px;padding:16px 0;border-bottom:0.5px solid var(--border2);animation:fadeUp .4s ease both}
+.ins-dir-card:last-child{border-bottom:none}
+.ins-dir-poster{width:48px;height:72px;border-radius:3px;overflow:hidden;flex-shrink:0;border:0.5px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.ins-dir-poster img{width:100%;height:100%;object-fit:cover;display:block}
+.ins-dir-info{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:2px}
+.ins-dir-rank{font-family:'Cormorant Garamond',serif;font-size:11px;font-weight:400;color:var(--text4);letter-spacing:.15em;text-transform:uppercase;margin-bottom:1px}
+.ins-dir-name{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:400;color:var(--text);line-height:1.2}
+.ins-dir-count{font-size:11px;font-weight:300;color:var(--text3);margin-top:1px}
+.ins-dir-film{font-size:11px;font-weight:300;color:var(--text2);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ins-dir-rating{display:inline-flex;align-items:center;gap:3px;margin-top:4px}
+.ins-dir-rating svg{width:10px;height:10px}
+.ins-dir-rating span{font-size:12px;font-weight:400;color:var(--gold)}
+
+/* Genre — horizontal proportional bars with labels inside */
+.ins-genre-chart{padding:24px 38px 28px}
+.ins-genre-chart-title{font-size:10px;font-weight:300;letter-spacing:.22em;text-transform:uppercase;color:var(--text4);margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.ins-genre-chart-title::after{content:'';flex:1;height:0.5px;background:var(--border2)}
+.ins-genre-rows{display:flex;flex-direction:column;gap:8px}
+.ins-genre-row{display:flex;align-items:center;gap:0}
+.ins-genre-label{width:68px;font-size:11px;font-weight:300;color:var(--text2);text-align:right;padding-right:12px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ins-genre-bar-wrap{flex:1;height:28px;background:var(--bg);border-radius:3px;overflow:hidden;position:relative}
+.ins-genre-bar{height:100%;border-radius:3px;display:flex;align-items:center;justify-content:flex-end;padding-right:10px;transition:width .8s cubic-bezier(.22,.61,.36,1);position:relative;overflow:hidden}
+.ins-genre-bar::before{content:'';position:absolute;top:0;left:0;right:0;height:50%;background:linear-gradient(180deg,rgba(255,255,255,.06),transparent);pointer-events:none}
+.ins-genre-bar-count{font-size:10px;font-weight:400;color:var(--bg);letter-spacing:.02em;position:relative;z-index:1}
+.ins-genre-bar-count.outside{color:var(--text3);position:absolute;left:calc(100% + 8px);top:50%;transform:translateY(-50%)}
+.ins-genre-pct{width:36px;font-size:10px;font-weight:300;color:var(--text4);text-align:right;padding-left:8px;flex-shrink:0}
 
 /* ─── Layout ──────────────────────────────────────────────────────────────── */
-.main-content{padding-right:320px;min-height:100vh;display:flex;flex-direction:column}
+.main-content{padding-right:672px;min-height:100vh;display:flex;flex-direction:column}
 .main-content.sidebar-hidden{padding-right:0}
 .footer{padding:16px 48px 32px;display:flex;align-items:center;justify-content:space-between;margin-top:auto}
 .footer-label{font-size:11px;font-weight:300;letter-spacing:.18em;text-transform:uppercase;color:var(--text4)}
@@ -431,8 +498,13 @@ body{background:var(--bg);color:var(--text);font-family:'Geist',sans-serif;font-
 .lib-list-delete:hover{color:var(--danger)}
 
 /* ─── Responsive ──────────────────────────────────────────────────────────── */
+@media(max-width:1400px){
+  .insights-panel{width:560px}
+  .main-content{padding-right:560px}
+  .main-content.sidebar-hidden{padding-right:0}
+}
 @media(max-width:1200px){
-  .friends-sidebar{display:none}
+  .insights-panel{display:none}
   .main-content,.main-content.sidebar-hidden{padding-right:0}
 }
 @media(max-width:768px){
@@ -1699,94 +1771,270 @@ function LibraryPage({ library, onBack, onAddClick, onRemoveItem, onRateItem, on
   );
 }
 
-/* ─── Friends Sidebar ─────────────────────────────────────────────────────── */
-const DEMO_FRIENDS = [
-  {id:1,name:"alex_m",initials:"AM",online:true,status:"Added Dune · 2m ago"},
-  {id:2,name:"sofia_r",initials:"SR",online:true,status:"Added Elden Ring · 5m ago"},
-  {id:3,name:"lucas_t",initials:"LT",online:true,status:"Online"},
-  {id:4,name:"mia_k",initials:"MK",online:false,status:"Added OK Computer · 1h ago"},
-  {id:5,name:"james_w",initials:"JW",online:false,status:"Added 1984 · 3h ago"},
-  {id:6,name:"priya_s",initials:"PS",online:false,status:"Offline"},
-];
+/* ─── Insights Sidebar ────────────────────────────────────────────────────── */
 
-function FriendsSidebar({ user }) {
-  const [showSearch,setShowSearch] = useState(false);
-  const [searchQ,setSearchQ] = useState('');
-  const [searchResults,setSearchResults] = useState([]);
-  const [addedFriends,setAddedFriends] = useState([]);
+// Demo genre/director/actor data keyed by ext_id — in production this comes from TMDB detail endpoint
+const FILM_META = {
+  '550':    {genres:['Drama','Thriller'],directors:['David Fincher'],actors:['Brad Pitt','Edward Norton']},
+  '680':    {genres:['Crime','Thriller'],directors:['Quentin Tarantino'],actors:['John Travolta','Uma Thurman','Samuel L. Jackson']},
+  '27205':  {genres:['Sci-Fi','Action','Thriller'],directors:['Christopher Nolan'],actors:['Leonardo DiCaprio','Tom Hardy']},
+  '438631': {genres:['Sci-Fi','Adventure'],directors:['Denis Villeneuve'],actors:['Timothée Chalamet','Zendaya']},
+  '157336': {genres:['Sci-Fi','Drama'],directors:['Christopher Nolan'],actors:['Matthew McConaughey','Anne Hathaway']},
+  '335984': {genres:['Sci-Fi','Thriller'],directors:['Denis Villeneuve'],actors:['Ryan Gosling','Harrison Ford']},
+  '603':    {genres:['Sci-Fi','Action'],directors:['Lana Wachowski','Lilly Wachowski'],actors:['Keanu Reeves','Laurence Fishburne']},
+  '11324':  {genres:['Thriller','Mystery'],directors:['Martin Scorsese'],actors:['Leonardo DiCaprio','Mark Ruffalo']},
+  '120':    {genres:['Fantasy','Adventure'],directors:['Peter Jackson'],actors:['Elijah Wood','Ian McKellen']},
+  '424':    {genres:['Drama','History'],directors:['Steven Spielberg'],actors:['Liam Neeson','Ralph Fiennes']},
+};
+const GAME_META = {
+  'g1':{genres:['RPG','Action'],studios:['FromSoftware']},
+  'g2':{genres:['RPG','Action','Open World'],studios:['CD Projekt']},
+  'g3':{genres:['Sandbox','Survival'],studios:['Mojang']},
+  'g4':{genres:['Action','Adventure','Open World'],studios:['Rockstar']},
+  'g5':{genres:['RPG','Open World'],studios:['CD Projekt']},
+  'g6':{genres:['RPG','Action'],studios:['FromSoftware']},
+};
 
-  const allFriends = [...DEMO_FRIENDS, ...addedFriends];
-  const online = allFriends.filter(f=>f.online);
-  const offline = allFriends.filter(f=>!f.online);
+function getItemMeta(item, libType) {
+  if (libType==='films') return FILM_META[item.ext_id] || {genres:['Drama'],directors:['Unknown'],actors:['Unknown']};
+  if (libType==='games') return GAME_META[item.ext_id] || {genres:['Action'],studios:['Unknown']};
+  if (libType==='books') return {genres:['Fiction'],authors:[item.subtitle||'Unknown']};
+  if (libType==='music') return {genres:['Rock'],artists:[item.subtitle||'Unknown']};
+  return {};
+}
 
-  const doSearch = async ()=>{
-    if(!searchQ.trim()) return;
-    const results = await DB.searchUsers(searchQ);
-    if (results.length === 0) {
-      // Simulate finding users in offline mode
-      setSearchResults([{id:'found-'+Date.now(), username:searchQ, initials:searchQ.slice(0,2).toUpperCase()}]);
-    } else {
-      setSearchResults(results.map(u=>({id:u.id,username:u.username,initials:(u.username||'').slice(0,2).toUpperCase()})));
+function computeInsights(library) {
+  const items = library?.items || [];
+  if (items.length === 0) return null;
+  const type = library.type;
+
+  // Genre frequency
+  const genreMap = {};
+  const personMap = {}; // directors for films, studios for games, etc.
+  const actorMap = {};
+  const directorFilms = {}; // director → [items]
+  const ratings = [];
+  let movieCount = 0;
+  let showCount = 0;
+
+  items.forEach(item => {
+    const meta = getItemMeta(item, type);
+    (meta.genres||[]).forEach(g => { genreMap[g] = (genreMap[g]||0)+1; });
+
+    // Count movies vs shows
+    if (type==='films') {
+      if (item.metadata?.media_type==='tv') showCount++;
+      else movieCount++;
+      (meta.directors||[]).forEach(d => {
+        personMap[d] = (personMap[d]||0)+1;
+        if (!directorFilms[d]) directorFilms[d] = [];
+        directorFilms[d].push(item);
+      });
+      (meta.actors||[]).forEach(a => { actorMap[a] = (actorMap[a]||0)+1; });
+    } else if (type==='games') {
+      (meta.studios||[]).forEach(s => { personMap[s] = (personMap[s]||0)+1; });
+    } else if (type==='books') {
+      (meta.authors||[]).forEach(a => { personMap[a] = (personMap[a]||0)+1; });
+    } else if (type==='music') {
+      (meta.artists||[]).forEach(a => { personMap[a] = (personMap[a]||0)+1; });
     }
-  };
 
-  const addFriend = (f)=>{
-    DB.followUser(f.id);
-    setAddedFriends(prev=>[...prev,{id:f.id,name:f.username,initials:f.initials,online:false,status:'Just added'}]);
-    setSearchResults([]);
-    setSearchQ('');
-    setShowSearch(false);
-  };
+    const r = item.user_rating || item.metadata?.vote_average || item.metadata?.rating;
+    if (r) ratings.push(r);
+  });
+
+  const sortDesc = obj => Object.entries(obj).sort((a,b)=>b[1]-a[1]);
+  const genres = sortDesc(genreMap).slice(0,6);
+  const topPeople = sortDesc(personMap).slice(0,5);
+  const topActors = sortDesc(actorMap).slice(0,5);
+  const avgRating = ratings.length ? (ratings.reduce((a,b)=>a+b,0)/ratings.length) : 0;
+  const watched = items.filter(i=>i.status!=='wishlist').length;
+  const watchlist = items.filter(i=>i.status==='wishlist').length;
+
+  // Rating histogram (1-10 buckets)
+  const histogram = Array(10).fill(0);
+  ratings.forEach(r => { const bucket = Math.min(9, Math.floor(r)-1); if(bucket>=0) histogram[bucket]++; });
+
+  return { genres, topPeople, topActors, avgRating, watched, watchlist, total:items.length, histogram, ratings, directorFilms, movieCount, showCount };
+}
+
+// Get top 3 directors with their best film
+function getTopDirectors(library, insights) {
+  if (!insights || !insights.topPeople.length) return [];
+  return insights.topPeople
+    .filter(([name]) => name !== 'Unknown')
+    .slice(0, 3)
+    .map(([name, count]) => {
+      const films = (insights.directorFilms[name] || []).sort((a, b) => {
+        const ra = a.user_rating || a.metadata?.vote_average || 0;
+        const rb = b.user_rating || b.metadata?.vote_average || 0;
+        return rb - ra;
+      });
+      return { director: name, count, film: films[0] || null };
+    })
+    .filter(d => d.film);
+}
+
+// Color palette for genre bars
+const BAR_COLORS = [
+  'rgba(201,165,90,.9)',
+  'rgba(201,165,90,.7)',
+  'rgba(201,165,90,.55)',
+  'rgba(201,165,90,.4)',
+  'rgba(201,165,90,.3)',
+  'rgba(201,165,90,.2)',
+];
+// Donut colors
+const RING_COLORS = ['#c9a55a','#a68840','#8a7235','#6e5a2a','#524220','#3a2e18'];
+
+function DonutChart({ data, size=120 }) {
+  const total = data.reduce((s,d)=>s+d[1],0);
+  if(!total) return null;
+  const r = size/2 - 8;
+  const ir = r * 0.6; // inner radius
+  let cumAngle = -Math.PI/2;
+  const paths = data.map(([label,count],i) => {
+    const angle = (count/total)*Math.PI*2;
+    const x1 = size/2 + r*Math.cos(cumAngle);
+    const y1 = size/2 + r*Math.sin(cumAngle);
+    const x2 = size/2 + r*Math.cos(cumAngle+angle);
+    const y2 = size/2 + r*Math.sin(cumAngle+angle);
+    const ix1 = size/2 + ir*Math.cos(cumAngle+angle);
+    const iy1 = size/2 + ir*Math.sin(cumAngle+angle);
+    const ix2 = size/2 + ir*Math.cos(cumAngle);
+    const iy2 = size/2 + ir*Math.sin(cumAngle);
+    const large = angle > Math.PI ? 1 : 0;
+    const d = `M${x1},${y1} A${r},${r} 0 ${large} 1 ${x2},${y2} L${ix1},${iy1} A${ir},${ir} 0 ${large} 0 ${ix2},${iy2} Z`;
+    cumAngle += angle;
+    return <path key={i} d={d} fill={RING_COLORS[i%RING_COLORS.length]} stroke="var(--bg2)" strokeWidth="1.5" opacity={.85+i*.02}/>;
+  });
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{flexShrink:0}}>
+      {paths}
+      <text x={size/2} y={size/2-4} textAnchor="middle" fill="var(--gold)" fontFamily="'Cormorant Garamond',serif" fontSize="22" fontWeight="400">{total}</text>
+      <text x={size/2} y={size/2+12} textAnchor="middle" fill="var(--text4)" fontFamily="'Geist',sans-serif" fontSize="8" letterSpacing=".12em" fontWeight="300">TOTAL</text>
+    </svg>
+  );
+}
+
+function InsightsSidebar({ library, libraries }) {
+  const insights = library ? computeInsights(library) : null;
+  const def = library ? LIBRARY_TYPES.find(t=>t.key===library.type) : null;
+  const topDirs = (library && library.type==='films' && insights) ? getTopDirectors(library, insights) : [];
+
+  // Home overview stats
+  const totalItems = libraries.reduce((s,l)=>s+(l.items||[]).length, 0);
+  const totalLibs = libraries.length;
+
+  // Genre data
+  const genreData = insights ? insights.genres.slice(0,6) : [];
+  const genreMax = genreData.length ? genreData[0][1] : 1;
+
+  const GENRE_COLORS = [
+    'rgba(201,165,90,.95)',
+    'rgba(201,165,90,.75)',
+    'rgba(201,165,90,.55)',
+    'rgba(201,165,90,.40)',
+    'rgba(201,165,90,.28)',
+    'rgba(201,165,90,.18)',
+  ];
 
   return (
-    <div className="friends-sidebar">
-      <div className="friends-header">
-        <div className="friends-title">Friends</div>
+    <div className="insights-panel">
+      <div className="ins-header">
+        <div className="ins-header-title">Insights</div>
+        {library && def && <div className="ins-header-lib">{def.label} Analytics</div>}
+        {!library && <div className="ins-header-lib">Library Overview</div>}
       </div>
 
-      {showSearch && (
-        <>
-          <div className="friends-search-row">
-            <input className="friends-search-input" placeholder="Search username…" value={searchQ}
-              onChange={e=>setSearchQ(e.target.value)}
-              onKeyDown={e=>e.key==='Enter'&&doSearch()}
-              autoFocus/>
-            <button className="btn-search" style={{padding:'9px 12px',fontSize:'11px'}} onClick={doSearch}>Find</button>
-          </div>
-          {searchResults.length>0&&(
-            <div className="friends-search-results">
-              {searchResults.map(r=>(
-                <div key={r.id} className="friends-search-item" onClick={()=>addFriend(r)}>
-                  <div className="friend-avatar" style={{width:32,height:32,fontSize:12}}>{r.initials}</div>
-                  <span className="fsi-name">{r.username}</span>
-                  <span className="fsi-btn">+ Add</span>
-                </div>
-              ))}
+      <div className="insights-scroll">
+        {!library ? (
+          <>
+            <div className="ins-stats-row">
+              <div className="ins-stat"><div className="ins-stat-value">{totalLibs}</div><div className="ins-stat-label">Libraries</div></div>
+              <div className="ins-stat"><div className="ins-stat-value">{totalItems}</div><div className="ins-stat-label">Items</div></div>
+              <div className="ins-stat"><div className="ins-stat-value">—</div><div className="ins-stat-label">Avg Rating</div></div>
             </div>
-          )}
-        </>
-      )}
+            <div className="ins-empty">
+              <svg viewBox="0 0 48 48" width="48" height="48" fill="none" opacity=".15"><rect x="4" y="20" width="8" height="24" rx="1" fill="var(--gold)"/><rect x="16" y="12" width="8" height="32" rx="1" fill="var(--gold)"/><rect x="28" y="6" width="8" height="38" rx="1" fill="var(--gold)"/><rect x="40" y="16" width="4" height="28" rx="1" fill="var(--gold)"/></svg>
+              <p>Open a library to see detailed analytics</p>
+            </div>
+          </>
+        ) : !insights ? (
+          <div className="ins-empty">
+            <svg viewBox="0 0 48 48" width="48" height="48" fill="none" opacity=".15"><circle cx="24" cy="24" r="20" stroke="var(--gold)" strokeWidth="2"/><path d="M24 14v12h10" stroke="var(--gold)" strokeWidth="2" strokeLinecap="round"/></svg>
+            <p>Add items to see your insights</p>
+          </div>
+        ) : (
+          <>
+            {/* ── Movies / Shows count ── */}
+            <div className="ins-type-row">
+              <div className="ins-type-cell">
+                <div className="ins-type-value">{insights.movieCount || insights.total}</div>
+                <div className="ins-type-label">{library.type==='films'?'Movies':library.type==='games'?'Games':library.type==='books'?'Books':'Albums'}</div>
+              </div>
+              <div className="ins-type-cell">
+                <div className="ins-type-value">{library.type==='films'? insights.showCount : insights.watchlist}</div>
+                <div className="ins-type-label">{library.type==='films'?'Shows':'Watchlist'}</div>
+              </div>
+            </div>
 
-      <div className="friends-list">
-        {online.length>0 && <div className="friends-section-label">Online · {online.length}</div>}
-        {online.map(f=>(
-          <div key={f.id} className="friend-item">
-            <div className="friend-avatar">{f.initials}<span className="friend-online"/></div>
-            <div className="friend-info"><div className="friend-name">{f.name}</div><div className="friend-status">{f.status}</div></div>
-          </div>
-        ))}
-        {offline.length>0 && <div className="friends-section-label" style={{marginTop:6}}>Offline · {offline.length}</div>}
-        {offline.map(f=>(
-          <div key={f.id} className="friend-item">
-            <div className="friend-avatar" style={{opacity:.5}}>{f.initials}<span className="friend-offline"/></div>
-            <div className="friend-info"><div className="friend-name" style={{opacity:.5}}>{f.name}</div><div className="friend-status">{f.status}</div></div>
-          </div>
-        ))}
-      </div>
-      <div className="friends-add">
-        <button className="friends-add-btn" onClick={()=>setShowSearch(!showSearch)}>
-          {showSearch ? '✕ Cancel' : '+ Add Friend'}
-        </button>
+            {/* ── Top 3 Directors ── */}
+            {topDirs.length > 0 && (
+              <div className="ins-directors">
+                <div className="ins-directors-title">Top Directors</div>
+                {topDirs.map((d, i) => {
+                  const rating = d.film.user_rating || d.film.metadata?.vote_average;
+                  return (
+                    <div key={d.director} className="ins-dir-card" style={{animationDelay:`${i*0.08}s`}}>
+                      <div className="ins-dir-poster">
+                        <img src={d.film.cover_url} alt={d.film.title} onError={e=>{e.target.style.visibility='hidden'}}/>
+                      </div>
+                      <div className="ins-dir-info">
+                        <div className="ins-dir-rank">{i===0?'★ Favorite':i===1?'2nd':i===2?'3rd':''}</div>
+                        <div className="ins-dir-name">{d.director}</div>
+                        <div className="ins-dir-count">{d.count} {d.count===1?'film':'films'} in library</div>
+                        <div className="ins-dir-film">{d.film.title} ({d.film.subtitle})</div>
+                        {rating && (
+                          <div className="ins-dir-rating">
+                            <svg viewBox="0 0 12 12" fill="none"><path d="M6 1l1.5 3 3.5.5-2.5 2.4.6 3.5L6 8.8 2.9 10.4l.6-3.5L1 4.5 4.5 4z" fill="#c9a55a"/></svg>
+                            <span>{rating?.toFixed?.(1) || rating}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* ── Genre Distribution — clean horizontal bars ── */}
+            {genreData.length > 0 && (
+              <div className="ins-genre-chart">
+                <div className="ins-genre-chart-title">Genre Distribution</div>
+                <div className="ins-genre-rows">
+                  {genreData.map(([genre, count], i) => {
+                    const pct = Math.round((count / insights.total) * 100);
+                    const barW = (count / genreMax) * 100;
+                    const narrow = barW < 18;
+                    return (
+                      <div key={genre} className="ins-genre-row" style={{animationDelay:`${i*0.06}s`,animation:'fadeUp .4s ease both'}}>
+                        <div className="ins-genre-label">{genre}</div>
+                        <div className="ins-genre-bar-wrap">
+                          <div className="ins-genre-bar" style={{width:`${barW}%`,background:GENRE_COLORS[i%GENRE_COLORS.length]}}>
+                            {!narrow && <span className="ins-genre-bar-count">{count}</span>}
+                            {narrow && <span className="ins-genre-bar-count outside">{count}</span>}
+                          </div>
+                        </div>
+                        <div className="ins-genre-pct">{pct}%</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
@@ -1908,7 +2156,7 @@ function App() {
 
   return (
     <>
-      <FriendsSidebar user={user}/>
+      <InsightsSidebar library={currentLib} libraries={libraries}/>
       <div className="main-content">
         <div className="topbar">
           <div style={{display:'flex',alignItems:'center',gap:0}}>
