@@ -287,17 +287,23 @@ body{background:var(--bg);color:var(--text);font-family:'Geist',sans-serif;font-
 .ins-dir-film-poster img{width:100%;height:100%;object-fit:cover;display:block}
 .ins-dir-film-title{font-size:9px;font-weight:300;color:var(--text3);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;line-height:1.2}
 
-/* Genre — horizontal proportional bars with labels inside */
-.ins-genre-chart{padding:24px 28px 28px}
-.ins-genre-chart-title{font-size:10px;font-weight:300;letter-spacing:.22em;text-transform:uppercase;color:var(--text4);margin-bottom:18px;display:flex;align-items:center;gap:8px}
-.ins-genre-chart-title::after{content:'';flex:1;height:0.5px;background:var(--border2)}
-.ins-genre-rows{display:flex;flex-direction:column;gap:10px}
-.ins-genre-row{display:flex;align-items:center;gap:0}
-.ins-genre-label{width:58px;font-size:11px;font-weight:300;color:var(--text2);text-align:right;padding-right:12px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ins-genre-bar-wrap{flex:1;height:22px;background:var(--bg);border-radius:2px;overflow:hidden;position:relative}
-.ins-genre-bar{height:100%;border-radius:2px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;transition:width .8s cubic-bezier(.22,.61,.36,1);position:relative;overflow:hidden}
-.ins-genre-bar::before{content:'';position:absolute;top:0;left:0;right:0;height:45%;background:linear-gradient(180deg,rgba(255,255,255,.07),transparent);pointer-events:none;border-radius:2px 2px 0 0}
-.ins-genre-pct{width:28px;font-size:11px;font-weight:300;color:var(--text3);text-align:right;padding-left:8px;flex-shrink:0}
+/* Genre donut chart */
+.ins-genre-donut{padding:24px 28px 28px}
+.ins-genre-donut-title{font-size:10px;font-weight:300;letter-spacing:.22em;text-transform:uppercase;color:var(--text4);margin-bottom:20px;display:flex;align-items:center;gap:8px}
+.ins-genre-donut-title::after{content:'';flex:1;height:0.5px;background:var(--border2)}
+.ins-donut-wrap{display:flex;justify-content:center;margin-bottom:22px;position:relative}
+.ins-donut-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;transition:opacity .2s}
+.ins-donut-center-count{font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:400;color:var(--text);line-height:1}
+.ins-donut-center-label{font-size:10px;font-weight:300;letter-spacing:.15em;text-transform:uppercase;color:var(--text3);margin-top:3px}
+.ins-donut-legend{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;padding:0 8px}
+.ins-donut-legend-item{display:flex;align-items:center;gap:7px;padding:4px 0;cursor:default;transition:opacity .15s}
+.ins-donut-legend-item.dimmed{opacity:.35}
+.ins-donut-legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;transition:transform .15s,box-shadow .15s}
+.ins-donut-legend-item.active .ins-donut-legend-dot{transform:scale(1.3);box-shadow:0 0 8px rgba(200,165,80,.25)}
+.ins-donut-legend-name{font-size:12px;font-weight:300;color:var(--text2);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ins-donut-legend-item.active .ins-donut-legend-name{color:var(--text);font-weight:400}
+.ins-donut-legend-count{font-size:12px;font-weight:400;color:var(--text3);flex-shrink:0;min-width:16px;text-align:right}
+.ins-donut-legend-item.active .ins-donut-legend-count{color:var(--gold);font-size:13px}
 
 /* ─── Layout ──────────────────────────────────────────────────────────────── */
 .main-content{padding-right:672px;min-height:100vh;display:flex;flex-direction:column}
@@ -1864,45 +1870,112 @@ function getTopDirectors(library, insights) {
     .filter(d => d.films.length > 0);
 }
 
-// Color palette for genre bars
-const BAR_COLORS = [
-  'rgba(201,165,90,.9)',
-  'rgba(201,165,90,.7)',
-  'rgba(201,165,90,.55)',
-  'rgba(201,165,90,.4)',
-  'rgba(201,165,90,.3)',
-  'rgba(201,165,90,.2)',
-];
-// Donut colors
-const RING_COLORS = ['#c9a55a','#a68840','#8a7235','#6e5a2a','#524220','#3a2e18'];
+// Genre-specific dark colors — each represents its genre feel
+const GENRE_PALETTE = {
+  'Drama':     '#9a7e45',
+  'Thriller':  '#6b7a42',
+  'Sci-Fi':    '#b86e3a',
+  'Action':    '#8c4040',
+  'Crime':     '#5a5045',
+  'History':   '#7a6a3a',
+  'Fantasy':   '#6a4a6a',
+  'Adventure': '#4a6a5a',
+  'Mystery':   '#5a6070',
+  'Comedy':    '#8a7a4a',
+  'Horror':    '#5a3535',
+  'Romance':   '#7a5050',
+  'Animation': '#5a7a70',
+  'War':       '#5a5a40',
+  'Music':     '#6a5a7a',
+  'RPG':       '#6a5040',
+  'Open World':'#4a6050',
+  'Sandbox':   '#7a7050',
+  'Survival':  '#5a6040',
+};
+function getGenreColor(genre, idx) {
+  return GENRE_PALETTE[genre] || ['#9a7e45','#6b7a42','#b86e3a','#8c4040','#5a5045','#7a6a3a','#6a4a6a','#4a6a5a'][idx%8];
+}
+function lightenColor(hex, amt) {
+  const num = parseInt(hex.slice(1),16);
+  const r = Math.min(255,(num>>16)+amt);
+  const g = Math.min(255,((num>>8)&0xff)+amt);
+  const b = Math.min(255,(num&0xff)+amt);
+  return `rgb(${r},${g},${b})`;
+}
 
-function DonutChart({ data, size=120 }) {
+// Combined donut + legend with shared hover state
+function GenreDonutSection({ data }) {
+  const [hovered, setHovered] = useState(null);
   const total = data.reduce((s,d)=>s+d[1],0);
   if(!total) return null;
-  const r = size/2 - 8;
-  const ir = r * 0.6; // inner radius
+
+  const size = 190;
+  const cx = size/2, cy = size/2;
+  const r = size/2 - 6;
+  const ir = r * 0.62;
+  const gap = 0.02;
+
   let cumAngle = -Math.PI/2;
-  const paths = data.map(([label,count],i) => {
-    const angle = (count/total)*Math.PI*2;
-    const x1 = size/2 + r*Math.cos(cumAngle);
-    const y1 = size/2 + r*Math.sin(cumAngle);
-    const x2 = size/2 + r*Math.cos(cumAngle+angle);
-    const y2 = size/2 + r*Math.sin(cumAngle+angle);
-    const ix1 = size/2 + ir*Math.cos(cumAngle+angle);
-    const iy1 = size/2 + ir*Math.sin(cumAngle+angle);
-    const ix2 = size/2 + ir*Math.cos(cumAngle);
-    const iy2 = size/2 + ir*Math.sin(cumAngle);
+  const segments = data.map(([label,count],i) => {
+    const angle = Math.max(0, (count/total)*Math.PI*2 - gap);
+    const startAngle = cumAngle + gap/2;
+    const endAngle = startAngle + angle;
+    cumAngle += (count/total)*Math.PI*2;
+
+    const x1 = cx + r*Math.cos(startAngle), y1 = cy + r*Math.sin(startAngle);
+    const x2 = cx + r*Math.cos(endAngle), y2 = cy + r*Math.sin(endAngle);
+    const ix1 = cx + ir*Math.cos(endAngle), iy1 = cy + ir*Math.sin(endAngle);
+    const ix2 = cx + ir*Math.cos(startAngle), iy2 = cy + ir*Math.sin(startAngle);
     const large = angle > Math.PI ? 1 : 0;
     const d = `M${x1},${y1} A${r},${r} 0 ${large} 1 ${x2},${y2} L${ix1},${iy1} A${ir},${ir} 0 ${large} 0 ${ix2},${iy2} Z`;
-    cumAngle += angle;
-    return <path key={i} d={d} fill={RING_COLORS[i%RING_COLORS.length]} stroke="var(--bg2)" strokeWidth="1.5" opacity={.85+i*.02}/>;
+
+    const baseColor = getGenreColor(label, i);
+    const isH = hovered === i;
+    const isO = hovered !== null && hovered !== i;
+
+    return (
+      <path key={i} d={d}
+        fill={isH ? lightenColor(baseColor, 50) : baseColor}
+        opacity={isO ? 0.28 : 1}
+        style={{transition:'fill .2s ease,opacity .25s ease',cursor:'pointer'}}
+        onMouseEnter={()=>setHovered(i)}
+        onMouseLeave={()=>setHovered(null)}
+      />
+    );
   });
+
+  const centerLabel = hovered !== null ? data[hovered][0] : '';
+  const centerCount = hovered !== null ? data[hovered][1] : total;
+  const centerSub = hovered !== null ? '' : 'Total';
+
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{flexShrink:0}}>
-      {paths}
-      <text x={size/2} y={size/2-4} textAnchor="middle" fill="var(--gold)" fontFamily="'Cormorant Garamond',serif" fontSize="22" fontWeight="400">{total}</text>
-      <text x={size/2} y={size/2+12} textAnchor="middle" fill="var(--text4)" fontFamily="'Geist',sans-serif" fontSize="8" letterSpacing=".12em" fontWeight="300">TOTAL</text>
-    </svg>
+    <div className="ins-genre-donut">
+      <div className="ins-genre-donut-title">
+        <svg viewBox="0 0 16 16" width="14" height="14" fill="none" style={{opacity:.5}}><path d="M2 14L5 8l3 4 3-7 3 5" stroke="var(--gold)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        Genre Distribution
+      </div>
+      <div className="ins-donut-wrap" onMouseLeave={()=>setHovered(null)}>
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+          {segments}
+        </svg>
+        <div className="ins-donut-center">
+          <div className="ins-donut-center-count">{centerCount}</div>
+          <div className="ins-donut-center-label">{centerLabel || centerSub}</div>
+        </div>
+      </div>
+      <div className="ins-donut-legend">
+        {data.map(([genre, count], i) => (
+          <div key={genre}
+            className={`ins-donut-legend-item ${hovered===i?'active':''} ${hovered!==null&&hovered!==i?'dimmed':''}`}
+            onMouseEnter={()=>setHovered(i)}
+            onMouseLeave={()=>setHovered(null)}>
+            <span className="ins-donut-legend-dot" style={{background: hovered===i ? lightenColor(getGenreColor(genre,i),40) : getGenreColor(genre,i)}}/>
+            <span className="ins-donut-legend-name">{genre}</span>
+            <span className="ins-donut-legend-count">{count}</span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -1916,16 +1989,6 @@ function InsightsSidebar({ library, libraries }) {
 
   // Genre data
   const genreData = insights ? insights.genres.slice(0,6) : [];
-  const genreMax = genreData.length ? genreData[0][1] : 1;
-
-  const GENRE_COLORS = [
-    'rgba(201,165,90,.95)',
-    'rgba(201,165,90,.75)',
-    'rgba(201,165,90,.55)',
-    'rgba(201,165,90,.40)',
-    'rgba(201,165,90,.28)',
-    'rgba(201,165,90,.18)',
-  ];
 
   return (
     <div className="insights-panel">
@@ -1991,29 +2054,8 @@ function InsightsSidebar({ library, libraries }) {
               </div>
             )}
 
-            {/* ── Genre Distribution — clean horizontal bars ── */}
-            {genreData.length > 0 && (
-              <div className="ins-genre-chart">
-                <div className="ins-genre-chart-title">
-                  <svg viewBox="0 0 16 16" width="14" height="14" fill="none" style={{opacity:.5}}><path d="M2 14L5 8l3 4 3-7 3 5" stroke="var(--gold)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  Genre Distribution
-                </div>
-                <div className="ins-genre-rows">
-                  {genreData.map(([genre, count], i) => {
-                    const barW = (count / genreMax) * 100;
-                    return (
-                      <div key={genre} className="ins-genre-row" style={{animationDelay:`${i*0.06}s`,animation:'fadeUp .4s ease both'}}>
-                        <div className="ins-genre-label">{genre}</div>
-                        <div className="ins-genre-bar-wrap">
-                          <div className="ins-genre-bar" style={{width:`${barW}%`,background:GENRE_COLORS[i%GENRE_COLORS.length]}}/>
-                        </div>
-                        <div className="ins-genre-pct">{count}</div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+            {/* ── Genre Distribution — interactive donut ── */}
+            {genreData.length > 0 && <GenreDonutSection data={genreData}/>}
           </>
         )}
       </div>
