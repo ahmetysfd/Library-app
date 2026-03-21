@@ -274,36 +274,33 @@ body{background:var(--bg);color:var(--text);font-family:'Geist',sans-serif;font-
 .ins-type-label{font-size:11px;font-weight:300;letter-spacing:.22em;text-transform:uppercase;color:var(--text4);margin-top:8px}
 .ins-type-cell::after{content:'';position:absolute;bottom:0;left:20%;right:20%;height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent)}
 
-/* Directors list — 3 cards */
-.ins-directors{padding:24px 38px 0}
-.ins-directors-title{font-size:10px;font-weight:300;letter-spacing:.22em;text-transform:uppercase;color:var(--text4);margin-bottom:16px;display:flex;align-items:center;gap:8px}
-.ins-directors-title::after{content:'';flex:1;height:0.5px;background:var(--border2)}
-.ins-dir-card{display:flex;gap:14px;padding:16px 0;border-bottom:0.5px solid var(--border2);animation:fadeUp .4s ease both}
-.ins-dir-card:last-child{border-bottom:none}
-.ins-dir-poster{width:48px;height:72px;border-radius:3px;overflow:hidden;flex-shrink:0;border:0.5px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,.25)}
-.ins-dir-poster img{width:100%;height:100%;object-fit:cover;display:block}
-.ins-dir-info{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:2px}
-.ins-dir-rank{font-family:'Cormorant Garamond',serif;font-size:11px;font-weight:400;color:var(--text4);letter-spacing:.15em;text-transform:uppercase;margin-bottom:1px}
-.ins-dir-name{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:400;color:var(--text);line-height:1.2}
-.ins-dir-count{font-size:11px;font-weight:300;color:var(--text3);margin-top:1px}
-.ins-dir-film{font-size:11px;font-weight:300;color:var(--text2);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ins-dir-rating{display:inline-flex;align-items:center;gap:3px;margin-top:4px}
-.ins-dir-rating svg{width:10px;height:10px}
-.ins-dir-rating span{font-size:12px;font-weight:400;color:var(--gold)}
+/* Directors — 2×2 grid of cards */
+.ins-directors{padding:24px 28px 0}
+.ins-directors-title{font-size:10px;font-weight:300;letter-spacing:.22em;text-transform:uppercase;color:var(--text4);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.ins-directors-title svg{width:14px;height:14px;opacity:.5}
+.ins-directors-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ins-dir-card{background:var(--bg3);border:0.5px solid var(--border);border-radius:6px;padding:16px 14px 14px;display:flex;flex-direction:column;animation:fadeUp .4s ease both;transition:border-color .2s}
+.ins-dir-card:hover{border-color:var(--border-hover)}
+.ins-dir-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px}
+.ins-dir-name{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:400;color:var(--text);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
+.ins-dir-count{font-size:10px;font-weight:300;color:var(--text3);flex-shrink:0;margin-left:6px;white-space:nowrap}
+.ins-dir-films{display:flex;gap:6px;overflow:hidden}
+.ins-dir-film-thumb{flex:0 0 auto;width:52px;display:flex;flex-direction:column;align-items:center;gap:4px}
+.ins-dir-film-poster{width:52px;height:72px;border-radius:3px;overflow:hidden;border:0.5px solid var(--border);background:var(--bg)}
+.ins-dir-film-poster img{width:100%;height:100%;object-fit:cover;display:block}
+.ins-dir-film-title{font-size:9px;font-weight:300;color:var(--text3);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;line-height:1.2}
 
 /* Genre — horizontal proportional bars with labels inside */
-.ins-genre-chart{padding:24px 38px 28px}
+.ins-genre-chart{padding:24px 28px 28px}
 .ins-genre-chart-title{font-size:10px;font-weight:300;letter-spacing:.22em;text-transform:uppercase;color:var(--text4);margin-bottom:18px;display:flex;align-items:center;gap:8px}
 .ins-genre-chart-title::after{content:'';flex:1;height:0.5px;background:var(--border2)}
-.ins-genre-rows{display:flex;flex-direction:column;gap:8px}
+.ins-genre-rows{display:flex;flex-direction:column;gap:10px}
 .ins-genre-row{display:flex;align-items:center;gap:0}
-.ins-genre-label{width:68px;font-size:11px;font-weight:300;color:var(--text2);text-align:right;padding-right:12px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ins-genre-bar-wrap{flex:1;height:28px;background:var(--bg);border-radius:3px;overflow:hidden;position:relative}
-.ins-genre-bar{height:100%;border-radius:3px;display:flex;align-items:center;justify-content:flex-end;padding-right:10px;transition:width .8s cubic-bezier(.22,.61,.36,1);position:relative;overflow:hidden}
-.ins-genre-bar::before{content:'';position:absolute;top:0;left:0;right:0;height:50%;background:linear-gradient(180deg,rgba(255,255,255,.06),transparent);pointer-events:none}
-.ins-genre-bar-count{font-size:10px;font-weight:400;color:var(--bg);letter-spacing:.02em;position:relative;z-index:1}
-.ins-genre-bar-count.outside{color:var(--text3);position:absolute;left:calc(100% + 8px);top:50%;transform:translateY(-50%)}
-.ins-genre-pct{width:36px;font-size:10px;font-weight:300;color:var(--text4);text-align:right;padding-left:8px;flex-shrink:0}
+.ins-genre-label{width:58px;font-size:11px;font-weight:300;color:var(--text2);text-align:right;padding-right:12px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ins-genre-bar-wrap{flex:1;height:22px;background:var(--bg);border-radius:2px;overflow:hidden;position:relative}
+.ins-genre-bar{height:100%;border-radius:2px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;transition:width .8s cubic-bezier(.22,.61,.36,1);position:relative;overflow:hidden}
+.ins-genre-bar::before{content:'';position:absolute;top:0;left:0;right:0;height:45%;background:linear-gradient(180deg,rgba(255,255,255,.07),transparent);pointer-events:none;border-radius:2px 2px 0 0}
+.ins-genre-pct{width:28px;font-size:11px;font-weight:300;color:var(--text3);text-align:right;padding-left:8px;flex-shrink:0}
 
 /* ─── Layout ──────────────────────────────────────────────────────────────── */
 .main-content{padding-right:672px;min-height:100vh;display:flex;flex-direction:column}
@@ -1863,16 +1860,16 @@ function getTopDirectors(library, insights) {
   if (!insights || !insights.topPeople.length) return [];
   return insights.topPeople
     .filter(([name]) => name !== 'Unknown')
-    .slice(0, 3)
+    .slice(0, 4)
     .map(([name, count]) => {
       const films = (insights.directorFilms[name] || []).sort((a, b) => {
         const ra = a.user_rating || a.metadata?.vote_average || 0;
         const rb = b.user_rating || b.metadata?.vote_average || 0;
         return rb - ra;
       });
-      return { director: name, count, film: films[0] || null };
+      return { director: name, count, films: films.slice(0, 3) };
     })
-    .filter(d => d.film);
+    .filter(d => d.films.length > 0);
 }
 
 // Color palette for genre bars
@@ -1979,54 +1976,53 @@ function InsightsSidebar({ library, libraries }) {
               </div>
             </div>
 
-            {/* ── Top 3 Directors ── */}
+            {/* ── Top 4 Directors — 2×2 grid ── */}
             {topDirs.length > 0 && (
               <div className="ins-directors">
-                <div className="ins-directors-title">Top Directors</div>
-                {topDirs.map((d, i) => {
-                  const rating = d.film.user_rating || d.film.metadata?.vote_average;
-                  return (
-                    <div key={d.director} className="ins-dir-card" style={{animationDelay:`${i*0.08}s`}}>
-                      <div className="ins-dir-poster">
-                        <img src={d.film.cover_url} alt={d.film.title} onError={e=>{e.target.style.visibility='hidden'}}/>
-                      </div>
-                      <div className="ins-dir-info">
-                        <div className="ins-dir-rank">{i===0?'★ Favorite':i===1?'2nd':i===2?'3rd':''}</div>
+                <div className="ins-directors-title">
+                  <svg viewBox="0 0 16 16" fill="none"><path d="M8 1l2 4 4.5.7-3.3 3.2.8 4.5L8 11.2 3.9 13.4l.8-4.5L1.5 5.7 6 5z" fill="var(--gold)" opacity=".6"/></svg>
+                  Top Directors
+                </div>
+                <div className="ins-directors-grid">
+                  {topDirs.map((d, i) => (
+                    <div key={d.director} className="ins-dir-card" style={{animationDelay:`${i*0.07}s`}}>
+                      <div className="ins-dir-head">
                         <div className="ins-dir-name">{d.director}</div>
-                        <div className="ins-dir-count">{d.count} {d.count===1?'film':'films'} in library</div>
-                        <div className="ins-dir-film">{d.film.title} ({d.film.subtitle})</div>
-                        {rating && (
-                          <div className="ins-dir-rating">
-                            <svg viewBox="0 0 12 12" fill="none"><path d="M6 1l1.5 3 3.5.5-2.5 2.4.6 3.5L6 8.8 2.9 10.4l.6-3.5L1 4.5 4.5 4z" fill="#c9a55a"/></svg>
-                            <span>{rating?.toFixed?.(1) || rating}</span>
+                        <div className="ins-dir-count">{d.count} {d.count===1?'film':'films'}</div>
+                      </div>
+                      <div className="ins-dir-films">
+                        {d.films.map((film, j) => (
+                          <div key={film.ext_id||j} className="ins-dir-film-thumb">
+                            <div className="ins-dir-film-poster">
+                              <img src={film.cover_url} alt={film.title} onError={e=>{e.target.style.visibility='hidden'}}/>
+                            </div>
+                            <div className="ins-dir-film-title">{film.title.length>10?film.title.slice(0,9)+'…':film.title}</div>
                           </div>
-                        )}
+                        ))}
                       </div>
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
             )}
 
             {/* ── Genre Distribution — clean horizontal bars ── */}
             {genreData.length > 0 && (
               <div className="ins-genre-chart">
-                <div className="ins-genre-chart-title">Genre Distribution</div>
+                <div className="ins-genre-chart-title">
+                  <svg viewBox="0 0 16 16" width="14" height="14" fill="none" style={{opacity:.5}}><path d="M2 14L5 8l3 4 3-7 3 5" stroke="var(--gold)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  Genre Distribution
+                </div>
                 <div className="ins-genre-rows">
                   {genreData.map(([genre, count], i) => {
-                    const pct = Math.round((count / insights.total) * 100);
                     const barW = (count / genreMax) * 100;
-                    const narrow = barW < 18;
                     return (
                       <div key={genre} className="ins-genre-row" style={{animationDelay:`${i*0.06}s`,animation:'fadeUp .4s ease both'}}>
                         <div className="ins-genre-label">{genre}</div>
                         <div className="ins-genre-bar-wrap">
-                          <div className="ins-genre-bar" style={{width:`${barW}%`,background:GENRE_COLORS[i%GENRE_COLORS.length]}}>
-                            {!narrow && <span className="ins-genre-bar-count">{count}</span>}
-                            {narrow && <span className="ins-genre-bar-count outside">{count}</span>}
-                          </div>
+                          <div className="ins-genre-bar" style={{width:`${barW}%`,background:GENRE_COLORS[i%GENRE_COLORS.length]}}/>
                         </div>
-                        <div className="ins-genre-pct">{pct}%</div>
+                        <div className="ins-genre-pct">{count}</div>
                       </div>
                     );
                   })}
