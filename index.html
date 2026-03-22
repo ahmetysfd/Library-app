@@ -307,6 +307,13 @@ body{background:var(--bg);color:var(--text);font-family:'Geist',sans-serif;font-
 .top300-load-btn:hover{background:var(--gold-faint);border-color:var(--gold)}
 .top300-load-btn:disabled{opacity:.3;cursor:not-allowed}
 
+/* Album genre filter tabs */
+.album-genre-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px}
+.album-genre-tab{padding:7px 16px;border-radius:20px;font-family:'Geist',sans-serif;font-size:12px;font-weight:300;letter-spacing:.06em;cursor:pointer;border:0.5px solid var(--border);background:transparent;color:var(--text3);transition:all .2s;white-space:nowrap}
+.album-genre-tab:hover{border-color:var(--gold-dim);color:var(--text2)}
+.album-genre-tab.active{border-color:var(--gold);background:rgba(200,165,80,.08);color:var(--gold);font-weight:400}
+.album-genre-count{font-size:10px;opacity:.6;margin-left:4px}
+
 /* Type counts — Movies / Shows */
 .ins-type-row{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border2)}
 .ins-type-cell{background:var(--bg2);padding:28px 20px;text-align:center;position:relative}
@@ -2019,107 +2026,109 @@ function Top300Page({ onBack, onAddToLibrary, libraryItems }) {
  */
 
 const GREATEST_ALBUMS = [
-  ['Thriller','Michael Jackson','1982'],['Back in Black','AC/DC','1980'],['The Dark Side of the Moon','Pink Floyd','1973'],
-  ['Bat Out of Hell','Meat Loaf','1977'],['Their Greatest Hits','Eagles','1976'],['Dirty Dancing','Soundtrack','1987'],
-  ['Rumours','Fleetwood Mac','1977'],['Saturday Night Fever','Bee Gees','1977'],['Come On Over','Shania Twain','1997'],
-  ['Led Zeppelin IV','Led Zeppelin','1971'],['The Bodyguard','Whitney Houston','1992'],['Born in the U.S.A.','Bruce Springsteen','1984'],
-  ['Brothers in Arms','Dire Straits','1985'],['Bad','Michael Jackson','1987'],['Dangerous','Michael Jackson','1991'],
-  ['Abbey Road','The Beatles','1969'],['Nevermind','Nirvana','1991'],['The Wall','Pink Floyd','1979'],
-  ['A Night at the Opera','Queen','1975'],['Hotel California','Eagles','1976'],['Appetite for Destruction',"Guns N' Roses",'1987'],
-  ['21','Adele','2011'],['Purple Rain','Prince','1984'],['OK Computer','Radiohead','1997'],
-  ['Legend','Bob Marley','1984'],['Jagged Little Pill','Alanis Morissette','1995'],['Supernatural','Santana','1999'],
-  ['Metallica','Metallica','1991'],['Falling into You','Celine Dion','1996'],["Let's Talk About Love",'Celine Dion','1997'],
-  ['Born to Run','Bruce Springsteen','1975'],['Slippery When Wet','Bon Jovi','1986'],['1','The Beatles','2000'],
-  ['Hysteria','Def Leppard','1987'],['The Joshua Tree','U2','1987'],['No Fences','Garth Brooks','1990'],
-  ['Wish You Were Here','Pink Floyd','1975'],['Revolver','The Beatles','1966'],['Sgt. Pepper','The Beatles','1967'],
-  ['Kind of Blue','Miles Davis','1959'],['Graceland','Paul Simon','1986'],['Automatic for the People','R.E.M.','1992'],
-  ['The Eminem Show','Eminem','2002'],['The Marshall Mathers LP','Eminem','2000'],['Curtain Call','Eminem','2005'],
-  ['Hybrid Theory','Linkin Park','2000'],['Meteora','Linkin Park','2003'],['In Utero','Nirvana','1993'],
-  ['Ten','Pearl Jam','1991'],['Vs.','Pearl Jam','1993'],['Blood Sugar Sex Magik','Red Hot Chili Peppers','1991'],
-  ['Californication','Red Hot Chili Peppers','1999'],['By the Way','Red Hot Chili Peppers','2002'],
-  ['The Rise and Fall of Ziggy Stardust','David Bowie','1972'],['Hunky Dory','David Bowie','1971'],
-  ['In Rainbows','Radiohead','2007'],['Kid A','Radiohead','2000'],['The Bends','Radiohead','1995'],
-  ['To Pimp a Butterfly','Kendrick Lamar','2015'],['good kid, m.A.A.d city','Kendrick Lamar','2012'],['DAMN.','Kendrick Lamar','2017'],
-  ['My Beautiful Dark Twisted Fantasy','Kanye West','2010'],['The College Dropout','Kanye West','2004'],['808s & Heartbreak','Kanye West','2008'],
-  ['Blonde','Frank Ocean','2016'],['Channel Orange','Frank Ocean','2012'],
-  ['Ready to Die','The Notorious B.I.G.','1994'],['All Eyez on Me','2Pac','1996'],['The Chronic','Dr. Dre','1992'],
-  ['Illmatic','Nas','1994'],['Enter the Wu-Tang','Wu-Tang Clan','1993'],['Reasonable Doubt','Jay-Z','1996'],
-  ['The Blueprint','Jay-Z','2001'],['Madvillainy','Madvillain','2004'],['Aquemini','Outkast','1998'],
-  ['Stankonia','Outkast','2000'],['Low End Theory','A Tribe Called Quest','1991'],
-  ['Funeral','Arcade Fire','2004'],['The Suburbs','Arcade Fire','2010'],
-  ['Is This It','The Strokes','2001'],['Room on Fire','The Strokes','2003'],
-  ['Whatever People Say I Am','Arctic Monkeys','2006'],['AM','Arctic Monkeys','2013'],
-  ['Turn on the Bright Lights','Interpol','2002'],['Hot Fuss','The Killers','2004'],
-  ['Origin of Symmetry','Muse','2001'],['Absolution','Muse','2003'],['Black Holes and Revelations','Muse','2006'],
-  ['Parachutes','Coldplay','2000'],['A Rush of Blood to the Head','Coldplay','2002'],['Viva la Vida','Coldplay','2008'],
-  ['(What\'s the Story) Morning Glory?','Oasis','1995'],['Definitely Maybe','Oasis','1994'],
-  ['The Queen Is Dead','The Smiths','1986'],['Disintegration','The Cure','1989'],['Violator','Depeche Mode','1990'],
-  ['Achtung Baby','U2','1991'],['All That You Can\'t Leave Behind','U2','2000'],
-  ['The Stranger','Billy Joel','1977'],['Piano Man','Billy Joel','1973'],
-  ['Tapestry','Carole King','1971'],['Blue','Joni Mitchell','1971'],['Court and Spark','Joni Mitchell','1974'],
-  ['Horses','Patti Smith','1975'],['Parallel Lines','Blondie','1978'],['London Calling','The Clash','1979'],
-  ['Unknown Pleasures','Joy Division','1979'],['Closer','Joy Division','1980'],
-  ['Doolittle','Pixies','1989'],['Surfer Rosa','Pixies','1988'],['Loveless','My Bloody Valentine','1991'],
-  ['Remain in Light','Talking Heads','1980'],['Stop Making Sense','Talking Heads','1984'],
-  ['Exile on Main St.','The Rolling Stones','1972'],['Let It Bleed','The Rolling Stones','1969'],['Sticky Fingers','The Rolling Stones','1971'],
-  ['Who\'s Next','The Who','1971'],['Tommy','The Who','1969'],
-  ['Are You Experienced','Jimi Hendrix','1967'],['Electric Ladyland','Jimi Hendrix','1968'],
-  ['Pet Sounds','The Beach Boys','1966'],['Harvest','Neil Young','1972'],['After the Gold Rush','Neil Young','1970'],
-  ['Astral Weeks','Van Morrison','1968'],['Moondance','Van Morrison','1970'],
-  ['What\'s Going On','Marvin Gaye','1971'],['Songs in the Key of Life','Stevie Wonder','1976'],['Innervisions','Stevie Wonder','1973'],
-  ['Off the Wall','Michael Jackson','1979'],['Sign o\' the Times','Prince','1987'],
-  ['Raise the Dead','Phantom Planet','1998'],['Rage Against the Machine','Rage Against the Machine','1992'],
-  ['The Downward Spiral','Nine Inch Nails','1994'],['Siamese Dream','Smashing Pumpkins','1993'],['Mellon Collie','Smashing Pumpkins','1995'],
-  ['Dookie','Green Day','1994'],['American Idiot','Green Day','2004'],
-  ['Toxicity','System of a Down','2001'],['Images and Words','Dream Theater','1992'],
-  ['Master of Puppets','Metallica','1986'],['Ride the Lightning','Metallica','1984'],['...And Justice for All','Metallica','1988'],
-  ['The Number of the Beast','Iron Maiden','1982'],['Paranoid','Black Sabbath','1970'],['Black Sabbath','Black Sabbath','1970'],
-  ['Highway to Hell','AC/DC','1979'],['For Those About to Rock','AC/DC','1981'],
-  ['Wish You Were Here','Pink Floyd','1975'],['Animals','Pink Floyd','1977'],
-  ['Moving Pictures','Rush','1981'],['2112','Rush','1976'],
-  ['Aqualung','Jethro Tull','1971'],['Close to the Edge','Yes','1972'],['In the Court of the Crimson King','King Crimson','1969'],
-  ['Random Access Memories','Daft Punk','2013'],['Discovery','Daft Punk','2001'],['Homework','Daft Punk','1997'],
-  ['Cross','Justice','2007'],['Selected Ambient Works','Aphex Twin','1992'],
-  ['Dummy','Portishead','1994'],['Mezzanine','Massive Attack','1998'],['Blue Lines','Massive Attack','1991'],
-  ['Homogenic','Bjork','1997'],['Post','Bjork','1995'],['Debut','Bjork','1993'],
-  ['The Miseducation of Lauryn Hill','Lauryn Hill','1998'],['Baduizm','Erykah Badu','1997'],['Mama\'s Gun','Erykah Badu','2000'],
-  ['Voodoo','D\'Angelo','2000'],['Black Messiah','D\'Angelo','2014'],
-  ['Lemonade','Beyonce','2016'],['B\'Day','Beyonce','2006'],['Dangerously in Love','Beyonce','2003'],
-  ['Anti','Rihanna','2016'],['1989','Taylor Swift','2014'],['Folklore','Taylor Swift','2020'],['Midnights','Taylor Swift','2022'],
-  ['Born This Way','Lady Gaga','2011'],['The Fame Monster','Lady Gaga','2009'],
-  ['25','Adele','2015'],['30','Adele','2021'],['19','Adele','2008'],
-  ['Future Nostalgia','Dua Lipa','2020'],['After Hours','The Weeknd','2020'],['Starboy','The Weeknd','2016'],
-  ['Currents','Tame Impala','2015'],['Lonerism','Tame Impala','2012'],
-  ['Norman Fucking Rockwell!','Lana Del Rey','2019'],['Born to Die','Lana Del Rey','2012'],
-  ['When We All Fall Asleep','Billie Eilish','2019'],['Happier Than Ever','Billie Eilish','2021'],
-  ['Igor','Tyler, the Creator','2019'],['Flower Boy','Tyler, the Creator','2017'],
-  ['Astroworld','Travis Scott','2018'],['Rodeo','Travis Scott','2015'],
-  ['Swimming','Mac Miller','2018'],['Circles','Mac Miller','2020'],
-  ['Man on the Moon','Kid Cudi','2009'],['SOS','SZA','2022'],['Ctrl','SZA','2017'],
-  ['Punisher','Phoebe Bridgers','2020'],['For Emma, Forever Ago','Bon Iver','2007'],['22, A Million','Bon Iver','2016'],
-  ['Carrie & Lowell','Sufjan Stevens','2015'],['Illinois','Sufjan Stevens','2005'],
-  ['In the Aeroplane Over the Sea','Neutral Milk Hotel','1998'],['Transatlanticism','Death Cab for Cutie','2003'],
-  ['The Moon & Antarctica','Modest Mouse','2000'],['Good News for People','Modest Mouse','2004'],
-  ['Lifted','Bright Eyes','2002'],['I\'m Wide Awake, It\'s Morning','Bright Eyes','2005'],
-  ['Feel Good Inc','Gorillaz','2005'],['Demon Days','Gorillaz','2005'],['Plastic Beach','Gorillaz','2010'],
-  ['Hozier','Hozier','2014'],['Wasteland, Baby!','Hozier','2019'],
-  ['The Suburbs','Arcade Fire','2010'],['Neon Bible','Arcade Fire','2007'],
-  ['Vessel','Twenty One Pilots','2013'],['Blurryface','Twenty One Pilots','2015'],
-  ['A Fever You Can\'t Sweat Out','Panic! at the Disco','2005'],
-  ['From Under the Cork Tree','Fall Out Boy','2005'],['Infinity on High','Fall Out Boy','2007'],
-  ['The Black Parade','My Chemical Romance','2006'],['Three Cheers for Sweet Revenge','My Chemical Romance','2004'],
-  ['Night Visions','Imagine Dragons','2012'],['Evolve','Imagine Dragons','2017'],
-  ['Songs About Jane','Maroon 5','2002'],['Morning View','Incubus','2001'],
-  ['Stadium Arcadium','Red Hot Chili Peppers','2006'],['One Hot Minute','Red Hot Chili Peppers','1995'],
-  ['Songs for the Deaf','Queens of the Stone Age','2002'],['...Like Clockwork','Queens of the Stone Age','2013'],
-  ['Weezer','Weezer','1994'],['Pinkerton','Weezer','1996'],
-  ['Enema of the State','Blink-182','1999'],['Untitled','Blink-182','2003'],
-  ['White Blood Cells','The White Stripes','2001'],['Elephant','The White Stripes','2003'],
-  ['Lateralus','Tool','2001'],['10,000 Days','Tool','2006'],['Fear Inoculum','Tool','2019'],
-  ['Colors','Between the Buried and Me','2007'],['Crack the Skye','Mastodon','2009'],
-  ['Blackwater Park','Opeth','2001'],['Still Life','Opeth','1999'],
-  ['Aja','Steely Dan','1977'],['Rumours','Fleetwood Mac','1977'],
-].map((a,i)=>({title:a[0],artist:a[1],year:a[2],rank:i+1}));
+  ['Thriller','Michael Jackson','1982','Pop'],['Back in Black','AC/DC','1980','Rock'],['The Dark Side of the Moon','Pink Floyd','1973','Rock'],
+  ['Bat Out of Hell','Meat Loaf','1977','Rock'],['Their Greatest Hits','Eagles','1976','Rock'],['Dirty Dancing','Soundtrack','1987','Pop'],
+  ['Rumours','Fleetwood Mac','1977','Rock'],['Saturday Night Fever','Bee Gees','1977','Pop'],['Come On Over','Shania Twain','1997','Country'],
+  ['Led Zeppelin IV','Led Zeppelin','1971','Rock'],['The Bodyguard','Whitney Houston','1992','Pop'],['Born in the U.S.A.','Bruce Springsteen','1984','Rock'],
+  ['Brothers in Arms','Dire Straits','1985','Rock'],['Bad','Michael Jackson','1987','Pop'],['Dangerous','Michael Jackson','1991','Pop'],
+  ['Abbey Road','The Beatles','1969','Rock'],['Nevermind','Nirvana','1991','Rock'],['The Wall','Pink Floyd','1979','Rock'],
+  ['A Night at the Opera','Queen','1975','Rock'],['Hotel California','Eagles','1976','Rock'],['Appetite for Destruction',"Guns N' Roses",'1987','Rock'],
+  ['21','Adele','2011','Pop'],['Purple Rain','Prince','1984','Pop'],['OK Computer','Radiohead','1997','Rock'],
+  ['Legend','Bob Marley','1984','Reggae'],['Jagged Little Pill','Alanis Morissette','1995','Rock'],['Supernatural','Santana','1999','Rock'],
+  ['Metallica','Metallica','1991','Metal'],['Falling into You','Celine Dion','1996','Pop'],["Let's Talk About Love",'Celine Dion','1997','Pop'],
+  ['Born to Run','Bruce Springsteen','1975','Rock'],['Slippery When Wet','Bon Jovi','1986','Rock'],['1','The Beatles','2000','Rock'],
+  ['Hysteria','Def Leppard','1987','Rock'],['The Joshua Tree','U2','1987','Rock'],['No Fences','Garth Brooks','1990','Country'],
+  ['Wish You Were Here','Pink Floyd','1975','Rock'],['Revolver','The Beatles','1966','Rock'],['Sgt. Pepper','The Beatles','1967','Rock'],
+  ['Kind of Blue','Miles Davis','1959','Jazz'],['Graceland','Paul Simon','1986','Pop'],['Automatic for the People','R.E.M.','1992','Rock'],
+  ['The Eminem Show','Eminem','2002','Rap'],['The Marshall Mathers LP','Eminem','2000','Rap'],['Curtain Call','Eminem','2005','Rap'],
+  ['Hybrid Theory','Linkin Park','2000','Rock'],['Meteora','Linkin Park','2003','Rock'],['In Utero','Nirvana','1993','Rock'],
+  ['Ten','Pearl Jam','1991','Rock'],['Vs.','Pearl Jam','1993','Rock'],['Blood Sugar Sex Magik','Red Hot Chili Peppers','1991','Rock'],
+  ['Californication','Red Hot Chili Peppers','1999','Rock'],['By the Way','Red Hot Chili Peppers','2002','Rock'],
+  ['The Rise and Fall of Ziggy Stardust','David Bowie','1972','Rock'],['Hunky Dory','David Bowie','1971','Rock'],
+  ['In Rainbows','Radiohead','2007','Rock'],['Kid A','Radiohead','2000','Rock'],['The Bends','Radiohead','1995','Rock'],
+  ['To Pimp a Butterfly','Kendrick Lamar','2015','Rap'],['good kid, m.A.A.d city','Kendrick Lamar','2012','Rap'],['DAMN.','Kendrick Lamar','2017','Rap'],
+  ['My Beautiful Dark Twisted Fantasy','Kanye West','2010','Rap'],['The College Dropout','Kanye West','2004','Rap'],['808s & Heartbreak','Kanye West','2008','Rap'],
+  ['Blonde','Frank Ocean','2016','R&B'],['Channel Orange','Frank Ocean','2012','R&B'],
+  ['Ready to Die','The Notorious B.I.G.','1994','Rap'],['All Eyez on Me','2Pac','1996','Rap'],['The Chronic','Dr. Dre','1992','Rap'],
+  ['Illmatic','Nas','1994','Rap'],['Enter the Wu-Tang','Wu-Tang Clan','1993','Rap'],['Reasonable Doubt','Jay-Z','1996','Rap'],
+  ['The Blueprint','Jay-Z','2001','Rap'],['Madvillainy','Madvillain','2004','Rap'],['Aquemini','Outkast','1998','Rap'],
+  ['Stankonia','Outkast','2000','Rap'],['Low End Theory','A Tribe Called Quest','1991','Rap'],
+  ['Funeral','Arcade Fire','2004','Indie'],['The Suburbs','Arcade Fire','2010','Indie'],
+  ['Is This It','The Strokes','2001','Indie'],['Room on Fire','The Strokes','2003','Indie'],
+  ['Whatever People Say I Am','Arctic Monkeys','2006','Indie'],['AM','Arctic Monkeys','2013','Indie'],
+  ['Turn on the Bright Lights','Interpol','2002','Indie'],['Hot Fuss','The Killers','2004','Indie'],
+  ['Origin of Symmetry','Muse','2001','Rock'],['Absolution','Muse','2003','Rock'],['Black Holes and Revelations','Muse','2006','Rock'],
+  ['Parachutes','Coldplay','2000','Pop'],['A Rush of Blood to the Head','Coldplay','2002','Pop'],['Viva la Vida','Coldplay','2008','Pop'],
+  ['(What\'s the Story) Morning Glory?','Oasis','1995','Rock'],['Definitely Maybe','Oasis','1994','Rock'],
+  ['The Queen Is Dead','The Smiths','1986','Indie'],['Disintegration','The Cure','1989','Indie'],['Violator','Depeche Mode','1990','Electronic'],
+  ['Achtung Baby','U2','1991','Rock'],['All That You Can\'t Leave Behind','U2','2000','Rock'],
+  ['The Stranger','Billy Joel','1977','Pop'],['Piano Man','Billy Joel','1973','Pop'],
+  ['Tapestry','Carole King','1971','Pop'],['Blue','Joni Mitchell','1971','Folk'],['Court and Spark','Joni Mitchell','1974','Folk'],
+  ['Horses','Patti Smith','1975','Rock'],['Parallel Lines','Blondie','1978','Pop'],['London Calling','The Clash','1979','Rock'],
+  ['Unknown Pleasures','Joy Division','1979','Indie'],['Closer','Joy Division','1980','Indie'],
+  ['Doolittle','Pixies','1989','Indie'],['Surfer Rosa','Pixies','1988','Indie'],['Loveless','My Bloody Valentine','1991','Indie'],
+  ['Remain in Light','Talking Heads','1980','Rock'],['Stop Making Sense','Talking Heads','1984','Rock'],
+  ['Exile on Main St.','The Rolling Stones','1972','Rock'],['Let It Bleed','The Rolling Stones','1969','Rock'],['Sticky Fingers','The Rolling Stones','1971','Rock'],
+  ['Who\'s Next','The Who','1971','Rock'],['Tommy','The Who','1969','Rock'],
+  ['Are You Experienced','Jimi Hendrix','1967','Rock'],['Electric Ladyland','Jimi Hendrix','1968','Rock'],
+  ['Pet Sounds','The Beach Boys','1966','Rock'],['Harvest','Neil Young','1972','Folk'],['After the Gold Rush','Neil Young','1970','Folk'],
+  ['Astral Weeks','Van Morrison','1968','Folk'],['Moondance','Van Morrison','1970','Folk'],
+  ['What\'s Going On','Marvin Gaye','1971','R&B'],['Songs in the Key of Life','Stevie Wonder','1976','R&B'],['Innervisions','Stevie Wonder','1973','R&B'],
+  ['Off the Wall','Michael Jackson','1979','Pop'],['Sign o\' the Times','Prince','1987','Pop'],
+  ['Raise the Dead','Phantom Planet','1998','Rock'],['Rage Against the Machine','Rage Against the Machine','1992','Metal'],
+  ['The Downward Spiral','Nine Inch Nails','1994','Metal'],['Siamese Dream','Smashing Pumpkins','1993','Rock'],['Mellon Collie','Smashing Pumpkins','1995','Rock'],
+  ['Dookie','Green Day','1994','Rock'],['American Idiot','Green Day','2004','Rock'],
+  ['Toxicity','System of a Down','2001','Metal'],['Images and Words','Dream Theater','1992','Metal'],
+  ['Master of Puppets','Metallica','1986','Metal'],['Ride the Lightning','Metallica','1984','Metal'],['...And Justice for All','Metallica','1988','Metal'],
+  ['The Number of the Beast','Iron Maiden','1982','Metal'],['Paranoid','Black Sabbath','1970','Metal'],['Black Sabbath','Black Sabbath','1970','Metal'],
+  ['Highway to Hell','AC/DC','1979','Rock'],['For Those About to Rock','AC/DC','1981','Rock'],
+  ['Wish You Were Here','Pink Floyd','1975','Rock'],['Animals','Pink Floyd','1977','Rock'],
+  ['Moving Pictures','Rush','1981','Rock'],['2112','Rush','1976','Rock'],
+  ['Aqualung','Jethro Tull','1971','Rock'],['Close to the Edge','Yes','1972','Rock'],['In the Court of the Crimson King','King Crimson','1969','Rock'],
+  ['Random Access Memories','Daft Punk','2013','Electronic'],['Discovery','Daft Punk','2001','Electronic'],['Homework','Daft Punk','1997','Electronic'],
+  ['Cross','Justice','2007','Electronic'],['Selected Ambient Works','Aphex Twin','1992','Electronic'],
+  ['Dummy','Portishead','1994','Electronic'],['Mezzanine','Massive Attack','1998','Electronic'],['Blue Lines','Massive Attack','1991','Electronic'],
+  ['Homogenic','Bjork','1997','Electronic'],['Post','Bjork','1995','Electronic'],['Debut','Bjork','1993','Electronic'],
+  ['The Miseducation of Lauryn Hill','Lauryn Hill','1998','R&B'],['Baduizm','Erykah Badu','1997','R&B'],['Mama\'s Gun','Erykah Badu','2000','R&B'],
+  ['Voodoo','D\'Angelo','2000','R&B'],['Black Messiah','D\'Angelo','2014','R&B'],
+  ['Lemonade','Beyonce','2016','R&B'],['B\'Day','Beyonce','2006','R&B'],['Dangerously in Love','Beyonce','2003','R&B'],
+  ['Anti','Rihanna','2016','Pop'],['1989','Taylor Swift','2014','Pop'],['Folklore','Taylor Swift','2020','Indie'],['Midnights','Taylor Swift','2022','Pop'],
+  ['Born This Way','Lady Gaga','2011','Pop'],['The Fame Monster','Lady Gaga','2009','Pop'],
+  ['25','Adele','2015','Pop'],['30','Adele','2021','Pop'],['19','Adele','2008','Pop'],
+  ['Future Nostalgia','Dua Lipa','2020','Pop'],['After Hours','The Weeknd','2020','R&B'],['Starboy','The Weeknd','2016','R&B'],
+  ['Currents','Tame Impala','2015','Indie'],['Lonerism','Tame Impala','2012','Indie'],
+  ['Norman Fucking Rockwell!','Lana Del Rey','2019','Indie'],['Born to Die','Lana Del Rey','2012','Pop'],
+  ['When We All Fall Asleep','Billie Eilish','2019','Pop'],['Happier Than Ever','Billie Eilish','2021','Pop'],
+  ['Igor','Tyler, the Creator','2019','Rap'],['Flower Boy','Tyler, the Creator','2017','Rap'],
+  ['Astroworld','Travis Scott','2018','Rap'],['Rodeo','Travis Scott','2015','Rap'],
+  ['Swimming','Mac Miller','2018','Rap'],['Circles','Mac Miller','2020','Rap'],
+  ['Man on the Moon','Kid Cudi','2009','Rap'],['SOS','SZA','2022','R&B'],['Ctrl','SZA','2017','R&B'],
+  ['Punisher','Phoebe Bridgers','2020','Indie'],['For Emma, Forever Ago','Bon Iver','2007','Indie'],['22, A Million','Bon Iver','2016','Indie'],
+  ['Carrie & Lowell','Sufjan Stevens','2015','Indie'],['Illinois','Sufjan Stevens','2005','Indie'],
+  ['In the Aeroplane Over the Sea','Neutral Milk Hotel','1998','Indie'],['Transatlanticism','Death Cab for Cutie','2003','Indie'],
+  ['The Moon & Antarctica','Modest Mouse','2000','Indie'],['Good News for People','Modest Mouse','2004','Indie'],
+  ['Lifted','Bright Eyes','2002','Indie'],['I\'m Wide Awake, It\'s Morning','Bright Eyes','2005','Indie'],
+  ['Feel Good Inc','Gorillaz','2005','Electronic'],['Demon Days','Gorillaz','2005','Electronic'],['Plastic Beach','Gorillaz','2010','Electronic'],
+  ['Hozier','Hozier','2014','Folk'],['Wasteland, Baby!','Hozier','2019','Folk'],
+  ['The Suburbs','Arcade Fire','2010','Indie'],['Neon Bible','Arcade Fire','2007','Indie'],
+  ['Vessel','Twenty One Pilots','2013','Pop'],['Blurryface','Twenty One Pilots','2015','Pop'],
+  ['A Fever You Can\'t Sweat Out','Panic! at the Disco','2005','Rock'],
+  ['From Under the Cork Tree','Fall Out Boy','2005','Rock'],['Infinity on High','Fall Out Boy','2007','Rock'],
+  ['The Black Parade','My Chemical Romance','2006','Rock'],['Three Cheers for Sweet Revenge','My Chemical Romance','2004','Rock'],
+  ['Night Visions','Imagine Dragons','2012','Pop'],['Evolve','Imagine Dragons','2017','Pop'],
+  ['Songs About Jane','Maroon 5','2002','Pop'],['Morning View','Incubus','2001','Rock'],
+  ['Stadium Arcadium','Red Hot Chili Peppers','2006','Rock'],['One Hot Minute','Red Hot Chili Peppers','1995','Rock'],
+  ['Songs for the Deaf','Queens of the Stone Age','2002','Rock'],['...Like Clockwork','Queens of the Stone Age','2013','Rock'],
+  ['Weezer','Weezer','1994','Rock'],['Pinkerton','Weezer','1996','Rock'],
+  ['Enema of the State','Blink-182','1999','Rock'],['Untitled','Blink-182','2003','Rock'],
+  ['White Blood Cells','The White Stripes','2001','Rock'],['Elephant','The White Stripes','2003','Rock'],
+  ['Lateralus','Tool','2001','Metal'],['10,000 Days','Tool','2006','Metal'],['Fear Inoculum','Tool','2019','Metal'],
+  ['Colors','Between the Buried and Me','2007','Metal'],['Crack the Skye','Mastodon','2009','Metal'],
+  ['Blackwater Park','Opeth','2001','Metal'],['Still Life','Opeth','1999','Metal'],
+  ['Aja','Steely Dan','1977','Jazz'],['Rumours','Fleetwood Mac','1977','Rock'],
+].map((a,i)=>({title:a[0],artist:a[1],year:a[2],genre:a[3],rank:i+1}));
+
+const ALBUM_GENRES = ['All','Rock','Rap','Pop','Indie','Metal','Electronic','R&B','Folk','Jazz','Country','Reggae'];
 
 // Search MusicBrainz for a single album to get cover URL
 async function searchAlbumCover(title, artist) {
@@ -2142,11 +2151,28 @@ function TopAlbumsPage({ onBack, onAddToLibrary, libraryItems }) {
   const [page, setPage] = useState(1);
   const [covers, setCovers] = useState({});
   const [loadingCovers, setLoadingCovers] = useState(false);
+  const [genreFilter, setGenreFilter] = useState('All');
   const perPage = 20;
-  const maxPages = Math.ceil(GREATEST_ALBUMS.length / perPage);
-  const visibleAlbums = GREATEST_ALBUMS.slice(0, page * perPage);
+
+  const filteredAlbums = useMemo(()=>{
+    if (genreFilter === 'All') return GREATEST_ALBUMS;
+    return GREATEST_ALBUMS.filter(a=>a.genre===genreFilter);
+  },[genreFilter]);
+
+  const maxPages = Math.ceil(filteredAlbums.length / perPage);
+  const visibleAlbums = filteredAlbums.slice(0, page * perPage);
 
   const existingTitles = useMemo(()=> new Set((libraryItems||[]).map(i=>i.title)),[libraryItems]);
+
+  // Genre counts
+  const genreCounts = useMemo(()=>{
+    const c = {};
+    GREATEST_ALBUMS.forEach(a=>{ c[a.genre] = (c[a.genre]||0)+1; });
+    return c;
+  },[]);
+
+  // Reset page when genre changes
+  useEffect(()=>setPage(1),[genreFilter]);
 
   // Fetch covers for visible albums
   useEffect(()=>{
@@ -2179,8 +2205,20 @@ function TopAlbumsPage({ onBack, onAddToLibrary, libraryItems }) {
       <div className="top300-header">
         <div style={{display:'flex',alignItems:'baseline'}}>
           <div className="top300-title">Greatest Albums of All Time</div>
-          <span className="top300-sub">{visibleAlbums.length} of {GREATEST_ALBUMS.length} · Best-selling & critically acclaimed</span>
+          <span className="top300-sub">{filteredAlbums.length} albums{genreFilter!=='All'?` · ${genreFilter}`:' · Best-selling & critically acclaimed'}</span>
         </div>
+      </div>
+
+      <div className="album-genre-tabs">
+        {ALBUM_GENRES.map(g=>{
+          const count = g==='All' ? GREATEST_ALBUMS.length : (genreCounts[g]||0);
+          if (g!=='All' && !count) return null;
+          return (
+            <button key={g} className={`album-genre-tab ${genreFilter===g?'active':''}`} onClick={()=>setGenreFilter(g)}>
+              {g}<span className="album-genre-count">{count}</span>
+            </button>
+          );
+        })}
       </div>
 
       <div className="top300-grid" style={{gridTemplateColumns:'repeat(auto-fill,minmax(148px,1fr))'}}>
@@ -2211,6 +2249,7 @@ function TopAlbumsPage({ onBack, onAddToLibrary, libraryItems }) {
                 <div className="top300-meta">
                   <span>{album.artist}</span>
                   <span style={{color:'var(--text4)'}}>{album.year}</span>
+                  {genreFilter==='All' && <span style={{color:'var(--gold-dim)',fontSize:10}}>{album.genre}</span>}
                 </div>
               </div>
             </div>
@@ -2223,7 +2262,7 @@ function TopAlbumsPage({ onBack, onAddToLibrary, libraryItems }) {
       {page < maxPages && (
         <div className="top300-load-more">
           <button className="top300-load-btn" onClick={loadMore}>
-            Load more ({visibleAlbums.length}/{GREATEST_ALBUMS.length})
+            Load more ({visibleAlbums.length}/{filteredAlbums.length})
           </button>
         </div>
       )}
