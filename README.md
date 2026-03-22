@@ -2,8 +2,6 @@
 
 A dark, minimal personal library app for tracking films, books, music, and games. Built with React (CDN), Express, and Supabase (PostgreSQL).
 
-**Full database + backend walkthrough:** see **[SETUP.md](./SETUP.md)** (step-by-step; includes what’s automated vs what you must do in Supabase).
-
 ---
 
 ## Quick Start (Frontend Only)
@@ -19,39 +17,56 @@ npx serve .
 
 ## Full Setup (With Database & Server)
 
-> **Detailed guide:** [SETUP.md](./SETUP.md)
-
-### 1. Supabase **(you, in browser)**
+### 1. Supabase
 
 1. Create a free project at [supabase.com](https://supabase.com)
-2. **SQL Editor** → paste all of `schema.sql` → **Run**
-3. **Settings → API** → copy **Project URL** and **service_role** key (keep secret)
+2. Go to **SQL Editor** → paste the contents of `schema.sql` → Run
+3. Copy your **Project URL** and **service_role key** from Settings → API
 
-### 2. Environment **(you)**
+### 2. Environment
 
 ```bash
-# Windows PowerShell (if .env missing):
-Copy-Item .env.example .env
-# macOS/Linux:
 cp .env.example .env
+# Edit .env with your Supabase URL, service key, and a JWT secret
 ```
 
-Edit `.env`: set `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, and `JWT_SECRET` (e.g. `openssl rand -hex 32`).
+### 3. Spotify Album Browse (Recommended)
+
+The album browsing feature uses Spotify's Client Credentials flow — no user login, no extended quota needed.
+
+1. Go to [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard)
+2. Create an app (any name, any description)
+3. Copy **Client ID** and **Client Secret** into your `.env`
+4. Seed your database (one-time, takes ~30 seconds):
+
+```bash
+# Start your server first
+node server.js
+
+# Then seed each genre (run once — data lives in Supabase forever)
+curl -X POST http://localhost:3001/api/albums/seed -H "Content-Type: application/json" -d '{"genre":"rock"}'
+curl -X POST http://localhost:3001/api/albums/seed -H "Content-Type: application/json" -d '{"genre":"pop"}'
+curl -X POST http://localhost:3001/api/albums/seed -H "Content-Type: application/json" -d '{"genre":"hip-hop"}'
+curl -X POST http://localhost:3001/api/albums/seed -H "Content-Type: application/json" -d '{"genre":"electronic"}'
+curl -X POST http://localhost:3001/api/albums/seed -H "Content-Type: application/json" -d '{"genre":"jazz"}'
+# ... repeat for metal, folk, country, rnb, indie, punk, classical, reggae, blues, latin
+```
+
+After seeding: **Spotify is never called again.** All 50+ users read from your Supabase `cached_albums` table.
+
+Without Spotify setup, the app falls back to iTunes Search API (free, no auth, works out of the box).
 
 ### 3. Install & Run
 
 ```bash
-npm install   # already done if you followed SETUP.md
+npm install
 npm start
-# Server: http://localhost:3001
+# Server runs on http://localhost:3001
 ```
 
 ### 4. Open the App
 
-With the server running (`npm start` or `npm run dev`), open **`http://localhost:3001/`** — the server serves `index.html` and the API on the same port.  
-(JSON-only check: **`http://localhost:3001/api/health`**.)
-
-Using `file://` on `index.html` still works but is limited; prefer **`http://localhost:3001/`** when the backend is on.
+Open `index.html` in your browser. It connects to `localhost:3001` automatically.
 
 ---
 

@@ -22,7 +22,6 @@
 
 require('dotenv').config();
 
-const path    = require('path');
 const express = require('express');
 const cors    = require('cors');
 const fetch   = require('node-fetch');
@@ -583,23 +582,231 @@ app.get('/api/search/games', async (req, res) => {
 
 
 // ════════════════════════════════════════════════════════════════════════════
+// SPOTIFY ALBUM CACHE — Client Credentials Flow (no user login needed)
+// ════════════════════════════════════════════════════════════════════════════
+/*
+ * HOW THIS WORKS:
+ * 1. Server gets a Spotify app token (Client Credentials — NOT user auth)
+ * 2. Searches Spotify for albums by genre/year → gets popularity + cover URLs
+ * 3. Stores results in cached_albums table (Supabase)
+ * 4. All frontend requests read from YOUR DB — Spotify is never called per-user
+ *
+ * RESULT: 50 users = ~0 Spotify calls (all served from cache)
+ *         10,000 users = still ~0 Spotify calls
+ *
+ * SETUP: Add to .env:
+ *   SPOTIFY_CLIENT_ID=your-spotify-app-client-id
+ *   SPOTIFY_CLIENT_SECRET=your-spotify-app-client-secret
+ *   (Get these free at https://developer.spotify.com/dashboard)
+ */
+
+let spotifyToken = null;
+let spotifyTokenExpiry = 0;
+
+async function getSpotifyToken() {
+  if (spotifyToken && Date.now() < spotifyTokenExpiry) return spotifyToken;
+  const clientId = process.env.SPOTIFY_CLIENT_ID;
+  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
+  if (!clientId || !clientSecret) return null;
+
+  try {
+    const res = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': 'Basic ' + Buffer.from(clientId + ':' + clientSecret).toString('base64')
+      },
+      body: 'grant_type=client_credentials'
+    });
+    const data = await res.json();
+    spotifyToken = data.access_token;
+    spotifyTokenExpiry = Date.now() + (data.expires_in - 60) * 1000; // refresh 1 min early
+    return spotifyToken;
+  } catch (e) {
+    console.error('Spotify token error:', e.message);
+    return null;
+  }
+}
+
+// Spotify genre seeds that map to search terms
+const SPOTIFY_GENRE_MAP = {
+  'all':        'year:2000-2024',
+  'rock':       'genre:rock',
+  'hip-hop':    'genre:hip-hop',
+  'pop':        'genre:pop',
+  'indie':      'genre:indie',
+  'metal':      'genre:metal',
+  'electronic': 'genre:electronic',
+  'rnb':        'genre:r&b',
+  'jazz':       'genre:jazz',
+  'folk':       'genre:folk',
+  'punk':       'genre:punk',
+  'classical':  'genre:classical',
+  'country':    'genre:country',
+  'reggae':     'genre:reggae',
+  'blues':      'genre:blues',
+  'latin':      'genre:latin',
+};
+
+// Fetch from Spotify and cache in DB
+async function fetchAndCacheAlbums(genre, year) {
+  const token = await getSpotifyToken();
+  if (!token) return [];
+
+  let query = SPOTIFY_GENRE_MAP[genre] || `genre:${genre}`;
+  if (year) query += ` year:${year}`;
+
+  try {
+    const url = `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=album&limit=50&market=US`;
+    const res = await fetch(url, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json();
+    const albums = (data.albums?.items || []).map(a => ({
+      id: a.id,
+      title: a.name,
+      artist: (a.artists || []).map(ar => ar.name).join(', '),
+      year: a.release_date ? parseInt(a.release_date.slice(0, 4)) : null,
+      cover_url: a.images?.[1]?.url || a.images?.[0]?.url || '',  // 300x300 preferred
+      genre: genre === 'all' ? (a.genres?.[0] || 'various') : genre,
+      popularity: a.popularity || 0,
+      track_count: a.total_tracks || 0,
+      spotify_url: a.external_urls?.spotify || '',
+    }));
+
+    // Upsert into Supabase cache
+    if (albums.length > 0) {
+      const rows = albums.map(a => ({
+        id: a.id, title: a.title, artist: a.artist, year: a.year,
+        cover_url: a.cover_url, genre: a.genre, popularity: a.popularity,
+        track_count: a.track_count, spotify_url: a.spotify_url,
+        fetched_at: new Date().toISOString(),
+      }));
+      await supabase.from('cached_albums').upsert(rows, { onConflict: 'id' });
+    }
+
+    return albums;
+  } catch (e) {
+    console.error('Spotify search error:', e.message);
+    return [];
+  }
+}
+
+// GET /api/albums/browse?genre=rock&year=2002&page=1&limit=50
+// Serves from cache first, fetches from Spotify only if cache is empty/stale
+app.get('/api/albums/browse', async (req, res) => {
+  try {
+    const genre = req.query.genre || 'all';
+    const year = req.query.year ? parseInt(req.query.year) : null;
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(200, parseInt(req.query.limit) || 50);
+    const offset = (page - 1) * limit;
+
+    // 1. Try cache first
+    let query = supabase
+      .from('cached_albums')
+      .select('*')
+      .order('popularity', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (genre !== 'all') query = query.eq('genre', genre);
+    if (year) query = query.eq('year', year);
+
+    let { data: cached, error } = await query;
+
+    // 2. If cache has enough data, serve it
+    if (cached && cached.length >= 10) {
+      return res.json({
+        albums: cached,
+        source: 'cache',
+        total: cached.length,
+        page, limit
+      });
+    }
+
+    // 3. Cache empty/thin — fetch from Spotify and cache
+    console.log(`[Spotify] Fetching: genre=${genre}, year=${year}`);
+    const fresh = await fetchAndCacheAlbums(genre, year);
+
+    // If Spotify fails, return whatever cache had
+    if (fresh.length === 0 && cached) {
+      return res.json({ albums: cached, source: 'cache-stale', total: cached.length, page, limit });
+    }
+
+    // 4. Re-query cache (now populated)
+    let { data: updated } = await supabase
+      .from('cached_albums')
+      .select('*')
+      .order('popularity', { ascending: false })
+      .range(offset, offset + limit - 1)
+      .then(r => r);
+
+    if (genre !== 'all') {
+      ({ data: updated } = await supabase
+        .from('cached_albums')
+        .select('*')
+        .eq('genre', genre)
+        .order('popularity', { ascending: false })
+        .range(offset, offset + limit - 1));
+    }
+
+    res.json({
+      albums: updated || fresh,
+      source: 'spotify-fresh',
+      total: (updated || fresh).length,
+      page, limit
+    });
+  } catch (e) {
+    console.error('Browse albums error:', e);
+    res.status(500).json({ error: 'Failed to fetch albums' });
+  }
+});
+
+// GET /api/albums/stats — How many albums are cached per genre
+app.get('/api/albums/stats', async (req, res) => {
+  try {
+    const { data } = await supabase.rpc('album_genre_counts');
+    res.json(data || []);
+  } catch (e) {
+    res.json([]);
+  }
+});
+
+// POST /api/albums/seed — Admin endpoint: pre-fetch popular albums for a genre
+// Call this once per genre to populate your cache. Then never call Spotify again.
+app.post('/api/albums/seed', async (req, res) => {
+  const { genre, years } = req.body; // e.g. { genre: 'rock', years: [1970,1980,1990,2000,2010,2020] }
+  if (!genre) return res.status(400).json({ error: 'genre required' });
+
+  const allYears = years || [1960,1970,1975,1980,1985,1990,1995,2000,2005,2010,2015,2020,2023];
+  let total = 0;
+
+  for (const year of allYears) {
+    const albums = await fetchAndCacheAlbums(genre, year);
+    total += albums.length;
+    // Small delay to respect rate limits
+    await new Promise(r => setTimeout(r, 200));
+  }
+
+  res.json({ message: `Seeded ${total} albums for genre: ${genre}`, total });
+});
+
+
+// ════════════════════════════════════════════════════════════════════════════
 // HEALTH CHECK
 // ════════════════════════════════════════════════════════════════════════════
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', version: '2.0.0', timestamp: new Date().toISOString() });
 });
 
-// Serve index.html + static assets from project folder (same origin as API)
-app.use(express.static(path.join(__dirname), { index: 'index.html' }));
 
 // ════════════════════════════════════════════════════════════════════════════
 // START
 // ════════════════════════════════════════════════════════════════════════════
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`\n  ┌──────────────────────────────────────────────────────────┐`);
-  console.log(`  │  SHELF running on port ${PORT}                              │`);
-  console.log(`  │  App (open in browser):  http://localhost:${PORT}/          │`);
-  console.log(`  │  API health check:       http://localhost:${PORT}/api/health │`);
-  console.log(`  └──────────────────────────────────────────────────────────┘\n`);
+  console.log(`\n  ┌─────────────────────────────────────────┐`);
+  console.log(`  │  SHELF API running on port ${PORT}          │`);
+  console.log(`  │  http://localhost:${PORT}/api/health        │`);
+  console.log(`  └─────────────────────────────────────────┘\n`);
 });
