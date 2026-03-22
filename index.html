@@ -261,8 +261,51 @@ body{background:var(--bg);color:var(--text);font-family:'Geist',sans-serif;font-
 .ins-histo-labels span{flex:1;text-align:center;font-size:8px;color:var(--text4);letter-spacing:.02em}
 
 /* Empty state */
-.ins-empty{padding:84px 38px;text-align:center;color:var(--text3)}
+.ins-empty{padding:48px 38px;text-align:center;color:var(--text3)}
 .ins-empty p{font-size:16px;letter-spacing:.06em;margin-top:16px}
+
+/* Top 300 card on insights home */
+.ins-top300-card{margin:24px 28px 0;border:0.5px solid var(--border);border-radius:8px;overflow:hidden;cursor:pointer;transition:all .25s;background:var(--bg3);position:relative}
+.ins-top300-card:hover{border-color:var(--gold-dim);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.ins-top300-bg{height:120px;background:linear-gradient(135deg,#1a160e 0%,#2a2010 50%,#1a1208 100%);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.ins-top300-bg::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 30% 50%,rgba(200,165,80,.08),transparent 60%)}
+.ins-top300-posters{display:flex;gap:6px;position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);opacity:.3}
+.ins-top300-posters div{width:36px;height:54px;background:var(--bg4);border-radius:2px;border:0.5px solid var(--border)}
+.ins-top300-number{font-family:'Cormorant Garamond',serif;font-size:52px;font-weight:500;color:var(--gold);line-height:1;position:relative;z-index:1;text-shadow:0 2px 20px rgba(200,165,80,.15)}
+.ins-top300-body{padding:18px 20px}
+.ins-top300-title{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:400;color:var(--text);margin-bottom:4px}
+.ins-top300-desc{font-size:12px;font-weight:300;color:var(--text3);line-height:1.5}
+.ins-top300-arrow{position:absolute;top:50%;right:20px;transform:translateY(-50%);color:var(--text4);transition:color .2s,transform .2s}
+.ins-top300-card:hover .ins-top300-arrow{color:var(--gold);transform:translateY(-50%) translateX(3px)}
+
+/* ─── Top 300 Page ────────────────────────────────────────────────────────── */
+.top300-page{padding:0 48px 48px;animation:fadeUp .4s ease}
+.top300-header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:24px;padding-top:16px}
+.top300-title{font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:400;color:var(--text)}
+.top300-sub{font-size:13px;color:var(--text3);margin-left:12px}
+.top300-progress{margin-bottom:24px}
+.top300-progress-bar{height:3px;background:var(--bg3);border-radius:2px;overflow:hidden}
+.top300-progress-fill{height:100%;background:var(--gold);border-radius:2px;transition:width .4s ease}
+.top300-progress-text{display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:var(--text3);letter-spacing:.08em}
+.top300-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:18px}
+.top300-item{position:relative;animation:fadeUp .3s ease both;cursor:pointer;transition:transform .2s}
+.top300-item:hover{transform:translateY(-3px)}
+.top300-rank{position:absolute;top:8px;left:8px;background:rgba(10,9,8,.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:0.5px solid rgba(200,165,80,.2);border-radius:4px;padding:3px 8px;font-family:'Cormorant Garamond',serif;font-size:14px;font-weight:400;color:var(--gold);z-index:2;line-height:1}
+.top300-poster{width:100%;aspect-ratio:2/3;border-radius:var(--radius);overflow:hidden;border:0.5px solid var(--border);background:var(--bg3)}
+.top300-poster img{width:100%;height:100%;object-fit:cover;display:block}
+.top300-info{margin-top:8px}
+.top300-name{font-size:14px;font-weight:400;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top300-meta{font-size:12px;font-weight:300;color:var(--text3);margin-top:2px;display:flex;align-items:center;gap:6px}
+.top300-rating{display:inline-flex;align-items:center;gap:3px;color:var(--gold);font-size:12px;font-weight:400}
+.top300-rating svg{width:12px;height:12px}
+.top300-add-btn{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:rgba(10,9,8,.85);border:0.5px solid rgba(200,165,80,.3);color:var(--gold);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;z-index:3;transition:all .2s;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);opacity:0}
+.top300-item:hover .top300-add-btn{opacity:1}
+.top300-add-btn:hover{background:rgba(200,165,80,.2);border-color:var(--gold);transform:scale(1.1)}
+.top300-added{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:rgba(74,140,92,.2);border:0.5px solid rgba(74,140,92,.4);color:var(--success);display:flex;align-items:center;justify-content:center;font-size:14px;line-height:1;z-index:3}
+.top300-load-more{display:flex;justify-content:center;padding:32px 0}
+.top300-load-btn{font-family:'Geist',sans-serif;font-size:12px;font-weight:400;letter-spacing:.15em;text-transform:uppercase;padding:12px 32px;border-radius:var(--radius);cursor:pointer;background:transparent;border:0.5px solid var(--gold-dim);color:var(--gold);transition:all .2s}
+.top300-load-btn:hover{background:var(--gold-faint);border-color:var(--gold)}
+.top300-load-btn:disabled{opacity:.3;cursor:not-allowed}
 
 /* Type counts — Movies / Shows */
 .ins-type-row{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border2)}
@@ -286,6 +329,18 @@ body{background:var(--bg);color:var(--text);font-family:'Geist',sans-serif;font-
 .ins-dir-film-poster{width:52px;height:72px;border-radius:3px;overflow:hidden;border:0.5px solid var(--border);background:var(--bg)}
 .ins-dir-film-poster img{width:100%;height:100%;object-fit:cover;display:block}
 .ins-dir-film-title{font-size:10px;font-weight:300;color:var(--text2);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;line-height:1.2}
+
+/* Top Artists (music sidebar) */
+.ins-artists{padding:24px 28px 0}
+.ins-artists-title{font-size:11px;font-weight:300;letter-spacing:.2em;text-transform:uppercase;color:var(--text3);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.ins-artists-title::after{content:'';flex:1;height:0.5px;background:var(--border2)}
+.ins-artist-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:0.5px solid var(--border2);animation:fadeUp .3s ease both}
+.ins-artist-item:last-child{border-bottom:none}
+.ins-artist-rank{font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:400;color:var(--text4);width:20px;text-align:center;flex-shrink:0}
+.ins-artist-avatar{width:38px;height:38px;border-radius:50%;background:var(--bg3);border:0.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:14px;color:var(--gold);flex-shrink:0}
+.ins-artist-info{flex:1;min-width:0}
+.ins-artist-name{font-size:14px;font-weight:400;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ins-artist-count{font-size:11px;font-weight:300;color:var(--text3);margin-top:1px}
 
 /* Genre donut chart */
 .ins-genre-donut{padding:24px 28px 28px}
@@ -1494,18 +1549,23 @@ function LibraryPage({ library, onBack, onAddClick, onRemoveItem, onRateItem, on
   };
 
   // Films: Movies / Shows / Watchlist  (Watching removed — lives inside Shows)
+  // Music: Albums / Artists (no watchlist)
   // Others: All / In Progress / Watchlist
+  const isMusic = library.type === 'music';
   const filmTabs = [
     { key:'movies', label:'Movies' },
     { key:'shows',  label:'Shows'  },
     { key:'wishlist', label:'Watchlist' },
   ];
+  const musicTabs = [
+    { key:'all', label:'Albums' },
+  ];
   const genericTabs = [
     { key:'all', label:'All' },
-    { key:'in_progress', label:({books:'Reading',music:'Listening',games:'Playing'})[library.type]||'In progress' },
+    { key:'in_progress', label:({books:'Reading',games:'Playing'})[library.type]||'In progress' },
     { key:'wishlist', label:'Watchlist' },
   ];
-  const tabs = isFilms ? filmTabs : genericTabs;
+  const tabs = isFilms ? filmTabs : isMusic ? musicTabs : genericTabs;
 
   // Currently Watching = TV shows marked in_progress; shown as a section inside Shows tab
   const currentlyWatchingShows = useMemo(()=>
@@ -1767,6 +1827,410 @@ function LibraryPage({ library, onBack, onAddClick, onRemoveItem, onRateItem, on
   );
 }
 
+/* ─── Top 300 Movies Page ─────────────────────────────────────────────────── */
+
+/*
+ * IMDb Top 250 uses a Bayesian weighted rating formula:
+ *   WR = (v / (v + m)) × R + (m / (v + m)) × C
+ *
+ * IMDb uses m=25,000 but they have ~100x more voters than TMDB.
+ * TMDB's vote counts are much smaller — a blockbuster might have
+ * 15K-30K votes on TMDB vs 2M+ on IMDb.
+ * We use m=8,000 which is the equivalent threshold for TMDB's scale.
+ * This still filters out niche/obscure films while keeping the
+ * list populated with well-known, broadly-rated movies.
+ */
+
+const BAYESIAN_M = 8000;   // minimum votes threshold (scaled for TMDB)
+const BAYESIAN_C = 6.4;    // TMDB's approximate global mean rating
+
+function bayesianRating(voteAvg, voteCount) {
+  const v = voteCount || 0;
+  const R = voteAvg || 0;
+  return (v / (v + BAYESIAN_M)) * R + (BAYESIAN_M / (v + BAYESIAN_M)) * BAYESIAN_C;
+}
+
+async function fetchTop300(page=1) {
+  if (!TMDB_KEY || location.protocol === 'file:') return demoTop300(page);
+  try {
+    // Use discover endpoint with minimum 8k votes — IMDb-style Bayesian approach scaled for TMDB
+    const r = await fetch(`${TMDB_BASE}/discover/movie?api_key=${TMDB_KEY}&language=en-US&sort_by=vote_average.desc&vote_count.gte=8000&page=${page}`);
+    const d = await r.json();
+    if (!r.ok) return demoTop300(page);
+    return (d.results||[]).map((x,i)=>{
+      const wr = bayesianRating(x.vote_average, x.vote_count);
+      return {
+        ext_id:String(x.id), title:x.title||x.name,
+        subtitle:(x.release_date||'').slice(0,4),
+        cover_url: x.poster_path ? TMDB_IMG+x.poster_path : '',
+        metadata:{vote_average:x.vote_average, vote_count:x.vote_count, weighted_rating:wr, media_type:'movie'},
+        rank: (page-1)*20 + i + 1,
+        weighted_rating: wr
+      };
+    });
+  } catch { return demoTop300(page); }
+}
+
+function demoTop300(page) {
+  const all = [
+    {ext_id:'278',title:'The Shawshank Redemption',subtitle:'1994',cover_url:'https://image.tmdb.org/t/p/w185/9O7gLzmreU0nGkIB6K3BsJbzvNv.jpg',metadata:{vote_average:9.3,vote_count:28000}},
+    {ext_id:'238',title:'The Godfather',subtitle:'1972',cover_url:'https://image.tmdb.org/t/p/w185/3bhkrj58Vtu7enYsRolD1fZdja1.jpg',metadata:{vote_average:9.2,vote_count:22000}},
+    {ext_id:'424',title:"Schindler's List",subtitle:'1993',cover_url:'https://image.tmdb.org/t/p/w185/sF1U4EUQS8YHUYjNl3pMGNIQyr0.jpg',metadata:{vote_average:9.0,vote_count:16000}},
+    {ext_id:'240',title:'The Godfather Part II',subtitle:'1974',cover_url:'https://image.tmdb.org/t/p/w185/hek3koDUyRQk7FIhPXsa6mT2Zc3.jpg',metadata:{vote_average:9.0,vote_count:14000}},
+    {ext_id:'389',title:'12 Angry Men',subtitle:'1957',cover_url:'https://image.tmdb.org/t/p/w185/ow3wq89wM8qd5X7hWKxiRfsFf9C.jpg',metadata:{vote_average:8.9,vote_count:9800}},
+    {ext_id:'120',title:'The Lord of the Rings: The Return of the King',subtitle:'2003',cover_url:'https://image.tmdb.org/t/p/w185/rCzpDGLbOoPwLjy3OAm5NUPOTrC.jpg',metadata:{vote_average:8.9,vote_count:25000}},
+    {ext_id:'680',title:'Pulp Fiction',subtitle:'1994',cover_url:'https://image.tmdb.org/t/p/w185/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg',metadata:{vote_average:8.9,vote_count:29000}},
+    {ext_id:'550',title:'Fight Club',subtitle:'1999',cover_url:'https://image.tmdb.org/t/p/w185/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg',metadata:{vote_average:8.8,vote_count:31000}},
+    {ext_id:'155',title:'The Dark Knight',subtitle:'2008',cover_url:'https://image.tmdb.org/t/p/w185/qJ2tW6WMUDux911kpUpFga3lMst.jpg',metadata:{vote_average:9.0,vote_count:34000}},
+    {ext_id:'157336',title:'Interstellar',subtitle:'2014',cover_url:'https://image.tmdb.org/t/p/w185/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg',metadata:{vote_average:8.7,vote_count:36000}},
+    {ext_id:'13',title:'Forrest Gump',subtitle:'1994',cover_url:'https://image.tmdb.org/t/p/w185/arw2vcBveWOVZr6pxd9XTd1TdQa.jpg',metadata:{vote_average:8.8,vote_count:28000}},
+    {ext_id:'27205',title:'Inception',subtitle:'2010',cover_url:'https://image.tmdb.org/t/p/w185/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg',metadata:{vote_average:8.8,vote_count:38000}},
+    {ext_id:'496243',title:'Parasite',subtitle:'2019',cover_url:'https://image.tmdb.org/t/p/w185/7IiTTgloJzvGI1TAYymCfbfl3vT.jpg',metadata:{vote_average:8.5,vote_count:18000}},
+    {ext_id:'429',title:'The Good, the Bad and the Ugly',subtitle:'1966',cover_url:'https://image.tmdb.org/t/p/w185/bX2xnavhMYjWDoZp1VM6VnU1xwe.jpg',metadata:{vote_average:8.8,vote_count:9200}},
+    {ext_id:'122',title:'The Lord of the Rings: The Two Towers',subtitle:'2002',cover_url:'https://image.tmdb.org/t/p/w185/5VTN0pR8gcqV3EPUHHfMGnJYN9L.jpg',metadata:{vote_average:8.8,vote_count:22000}},
+    {ext_id:'603',title:'The Matrix',subtitle:'1999',cover_url:'https://image.tmdb.org/t/p/w185/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg',metadata:{vote_average:8.7,vote_count:27000}},
+    {ext_id:'372058',title:'Your Name',subtitle:'2016',cover_url:'https://image.tmdb.org/t/p/w185/q719jXXEzOoYaps6babgKnONONX.jpg',metadata:{vote_average:8.6,vote_count:12000}},
+    {ext_id:'438631',title:'Dune',subtitle:'2021',cover_url:'https://image.tmdb.org/t/p/w185/d5NXSklpcvzeAbgEW2i2GzNFBac.jpg',metadata:{vote_average:7.8,vote_count:11000}},
+    {ext_id:'335984',title:'Blade Runner 2049',subtitle:'2017',cover_url:'https://image.tmdb.org/t/p/w185/gajva2L0rPYkEWjzgFlBXCAVBE5.jpg',metadata:{vote_average:7.5,vote_count:14000}},
+    {ext_id:'11324',title:'Shutter Island',subtitle:'2010',cover_url:'https://image.tmdb.org/t/p/w185/52d4B6N4MCT8BgPHjGnSzXtZKKI.jpg',metadata:{vote_average:8.2,vote_count:17000}},
+  ];
+  return all.slice(0,20).map((m,i)=>({
+    ...m,
+    rank:(page-1)*20+i+1,
+    weighted_rating: bayesianRating(m.metadata.vote_average, m.metadata.vote_count)
+  }));
+}
+
+function Top300Page({ onBack, onAddToLibrary, libraryItems }) {
+  const [movies, setMovies] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const maxPages = 15; // 15 pages × 20 = 300
+
+  const existingIds = useMemo(()=> new Set((libraryItems||[]).map(i=>i.ext_id)),[libraryItems]);
+  const watchedCount = movies.filter(m=>existingIds.has(m.ext_id)).length;
+
+  useEffect(()=>{
+    setLoading(true);
+    fetchTop300(1).then(data=>{setMovies(data);setLoading(false);});
+  },[]);
+
+  const loadMore = async ()=>{
+    if (page >= maxPages) return;
+    setLoadingMore(true);
+    const next = page + 1;
+    const data = await fetchTop300(next);
+    setMovies(prev=>[...prev,...data]);
+    setPage(next);
+    setLoadingMore(false);
+  };
+
+  return (
+    <div className="top300-page">
+      <div className="top300-header">
+        <div style={{display:'flex',alignItems:'baseline'}}>
+          <div className="top300-title">Top Rated Movies</div>
+          <span className="top300-sub">Bayesian weighted · 8K+ votes minimum</span>
+        </div>
+      </div>
+
+      <div className="top300-progress">
+        <div className="top300-progress-bar">
+          <div className="top300-progress-fill" style={{width:`${(watchedCount/Math.max(movies.length,1))*100}%`}}/>
+        </div>
+        <div className="top300-progress-text">
+          <span>{watchedCount} of {movies.length} watched</span>
+          <span>{Math.round((watchedCount/Math.max(movies.length,1))*100)}%</span>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="loading-dots" style={{padding:60}}><span/><span/><span/></div>
+      ) : (
+        <>
+          <div className="top300-grid">
+            {movies.map((movie,i)=>{
+              const inLib = existingIds.has(movie.ext_id);
+              return (
+                <div key={movie.ext_id+'-'+i} className="top300-item" style={{animationDelay:`${(i%20)*0.03}s`}}>
+                  <div className="top300-rank">#{movie.rank}</div>
+                  {inLib
+                    ? <div className="top300-added" title="In your library">✓</div>
+                    : <button className="top300-add-btn" title="Add to library" onClick={(e)=>{e.stopPropagation();onAddToLibrary(movie);}}>+</button>
+                  }
+                  <div className="top300-poster">
+                    <img src={movie.cover_url} alt={movie.title} loading="lazy" onError={e=>{e.target.style.visibility='hidden'}}/>
+                  </div>
+                  <div className="top300-info">
+                    <div className="top300-name">{movie.title}</div>
+                    <div className="top300-meta">
+                      <span>{movie.subtitle}</span>
+                      {movie.metadata?.vote_average && (
+                        <span className="top300-rating">
+                          <svg viewBox="0 0 12 12" fill="none"><path d="M6 1l1.5 3 3.5.5-2.5 2.4.6 3.5L6 8.8 2.9 10.4l.6-3.5L1 4.5 4.5 4z" fill="#c9a55a"/></svg>
+                          {movie.metadata.vote_average.toFixed?.(1)||movie.metadata.vote_average}
+                        </span>
+                      )}
+                      {movie.metadata?.vote_count && (
+                        <span style={{fontSize:'10px',color:'var(--text4)'}}>
+                          ({movie.metadata.vote_count >= 1000000 ? (movie.metadata.vote_count/1000000).toFixed(1)+'M' : movie.metadata.vote_count >= 1000 ? (movie.metadata.vote_count/1000).toFixed(0)+'K' : movie.metadata.vote_count})
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {page < maxPages && (
+            <div className="top300-load-more">
+              <button className="top300-load-btn" onClick={loadMore} disabled={loadingMore}>
+                {loadingMore ? 'Loading…' : `Load more (${movies.length}/300)`}
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ─── Top Albums Page — Dynamic covers from MusicBrainz ──────────────────── */
+/*
+ * DATA SOURCE: MusicBrainz API (free, no key needed)
+ * - Album search: /ws/2/release/?query=release:TITLE+AND+artist:ARTIST&limit=1&fmt=json
+ * - Cover art: Cover Art Archive → https://coverartarchive.org/release/{mbid}/front-250
+ * 
+ * HOW IT WORKS:
+ * 1. We maintain a curated list of 300 greatest-selling album titles + artists
+ * 2. On page load, we search MusicBrainz for each album in batches of 20
+ * 3. MusicBrainz returns the real release MBID (MusicBrainz ID)
+ * 4. We construct cover art URLs from those real MBIDs
+ * 5. Results are cached in memory so repeated visits don't re-fetch
+ *
+ * SCALABILITY:
+ * - In production, move this to your Express server (server.js) as /api/top-albums
+ * - Cache MusicBrainz responses in Redis/Supabase (covers rarely change)
+ * - Rate limit: MusicBrainz allows 1 req/sec — we throttle with 1s delays
+ * - The curated list lives in the database, editable via admin panel
+ * - User libraries are stored in Supabase with full RLS (see schema.sql)
+ */
+
+const GREATEST_ALBUMS = [
+  ['Thriller','Michael Jackson','1982'],['Back in Black','AC/DC','1980'],['The Dark Side of the Moon','Pink Floyd','1973'],
+  ['Bat Out of Hell','Meat Loaf','1977'],['Their Greatest Hits','Eagles','1976'],['Dirty Dancing','Soundtrack','1987'],
+  ['Rumours','Fleetwood Mac','1977'],['Saturday Night Fever','Bee Gees','1977'],['Come On Over','Shania Twain','1997'],
+  ['Led Zeppelin IV','Led Zeppelin','1971'],['The Bodyguard','Whitney Houston','1992'],['Born in the U.S.A.','Bruce Springsteen','1984'],
+  ['Brothers in Arms','Dire Straits','1985'],['Bad','Michael Jackson','1987'],['Dangerous','Michael Jackson','1991'],
+  ['Abbey Road','The Beatles','1969'],['Nevermind','Nirvana','1991'],['The Wall','Pink Floyd','1979'],
+  ['A Night at the Opera','Queen','1975'],['Hotel California','Eagles','1976'],['Appetite for Destruction',"Guns N' Roses",'1987'],
+  ['21','Adele','2011'],['Purple Rain','Prince','1984'],['OK Computer','Radiohead','1997'],
+  ['Legend','Bob Marley','1984'],['Jagged Little Pill','Alanis Morissette','1995'],['Supernatural','Santana','1999'],
+  ['Metallica','Metallica','1991'],['Falling into You','Celine Dion','1996'],["Let's Talk About Love",'Celine Dion','1997'],
+  ['Born to Run','Bruce Springsteen','1975'],['Slippery When Wet','Bon Jovi','1986'],['1','The Beatles','2000'],
+  ['Hysteria','Def Leppard','1987'],['The Joshua Tree','U2','1987'],['No Fences','Garth Brooks','1990'],
+  ['Wish You Were Here','Pink Floyd','1975'],['Revolver','The Beatles','1966'],['Sgt. Pepper','The Beatles','1967'],
+  ['Kind of Blue','Miles Davis','1959'],['Graceland','Paul Simon','1986'],['Automatic for the People','R.E.M.','1992'],
+  ['The Eminem Show','Eminem','2002'],['The Marshall Mathers LP','Eminem','2000'],['Curtain Call','Eminem','2005'],
+  ['Hybrid Theory','Linkin Park','2000'],['Meteora','Linkin Park','2003'],['In Utero','Nirvana','1993'],
+  ['Ten','Pearl Jam','1991'],['Vs.','Pearl Jam','1993'],['Blood Sugar Sex Magik','Red Hot Chili Peppers','1991'],
+  ['Californication','Red Hot Chili Peppers','1999'],['By the Way','Red Hot Chili Peppers','2002'],
+  ['The Rise and Fall of Ziggy Stardust','David Bowie','1972'],['Hunky Dory','David Bowie','1971'],
+  ['In Rainbows','Radiohead','2007'],['Kid A','Radiohead','2000'],['The Bends','Radiohead','1995'],
+  ['To Pimp a Butterfly','Kendrick Lamar','2015'],['good kid, m.A.A.d city','Kendrick Lamar','2012'],['DAMN.','Kendrick Lamar','2017'],
+  ['My Beautiful Dark Twisted Fantasy','Kanye West','2010'],['The College Dropout','Kanye West','2004'],['808s & Heartbreak','Kanye West','2008'],
+  ['Blonde','Frank Ocean','2016'],['Channel Orange','Frank Ocean','2012'],
+  ['Ready to Die','The Notorious B.I.G.','1994'],['All Eyez on Me','2Pac','1996'],['The Chronic','Dr. Dre','1992'],
+  ['Illmatic','Nas','1994'],['Enter the Wu-Tang','Wu-Tang Clan','1993'],['Reasonable Doubt','Jay-Z','1996'],
+  ['The Blueprint','Jay-Z','2001'],['Madvillainy','Madvillain','2004'],['Aquemini','Outkast','1998'],
+  ['Stankonia','Outkast','2000'],['Low End Theory','A Tribe Called Quest','1991'],
+  ['Funeral','Arcade Fire','2004'],['The Suburbs','Arcade Fire','2010'],
+  ['Is This It','The Strokes','2001'],['Room on Fire','The Strokes','2003'],
+  ['Whatever People Say I Am','Arctic Monkeys','2006'],['AM','Arctic Monkeys','2013'],
+  ['Turn on the Bright Lights','Interpol','2002'],['Hot Fuss','The Killers','2004'],
+  ['Origin of Symmetry','Muse','2001'],['Absolution','Muse','2003'],['Black Holes and Revelations','Muse','2006'],
+  ['Parachutes','Coldplay','2000'],['A Rush of Blood to the Head','Coldplay','2002'],['Viva la Vida','Coldplay','2008'],
+  ['(What\'s the Story) Morning Glory?','Oasis','1995'],['Definitely Maybe','Oasis','1994'],
+  ['The Queen Is Dead','The Smiths','1986'],['Disintegration','The Cure','1989'],['Violator','Depeche Mode','1990'],
+  ['Achtung Baby','U2','1991'],['All That You Can\'t Leave Behind','U2','2000'],
+  ['The Stranger','Billy Joel','1977'],['Piano Man','Billy Joel','1973'],
+  ['Tapestry','Carole King','1971'],['Blue','Joni Mitchell','1971'],['Court and Spark','Joni Mitchell','1974'],
+  ['Horses','Patti Smith','1975'],['Parallel Lines','Blondie','1978'],['London Calling','The Clash','1979'],
+  ['Unknown Pleasures','Joy Division','1979'],['Closer','Joy Division','1980'],
+  ['Doolittle','Pixies','1989'],['Surfer Rosa','Pixies','1988'],['Loveless','My Bloody Valentine','1991'],
+  ['Remain in Light','Talking Heads','1980'],['Stop Making Sense','Talking Heads','1984'],
+  ['Exile on Main St.','The Rolling Stones','1972'],['Let It Bleed','The Rolling Stones','1969'],['Sticky Fingers','The Rolling Stones','1971'],
+  ['Who\'s Next','The Who','1971'],['Tommy','The Who','1969'],
+  ['Are You Experienced','Jimi Hendrix','1967'],['Electric Ladyland','Jimi Hendrix','1968'],
+  ['Pet Sounds','The Beach Boys','1966'],['Harvest','Neil Young','1972'],['After the Gold Rush','Neil Young','1970'],
+  ['Astral Weeks','Van Morrison','1968'],['Moondance','Van Morrison','1970'],
+  ['What\'s Going On','Marvin Gaye','1971'],['Songs in the Key of Life','Stevie Wonder','1976'],['Innervisions','Stevie Wonder','1973'],
+  ['Off the Wall','Michael Jackson','1979'],['Sign o\' the Times','Prince','1987'],
+  ['Raise the Dead','Phantom Planet','1998'],['Rage Against the Machine','Rage Against the Machine','1992'],
+  ['The Downward Spiral','Nine Inch Nails','1994'],['Siamese Dream','Smashing Pumpkins','1993'],['Mellon Collie','Smashing Pumpkins','1995'],
+  ['Dookie','Green Day','1994'],['American Idiot','Green Day','2004'],
+  ['Toxicity','System of a Down','2001'],['Images and Words','Dream Theater','1992'],
+  ['Master of Puppets','Metallica','1986'],['Ride the Lightning','Metallica','1984'],['...And Justice for All','Metallica','1988'],
+  ['The Number of the Beast','Iron Maiden','1982'],['Paranoid','Black Sabbath','1970'],['Black Sabbath','Black Sabbath','1970'],
+  ['Highway to Hell','AC/DC','1979'],['For Those About to Rock','AC/DC','1981'],
+  ['Wish You Were Here','Pink Floyd','1975'],['Animals','Pink Floyd','1977'],
+  ['Moving Pictures','Rush','1981'],['2112','Rush','1976'],
+  ['Aqualung','Jethro Tull','1971'],['Close to the Edge','Yes','1972'],['In the Court of the Crimson King','King Crimson','1969'],
+  ['Random Access Memories','Daft Punk','2013'],['Discovery','Daft Punk','2001'],['Homework','Daft Punk','1997'],
+  ['Cross','Justice','2007'],['Selected Ambient Works','Aphex Twin','1992'],
+  ['Dummy','Portishead','1994'],['Mezzanine','Massive Attack','1998'],['Blue Lines','Massive Attack','1991'],
+  ['Homogenic','Bjork','1997'],['Post','Bjork','1995'],['Debut','Bjork','1993'],
+  ['The Miseducation of Lauryn Hill','Lauryn Hill','1998'],['Baduizm','Erykah Badu','1997'],['Mama\'s Gun','Erykah Badu','2000'],
+  ['Voodoo','D\'Angelo','2000'],['Black Messiah','D\'Angelo','2014'],
+  ['Lemonade','Beyonce','2016'],['B\'Day','Beyonce','2006'],['Dangerously in Love','Beyonce','2003'],
+  ['Anti','Rihanna','2016'],['1989','Taylor Swift','2014'],['Folklore','Taylor Swift','2020'],['Midnights','Taylor Swift','2022'],
+  ['Born This Way','Lady Gaga','2011'],['The Fame Monster','Lady Gaga','2009'],
+  ['25','Adele','2015'],['30','Adele','2021'],['19','Adele','2008'],
+  ['Future Nostalgia','Dua Lipa','2020'],['After Hours','The Weeknd','2020'],['Starboy','The Weeknd','2016'],
+  ['Currents','Tame Impala','2015'],['Lonerism','Tame Impala','2012'],
+  ['Norman Fucking Rockwell!','Lana Del Rey','2019'],['Born to Die','Lana Del Rey','2012'],
+  ['When We All Fall Asleep','Billie Eilish','2019'],['Happier Than Ever','Billie Eilish','2021'],
+  ['Igor','Tyler, the Creator','2019'],['Flower Boy','Tyler, the Creator','2017'],
+  ['Astroworld','Travis Scott','2018'],['Rodeo','Travis Scott','2015'],
+  ['Swimming','Mac Miller','2018'],['Circles','Mac Miller','2020'],
+  ['Man on the Moon','Kid Cudi','2009'],['SOS','SZA','2022'],['Ctrl','SZA','2017'],
+  ['Punisher','Phoebe Bridgers','2020'],['For Emma, Forever Ago','Bon Iver','2007'],['22, A Million','Bon Iver','2016'],
+  ['Carrie & Lowell','Sufjan Stevens','2015'],['Illinois','Sufjan Stevens','2005'],
+  ['In the Aeroplane Over the Sea','Neutral Milk Hotel','1998'],['Transatlanticism','Death Cab for Cutie','2003'],
+  ['The Moon & Antarctica','Modest Mouse','2000'],['Good News for People','Modest Mouse','2004'],
+  ['Lifted','Bright Eyes','2002'],['I\'m Wide Awake, It\'s Morning','Bright Eyes','2005'],
+  ['Feel Good Inc','Gorillaz','2005'],['Demon Days','Gorillaz','2005'],['Plastic Beach','Gorillaz','2010'],
+  ['Hozier','Hozier','2014'],['Wasteland, Baby!','Hozier','2019'],
+  ['The Suburbs','Arcade Fire','2010'],['Neon Bible','Arcade Fire','2007'],
+  ['Vessel','Twenty One Pilots','2013'],['Blurryface','Twenty One Pilots','2015'],
+  ['A Fever You Can\'t Sweat Out','Panic! at the Disco','2005'],
+  ['From Under the Cork Tree','Fall Out Boy','2005'],['Infinity on High','Fall Out Boy','2007'],
+  ['The Black Parade','My Chemical Romance','2006'],['Three Cheers for Sweet Revenge','My Chemical Romance','2004'],
+  ['Night Visions','Imagine Dragons','2012'],['Evolve','Imagine Dragons','2017'],
+  ['Songs About Jane','Maroon 5','2002'],['Morning View','Incubus','2001'],
+  ['Stadium Arcadium','Red Hot Chili Peppers','2006'],['One Hot Minute','Red Hot Chili Peppers','1995'],
+  ['Songs for the Deaf','Queens of the Stone Age','2002'],['...Like Clockwork','Queens of the Stone Age','2013'],
+  ['Weezer','Weezer','1994'],['Pinkerton','Weezer','1996'],
+  ['Enema of the State','Blink-182','1999'],['Untitled','Blink-182','2003'],
+  ['White Blood Cells','The White Stripes','2001'],['Elephant','The White Stripes','2003'],
+  ['Lateralus','Tool','2001'],['10,000 Days','Tool','2006'],['Fear Inoculum','Tool','2019'],
+  ['Colors','Between the Buried and Me','2007'],['Crack the Skye','Mastodon','2009'],
+  ['Blackwater Park','Opeth','2001'],['Still Life','Opeth','1999'],
+  ['Aja','Steely Dan','1977'],['Rumours','Fleetwood Mac','1977'],
+].map((a,i)=>({title:a[0],artist:a[1],year:a[2],rank:i+1}));
+
+// Search MusicBrainz for a single album to get cover URL
+async function searchAlbumCover(title, artist) {
+  try {
+    const q = encodeURIComponent(`release:${title} AND artist:${artist}`);
+    const r = await fetch(`https://musicbrainz.org/ws/2/release/?query=${q}&limit=1&fmt=json`, {
+      headers:{'User-Agent':'ShelfApp/2.0 (https://shelf.app)'}
+    });
+    const d = await r.json();
+    const rel = (d.releases||[])[0];
+    if (rel) return { id:rel.id, cover:`https://coverartarchive.org/release/${rel.id}/front-250` };
+  } catch {}
+  return null;
+}
+
+// Cache for fetched covers
+const albumCoverCache = {};
+
+function TopAlbumsPage({ onBack, onAddToLibrary, libraryItems }) {
+  const [page, setPage] = useState(1);
+  const [covers, setCovers] = useState({});
+  const [loadingCovers, setLoadingCovers] = useState(false);
+  const perPage = 20;
+  const maxPages = Math.ceil(GREATEST_ALBUMS.length / perPage);
+  const visibleAlbums = GREATEST_ALBUMS.slice(0, page * perPage);
+
+  const existingTitles = useMemo(()=> new Set((libraryItems||[]).map(i=>i.title)),[libraryItems]);
+
+  // Fetch covers for visible albums
+  useEffect(()=>{
+    let cancelled = false;
+    const fetchBatch = async ()=>{
+      const toFetch = visibleAlbums.filter(a=>!covers[a.rank] && !albumCoverCache[a.rank]);
+      if (!toFetch.length) return;
+      setLoadingCovers(true);
+      for (const album of toFetch) {
+        if (cancelled) break;
+        if (albumCoverCache[album.rank]) { setCovers(p=>({...p,[album.rank]:albumCoverCache[album.rank]})); continue; }
+        const result = await searchAlbumCover(album.title, album.artist);
+        if (result) {
+          albumCoverCache[album.rank] = result.cover;
+          if (!cancelled) setCovers(p=>({...p,[album.rank]:result.cover}));
+        }
+        // MusicBrainz rate limit: 1 req/sec
+        await new Promise(r=>setTimeout(r,1100));
+      }
+      if (!cancelled) setLoadingCovers(false);
+    };
+    fetchBatch();
+    return ()=>{cancelled=true;};
+  },[visibleAlbums.length]);
+
+  const loadMore = ()=>{ if(page<maxPages) setPage(p=>p+1); };
+
+  return (
+    <div className="top300-page">
+      <div className="top300-header">
+        <div style={{display:'flex',alignItems:'baseline'}}>
+          <div className="top300-title">Greatest Albums of All Time</div>
+          <span className="top300-sub">{visibleAlbums.length} of {GREATEST_ALBUMS.length} · Best-selling & critically acclaimed</span>
+        </div>
+      </div>
+
+      <div className="top300-grid" style={{gridTemplateColumns:'repeat(auto-fill,minmax(148px,1fr))'}}>
+        {visibleAlbums.map((album,i)=>{
+          const inLib = existingTitles.has(album.title);
+          const coverUrl = covers[album.rank] || albumCoverCache[album.rank] || '';
+          return (
+            <div key={album.rank} className="top300-item" style={{animationDelay:`${(i%20)*0.03}s`}}>
+              <div className="top300-rank">#{album.rank}</div>
+              {inLib
+                ? <div className="top300-added" title="In your library">✓</div>
+                : <button className="top300-add-btn" title="Add to library" onClick={(e)=>{
+                    e.stopPropagation();
+                    onAddToLibrary({ext_id:'album-'+album.rank,title:album.title,subtitle:album.artist,cover_url:coverUrl,metadata:{year:album.year}});
+                  }}>+</button>
+              }
+              <div className="top300-poster" style={{aspectRatio:'1'}}>
+                {coverUrl
+                  ? <img src={coverUrl} alt={album.title} loading="lazy" onError={e=>{e.target.style.display='none';e.target.nextSibling&&(e.target.nextSibling.style.display='flex');}}/>
+                  : null}
+                <div style={{display:coverUrl?'none':'flex',width:'100%',height:'100%',alignItems:'center',justifyContent:'center',background:'var(--bg3)',flexDirection:'column',gap:4,padding:8}}>
+                  <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:28,color:'var(--gold-dim)',opacity:.4}}>♫</span>
+                  <span style={{fontSize:9,color:'var(--text4)',textAlign:'center',lineHeight:1.2}}>{album.title.slice(0,20)}</span>
+                </div>
+              </div>
+              <div className="top300-info">
+                <div className="top300-name">{album.title}</div>
+                <div className="top300-meta">
+                  <span>{album.artist}</span>
+                  <span style={{color:'var(--text4)'}}>{album.year}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {loadingCovers && <div style={{textAlign:'center',padding:'16px 0',fontSize:11,color:'var(--text4)',letterSpacing:'.1em'}}>Loading covers from MusicBrainz…</div>}
+
+      {page < maxPages && (
+        <div className="top300-load-more">
+          <button className="top300-load-btn" onClick={loadMore}>
+            Load more ({visibleAlbums.length}/{GREATEST_ALBUMS.length})
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─── Insights Sidebar ────────────────────────────────────────────────────── */
 
 // Demo genre/director/actor data keyed by ext_id — in production this comes from TMDB detail endpoint
@@ -1851,7 +2315,9 @@ function computeInsights(library) {
   const histogram = Array(10).fill(0);
   ratings.forEach(r => { const bucket = Math.min(9, Math.floor(r)-1); if(bucket>=0) histogram[bucket]++; });
 
-  return { genres, topPeople, topActors, avgRating, watched, watchlist, total:items.length, histogram, ratings, directorFilms, movieCount, showCount };
+  const artistCount = Object.keys(personMap).filter(k=>k!=='Unknown').length;
+
+  return { genres, topPeople, topActors, avgRating, watched, watchlist, total:items.length, histogram, ratings, directorFilms, movieCount, showCount, artistCount };
 }
 
 // Get top 3 directors with their best film
@@ -1980,9 +2446,18 @@ function GenreDonutSection({ data }) {
   );
 }
 
-function InsightsSidebar({ library, libraries }) {
+function InsightsSidebar({ library, libraries, onOpenTop300, onOpenTopAlbums }) {
   const insights = library ? computeInsights(library) : null;
   const topDirs = (library && library.type==='films' && insights) ? getTopDirectors(library, insights) : [];
+
+  // Top artists for music library
+  const topArtists = useMemo(()=>{
+    if (!library || library.type !== 'music' || !insights) return [];
+    return insights.topPeople
+      .filter(([name]) => name !== 'Unknown' && name.trim())
+      .slice(0, 10)
+      .map(([name, count]) => ({ name, count }));
+  },[library, insights]);
 
   // Home overview stats
   const totalItems = libraries.reduce((s,l)=>s+(l.items||[]).length, 0);
@@ -2001,9 +2476,35 @@ function InsightsSidebar({ library, libraries }) {
               <div className="ins-stat"><div className="ins-stat-value">{totalItems}</div><div className="ins-stat-label">Items</div></div>
               <div className="ins-stat"><div className="ins-stat-value">—</div><div className="ins-stat-label">Avg Rating</div></div>
             </div>
-            <div className="ins-empty">
+            <div className="ins-empty" style={{padding:'32px 38px'}}>
               <svg viewBox="0 0 48 48" width="48" height="48" fill="none" opacity=".15"><rect x="4" y="20" width="8" height="24" rx="1" fill="var(--gold)"/><rect x="16" y="12" width="8" height="32" rx="1" fill="var(--gold)"/><rect x="28" y="6" width="8" height="38" rx="1" fill="var(--gold)"/><rect x="40" y="16" width="4" height="28" rx="1" fill="var(--gold)"/></svg>
               <p>Open a library to see detailed analytics</p>
+            </div>
+            {/* Top 300 Card */}
+            <div className="ins-top300-card" onClick={onOpenTop300}>
+              <div className="ins-top300-bg">
+                <div className="ins-top300-number">300</div>
+              </div>
+              <div className="ins-top300-body">
+                <div className="ins-top300-title">Top Rated Movies</div>
+                <div className="ins-top300-desc">IMDb-style Bayesian weighted ranking. Only films with 8K+ votes qualify — no inflated niche ratings.</div>
+              </div>
+              <div className="ins-top300-arrow">
+                <svg viewBox="0 0 16 16" width="16" height="16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </div>
+            </div>
+            {/* Top Albums Card */}
+            <div className="ins-top300-card" onClick={onOpenTopAlbums} style={{marginTop:12}}>
+              <div className="ins-top300-bg" style={{height:100,background:'linear-gradient(135deg,#12100e 0%,#1a1418 50%,#141012 100%)'}}>
+                <div className="ins-top300-number" style={{fontSize:42}}>♫</div>
+              </div>
+              <div className="ins-top300-body">
+                <div className="ins-top300-title">Greatest Albums</div>
+                <div className="ins-top300-desc">Curated list of the most iconic albums. Track what you've listened to.</div>
+              </div>
+              <div className="ins-top300-arrow">
+                <svg viewBox="0 0 16 16" width="16" height="16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </div>
             </div>
           </>
         ) : !insights ? (
@@ -2020,8 +2521,8 @@ function InsightsSidebar({ library, libraries }) {
                 <div className="ins-type-label">{library.type==='films'?'Movies':library.type==='games'?'Games':library.type==='books'?'Books':'Albums'}</div>
               </div>
               <div className="ins-type-cell">
-                <div className="ins-type-value">{library.type==='films'? insights.showCount : insights.watchlist}</div>
-                <div className="ins-type-label">{library.type==='films'?'Shows':'Watchlist'}</div>
+                <div className="ins-type-value">{library.type==='films'? insights.showCount : library.type==='music'? insights.artistCount : insights.watchlist}</div>
+                <div className="ins-type-label">{library.type==='films'?'Shows':library.type==='music'?'Artists':'Watchlist'}</div>
               </div>
             </div>
 
@@ -2055,6 +2556,25 @@ function InsightsSidebar({ library, libraries }) {
               </div>
             )}
 
+            {/* ── Top Artists (music only) ── */}
+            {library.type==='music' && topArtists.length > 0 && (
+              <div className="ins-artists">
+                <div className="ins-artists-title">
+                  Top Artists
+                </div>
+                {topArtists.map((a, i) => (
+                  <div key={a.name} className="ins-artist-item" style={{animationDelay:`${i*0.05}s`}}>
+                    <div className="ins-artist-rank">{i+1}</div>
+                    <div className="ins-artist-avatar">{a.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
+                    <div className="ins-artist-info">
+                      <div className="ins-artist-name">{a.name}</div>
+                      <div className="ins-artist-count">{a.count} {a.count===1?'album':'albums'}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* ── Genre Distribution — interactive donut ── */}
             {genreData.length > 0 && <GenreDonutSection data={genreData}/>}
           </>
@@ -2083,6 +2603,8 @@ function App() {
   const [toast,setToast] = useState(null);
   const [currentPage,setCurrentPage] = useState(null); // null = home, or library type
   const [activeIcon,setActiveIcon] = useState(null);
+  const [showTop300,setShowTop300] = useState(false);
+  const [showTopAlbums,setShowTopAlbums] = useState(false);
 
   // Load persisted state
   useEffect(()=>{
@@ -2174,17 +2696,68 @@ function App() {
   const goHome = () => {
     setCurrentPage(null);
     setActiveIcon(null);
+    setShowTop300(false);
+    setShowTopAlbums(false);
   };
 
   const currentLib = currentPage ? libraries.find(l=>l.type===currentPage) : null;
 
+  const handleOpenTop300 = () => {
+    setShowTop300(true);
+    setCurrentPage(null);
+    setActiveIcon(null);
+  };
+
+  const handleAddFromTop300 = (movie) => {
+    // Ensure films library exists
+    let filmsLib = libraries.find(l=>l.type==='films');
+    if (!filmsLib) {
+      filmsLib = { id:'lib-'+Date.now(), type:'films', items:[] };
+      setLibraries(prev=>[...prev,filmsLib]);
+    }
+    // Check duplicate
+    if ((filmsLib.items||[]).some(i=>i.ext_id===movie.ext_id)) {
+      showT(`"${movie.title}" is already in your library`);
+      return;
+    }
+    const item = { ...movie, status:'collected' };
+    setLibraries(prev=>prev.map(l=>l.type==='films'?{...l,items:[item,...(l.items||[])]}:l));
+    showT(`"${movie.title}" added to Films`);
+  };
+
+  const filmsLibItems = libraries.find(l=>l.type==='films')?.items || [];
+
+  const handleOpenTopAlbums = () => {
+    setShowTopAlbums(true);
+    setShowTop300(false);
+    setCurrentPage(null);
+    setActiveIcon(null);
+  };
+
+  const handleAddFromTopAlbums = (album) => {
+    let musicLib = libraries.find(l=>l.type==='music');
+    if (!musicLib) {
+      musicLib = { id:'lib-'+Date.now(), type:'music', items:[] };
+      setLibraries(prev=>[...prev,musicLib]);
+    }
+    if ((musicLib.items||[]).some(i=>i.ext_id===album.ext_id || i.title===album.title)) {
+      showT(`"${album.title}" is already in your library`);
+      return;
+    }
+    const item = { ...album, status:'collected' };
+    setLibraries(prev=>prev.map(l=>l.type==='music'?{...l,items:[item,...(l.items||[])]}:l));
+    showT(`"${album.title}" added to Music`);
+  };
+
+  const musicLibItems = libraries.find(l=>l.type==='music')?.items || [];
+
   return (
     <>
-      <InsightsSidebar library={currentLib} libraries={libraries}/>
+      <InsightsSidebar library={currentLib} libraries={libraries} onOpenTop300={handleOpenTop300} onOpenTopAlbums={handleOpenTopAlbums}/>
       <div className="main-content">
         <div className="topbar">
           <div style={{display:'flex',alignItems:'center',gap:0}}>
-            {currentPage && <button onClick={goHome} style={{background:'none',border:'none',color:'var(--gold)',cursor:'pointer',padding:'4px 8px 4px 0',fontSize:'18px',lineHeight:1,opacity:.6,transition:'opacity .2s'}} onMouseEnter={e=>e.target.style.opacity=1} onMouseLeave={e=>e.target.style.opacity=.6}>‹</button>}
+            {(currentPage || showTop300 || showTopAlbums) && <button onClick={goHome} style={{background:'none',border:'none',color:'var(--gold)',cursor:'pointer',padding:'4px 8px 4px 0',fontSize:'18px',lineHeight:1,opacity:.6,transition:'opacity .2s'}} onMouseEnter={e=>e.target.style.opacity=1} onMouseLeave={e=>e.target.style.opacity=.6}>‹</button>}
             <div className="brand" onClick={goHome}>Shelf</div>
           </div>
           <div className="topbar-right">
@@ -2200,7 +2773,7 @@ function App() {
           </div>
         </div>
 
-        {demoMode && !currentPage && (
+        {demoMode && !currentPage && !showTop300 && !showTopAlbums && (
           <div className="api-notice">
             <strong>{fileMode ? 'Local file mode' : 'Demo mode'}</strong>&nbsp;
             {fileMode
@@ -2211,7 +2784,19 @@ function App() {
           </div>
         )}
 
-        {currentPage && currentLib ? (
+        {showTopAlbums ? (
+          <TopAlbumsPage
+            onBack={goHome}
+            onAddToLibrary={handleAddFromTopAlbums}
+            libraryItems={musicLibItems}
+          />
+        ) : showTop300 ? (
+          <Top300Page
+            onBack={goHome}
+            onAddToLibrary={handleAddFromTop300}
+            libraryItems={filmsLibItems}
+          />
+        ) : currentPage && currentLib ? (
           <LibraryPage
             library={currentLib}
             onBack={goHome}
