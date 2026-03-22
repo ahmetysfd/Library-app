@@ -314,6 +314,23 @@ body{background:var(--bg);color:var(--text);font-family:'Geist',sans-serif;font-
 .album-genre-tab.active{border-color:var(--gold);background:rgba(200,165,80,.08);color:var(--gold);font-weight:400}
 .album-genre-count{font-size:10px;opacity:.6;margin-left:4px}
 
+/* Browse library cards — compact version */
+.ins-browse-cards{display:flex;flex-direction:column;gap:10px;padding:20px 28px 0}
+.ins-browse-card{display:flex;align-items:center;gap:14px;padding:14px 16px;border:0.5px solid var(--border);border-radius:6px;cursor:pointer;transition:all .2s;background:var(--bg3)}
+.ins-browse-card:hover{border-color:var(--gold-dim);background:var(--bg4)}
+.ins-browse-icon{width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px}
+.ins-browse-info{flex:1;min-width:0}
+.ins-browse-title{font-size:14px;font-weight:400;color:var(--text)}
+.ins-browse-desc{font-size:11px;font-weight:300;color:var(--text3);margin-top:2px}
+.ins-browse-arrow{color:var(--text4);transition:color .2s,transform .2s;flex-shrink:0}
+.ins-browse-card:hover .ins-browse-arrow{color:var(--gold);transform:translateX(2px)}
+
+/* TMDB genre filter row */
+.tmdb-genre-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px}
+.tmdb-genre-tab{padding:6px 14px;border-radius:20px;font-family:'Geist',sans-serif;font-size:12px;font-weight:300;cursor:pointer;border:0.5px solid var(--border);background:transparent;color:var(--text3);transition:all .2s;white-space:nowrap}
+.tmdb-genre-tab:hover{border-color:var(--gold-dim);color:var(--text2)}
+.tmdb-genre-tab.active{border-color:var(--gold);background:rgba(200,165,80,.08);color:var(--gold);font-weight:400}
+
 /* Type counts — Movies / Shows */
 .ins-type-row{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border2)}
 .ins-type-cell{background:var(--bg2);padding:28px 20px;text-align:center;position:relative}
@@ -2270,6 +2287,387 @@ function TopAlbumsPage({ onBack, onAddToLibrary, libraryItems }) {
   );
 }
 
+/* ─── Browse Movies Page — TMDB Discover ──────────────────────────────────── */
+const TMDB_GENRES = [
+  {id:0,name:'All'},{id:28,name:'Action'},{id:12,name:'Adventure'},{id:16,name:'Animation'},
+  {id:35,name:'Comedy'},{id:80,name:'Crime'},{id:18,name:'Drama'},{id:14,name:'Fantasy'},
+  {id:27,name:'Horror'},{id:10749,name:'Romance'},{id:878,name:'Sci-Fi'},{id:53,name:'Thriller'},
+  {id:10752,name:'War'},{id:37,name:'Western'},{id:99,name:'Documentary'},
+];
+
+function BrowseMoviesPage({ onAddToLibrary, libraryItems }) {
+  const [movies,setMovies] = useState([]);
+  const [loading,setLoading] = useState(true);
+  const [page,setPage] = useState(1);
+  const [genre,setGenre] = useState(0);
+  const [loadingMore,setLoadingMore] = useState(false);
+  const existingIds = useMemo(()=>new Set((libraryItems||[]).map(i=>i.ext_id)),[libraryItems]);
+
+  const fetchPage = async (p,gid,append) => {
+    if (!TMDB_KEY || location.protocol==='file:') { if(!append) setLoading(false); return; }
+    if (!append) setLoading(true); else setLoadingMore(true);
+    try {
+      const genreParam = gid ? `&with_genres=${gid}` : '';
+      const r = await fetch(`${TMDB_BASE}/discover/movie?api_key=${TMDB_KEY}&language=en-US&sort_by=vote_average.desc&vote_count.gte=5000${genreParam}&page=${p}`);
+      const d = await r.json();
+      const items = (d.results||[]).filter(x=>x.poster_path).map(x=>({
+        ext_id:String(x.id),title:x.title||x.name,subtitle:(x.release_date||'').slice(0,4),
+        cover_url:TMDB_IMG+x.poster_path,
+        metadata:{vote_average:x.vote_average,vote_count:x.vote_count,media_type:'movie'}
+      }));
+      if (append) setMovies(prev=>[...prev,...items]);
+      else setMovies(items);
+    } catch {}
+    setLoading(false);setLoadingMore(false);
+  };
+
+  useEffect(()=>{setPage(1);fetchPage(1,genre,false);},[genre]);
+
+  const loadMore = ()=>{const np=page+1;setPage(np);fetchPage(np,genre,true);};
+
+  return (
+    <div className="top300-page">
+      <div className="top300-header">
+        <div style={{display:'flex',alignItems:'baseline'}}>
+          <div className="top300-title">Browse Movies</div>
+          <span className="top300-sub">Powered by TMDB · {movies.length} loaded</span>
+        </div>
+      </div>
+      <div className="tmdb-genre-tabs">
+        {TMDB_GENRES.map(g=>(
+          <button key={g.id} className={`tmdb-genre-tab ${genre===g.id?'active':''}`} onClick={()=>setGenre(g.id)}>{g.name}</button>
+        ))}
+      </div>
+      {loading ? <div className="loading-dots" style={{padding:60}}><span/><span/><span/></div> : (
+        <>
+          <div className="top300-grid">
+            {movies.map((m,i)=>{
+              const inLib = existingIds.has(m.ext_id);
+              return (
+                <div key={m.ext_id+'-'+i} className="top300-item" style={{animationDelay:`${(i%20)*0.03}s`}}>
+                  {inLib ? <div className="top300-added" title="In library">✓</div>
+                    : <button className="top300-add-btn" title="Add to library" onClick={e=>{e.stopPropagation();onAddToLibrary(m);}}>+</button>}
+                  <div className="top300-poster"><img src={m.cover_url} alt={m.title} loading="lazy" onError={e=>{e.target.style.visibility='hidden'}}/></div>
+                  <div className="top300-info">
+                    <div className="top300-name">{m.title}</div>
+                    <div className="top300-meta">
+                      <span>{m.subtitle}</span>
+                      {m.metadata?.vote_average&&<span className="top300-rating"><svg viewBox="0 0 12 12" fill="none"><path d="M6 1l1.5 3 3.5.5-2.5 2.4.6 3.5L6 8.8 2.9 10.4l.6-3.5L1 4.5 4.5 4z" fill="#c9a55a"/></svg>{m.metadata.vote_average.toFixed(1)}</span>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {movies.length>0&&<div className="top300-load-more"><button className="top300-load-btn" onClick={loadMore} disabled={loadingMore}>{loadingMore?'Loading…':'Load more'}</button></div>}
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ─── Browse Albums — Curated popular albums per genre ─────────────────── */
+const BROWSE_GENRES = ['All','Rock','Hip Hop','Pop','Indie','Metal','Electronic','R&B','Jazz','Folk','Punk','Soul','Country'];
+const BROWSE_ALBUMS = {
+  Rock:[
+    ['Dark Side of the Moon','Pink Floyd','1973'],['Abbey Road','The Beatles','1969'],['Led Zeppelin IV','Led Zeppelin','1971'],
+    ['Back in Black','AC/DC','1980'],['Rumours','Fleetwood Mac','1977'],['The Wall','Pink Floyd','1979'],
+    ['Nevermind','Nirvana','1991'],['Hotel California','Eagles','1976'],['Appetite for Destruction',"Guns N' Roses",'1987'],
+    ['A Night at the Opera','Queen','1975'],['OK Computer','Radiohead','1997'],['The Joshua Tree','U2','1987'],
+    ['Wish You Were Here','Pink Floyd','1975'],['Sgt. Pepper','The Beatles','1967'],['Revolver','The Beatles','1966'],
+    ['Born in the U.S.A.','Bruce Springsteen','1984'],['Hysteria','Def Leppard','1987'],['Hybrid Theory','Linkin Park','2000'],
+    ['Ten','Pearl Jam','1991'],['Californication','Red Hot Chili Peppers','1999'],['In Utero','Nirvana','1993'],
+    ['Exile on Main St.','The Rolling Stones','1972'],['Sticky Fingers','The Rolling Stones','1971'],
+    ['Ziggy Stardust','David Bowie','1972'],["Who's Next",'The Who','1971'],
+    ['Are You Experienced','Jimi Hendrix','1967'],['Pet Sounds','The Beach Boys','1966'],
+    ['Born to Run','Bruce Springsteen','1975'],['Brothers in Arms','Dire Straits','1985'],
+    ['Morning Glory','Oasis','1995'],['Definitely Maybe','Oasis','1994'],
+    ['Blood Sugar Sex Magik','Red Hot Chili Peppers','1991'],['In Rainbows','Radiohead','2007'],
+    ['Kid A','Radiohead','2000'],['Meteora','Linkin Park','2003'],['Weezer','Weezer','1994'],
+    ['Dookie','Green Day','1994'],['American Idiot','Green Day','2004'],['Foo Fighters','Foo Fighters','1995'],
+    ['The Colour and the Shape','Foo Fighters','1997'],['Slippery When Wet','Bon Jovi','1986'],
+    ['Elephant','The White Stripes','2003'],['Songs for the Deaf','Queens of the Stone Age','2002'],
+    ['The Black Parade','My Chemical Romance','2006'],['Animals','Pink Floyd','1977'],
+    ['Highway to Hell','AC/DC','1979'],['Automatic for the People','R.E.M.','1992'],
+  ],
+  'Hip Hop':[
+    ['Marshall Mathers LP','Eminem','2000'],['The Eminem Show','Eminem','2002'],['Curtain Call','Eminem','2005'],
+    ['My Beautiful Dark Twisted Fantasy','Kanye West','2010'],['College Dropout','Kanye West','2004'],['Graduation','Kanye West','2007'],
+    ['To Pimp a Butterfly','Kendrick Lamar','2015'],['good kid m.A.A.d city','Kendrick Lamar','2012'],['DAMN.','Kendrick Lamar','2017'],
+    ['Ready to Die','Notorious B.I.G.','1994'],['Life After Death','Notorious B.I.G.','1997'],
+    ['All Eyez on Me','2Pac','1996'],['Me Against the World','2Pac','1995'],
+    ['The Chronic','Dr. Dre','1992'],['2001','Dr. Dre','1999'],
+    ['Illmatic','Nas','1994'],['Reasonable Doubt','Jay-Z','1996'],['The Blueprint','Jay-Z','2001'],
+    ['Enter the Wu-Tang','Wu-Tang Clan','1993'],['Aquemini','Outkast','1998'],['Stankonia','Outkast','2000'],
+    ['Low End Theory','A Tribe Called Quest','1991'],['Madvillainy','Madvillain','2004'],
+    ['Astroworld','Travis Scott','2018'],['Rodeo','Travis Scott','2015'],
+    ['Igor','Tyler the Creator','2019'],['Flower Boy','Tyler the Creator','2017'],
+    ['Swimming','Mac Miller','2018'],['Circles','Mac Miller','2020'],
+    ['Take Care','Drake','2011'],['Nothing Was the Same','Drake','2013'],
+    ['2014 Forest Hills Drive','J. Cole','2014'],['Get Rich or Die Tryin','50 Cent','2003'],
+    ['Tha Carter III','Lil Wayne','2008'],['Doggystyle','Snoop Dogg','1993'],
+    ['Straight Outta Compton','N.W.A','1988'],['Miseducation of Lauryn Hill','Lauryn Hill','1998'],
+    ['Blonde','Frank Ocean','2016'],['Channel Orange','Frank Ocean','2012'],
+    ['808s and Heartbreak','Kanye West','2008'],['Late Registration','Kanye West','2005'],
+    ['SOS','SZA','2022'],['Ctrl','SZA','2017'],['Man on the Moon','Kid Cudi','2009'],
+  ],
+  Pop:[
+    ['Thriller','Michael Jackson','1982'],['Bad','Michael Jackson','1987'],['Off the Wall','Michael Jackson','1979'],
+    ['21','Adele','2011'],['25','Adele','2015'],['30','Adele','2021'],
+    ['1989','Taylor Swift','2014'],['Folklore','Taylor Swift','2020'],['Midnights','Taylor Swift','2022'],['Red','Taylor Swift','2012'],
+    ['Born This Way','Lady Gaga','2011'],['The Fame Monster','Lady Gaga','2009'],
+    ['Lemonade','Beyonce','2016'],['Dangerously in Love','Beyonce','2003'],['Renaissance','Beyonce','2022'],
+    ['Future Nostalgia','Dua Lipa','2020'],['Anti','Rihanna','2016'],['Good Girl Gone Bad','Rihanna','2007'],
+    ['When We All Fall Asleep','Billie Eilish','2019'],['Happier Than Ever','Billie Eilish','2021'],
+    ['Purple Rain','Prince','1984'],['Parachutes','Coldplay','2000'],['Viva la Vida','Coldplay','2008'],
+    ['After Hours','The Weeknd','2020'],['Starboy','The Weeknd','2016'],
+    ['Thank U Next','Ariana Grande','2019'],['Sweetener','Ariana Grande','2018'],
+    ['24K Magic','Bruno Mars','2016'],['Like a Virgin','Madonna','1984'],['Ray of Light','Madonna','1998'],
+    ['Whitney Houston','Whitney Houston','1985'],['The Bodyguard','Whitney Houston','1992'],
+    ['Goodbye Yellow Brick Road','Elton John','1973'],['ABBA Gold','ABBA','1992'],
+    ['Baby One More Time','Britney Spears','1999'],['Fine Line','Harry Styles','2019'],
+    ['Saturday Night Fever','Bee Gees','1977'],['Come On Over','Shania Twain','1997'],
+    ['Night Visions','Imagine Dragons','2012'],['Songs About Jane','Maroon 5','2002'],
+    ['Born to Die','Lana Del Rey','2012'],['Blurryface','Twenty One Pilots','2015'],
+  ],
+  Indie:[
+    ['Is This It','The Strokes','2001'],['Room on Fire','The Strokes','2003'],
+    ['Whatever People Say I Am','Arctic Monkeys','2006'],['AM','Arctic Monkeys','2013'],['Favourite Worst Nightmare','Arctic Monkeys','2007'],
+    ['Currents','Tame Impala','2015'],['Lonerism','Tame Impala','2012'],['InnerSpeaker','Tame Impala','2010'],
+    ['Funeral','Arcade Fire','2004'],['The Suburbs','Arcade Fire','2010'],['Neon Bible','Arcade Fire','2007'],
+    ['In the Aeroplane Over the Sea','Neutral Milk Hotel','1998'],['Transatlanticism','Death Cab for Cutie','2003'],
+    ['Vampire Weekend','Vampire Weekend','2008'],['Modern Vampires of the City','Vampire Weekend','2013'],
+    ['Boxer','The National','2007'],['High Violet','The National','2010'],
+    ['For Emma Forever Ago','Bon Iver','2007'],['22 A Million','Bon Iver','2016'],
+    ['Teen Dream','Beach House','2010'],['Depression Cherry','Beach House','2015'],['Bloom','Beach House','2012'],
+    ['Turn on the Bright Lights','Interpol','2002'],['Hot Fuss','The Killers','2004'],
+    ['Carrie and Lowell','Sufjan Stevens','2015'],['Illinois','Sufjan Stevens','2005'],
+    ['Punisher','Phoebe Bridgers','2020'],['Moon and Antarctica','Modest Mouse','2000'],
+    ['Franz Ferdinand','Franz Ferdinand','2004'],['Silent Alarm','Bloc Party','2005'],
+    ['The Queen Is Dead','The Smiths','1986'],['Disintegration','The Cure','1989'],
+    ['Unknown Pleasures','Joy Division','1979'],['Closer','Joy Division','1980'],
+    ['Doolittle','Pixies','1989'],['Loveless','My Bloody Valentine','1991'],
+    ['Demon Days','Gorillaz','2005'],['Hozier','Hozier','2014'],['Salad Days','Mac DeMarco','2014'],
+  ],
+  Metal:[
+    ['Master of Puppets','Metallica','1986'],['Ride the Lightning','Metallica','1984'],['Metallica','Metallica','1991'],
+    ['Number of the Beast','Iron Maiden','1982'],['Powerslave','Iron Maiden','1984'],
+    ['Paranoid','Black Sabbath','1970'],['Master of Reality','Black Sabbath','1971'],
+    ['Lateralus','Tool','2001'],['Fear Inoculum','Tool','2019'],['Aenima','Tool','1996'],
+    ['Reign in Blood','Slayer','1986'],['Rust in Peace','Megadeth','1990'],['Peace Sells','Megadeth','1986'],
+    ['Vulgar Display of Power','Pantera','1992'],['Toxicity','System of a Down','2001'],
+    ['Screaming for Vengeance','Judas Priest','1982'],['Painkiller','Judas Priest','1990'],
+    ['Blackwater Park','Opeth','2001'],['Crack the Skye','Mastodon','2009'],['Leviathan','Mastodon','2004'],
+    ['Images and Words','Dream Theater','1992'],['Iowa','Slipknot','2001'],['Slipknot','Slipknot','1999'],
+    ['Mutter','Rammstein','2001'],['Ace of Spades','Motorhead','1980'],
+    ['White Pony','Deftones','2000'],['Around the Fur','Deftones','1997'],
+    ['City of Evil','Avenged Sevenfold','2005'],['Countdown to Extinction','Megadeth','1992'],
+    ['And Justice for All','Metallica','1988'],['Seventh Son of a Seventh Son','Iron Maiden','1988'],
+  ],
+  Electronic:[
+    ['Random Access Memories','Daft Punk','2013'],['Discovery','Daft Punk','2001'],['Homework','Daft Punk','1997'],
+    ['Selected Ambient Works','Aphex Twin','1992'],['Mezzanine','Massive Attack','1998'],['Blue Lines','Massive Attack','1991'],
+    ['Dummy','Portishead','1994'],['Dig Your Own Hole','Chemical Brothers','1997'],
+    ['Trans-Europe Express','Kraftwerk','1977'],['Computer World','Kraftwerk','1981'],
+    ['Violator','Depeche Mode','1990'],['Demon Days','Gorillaz','2005'],['Plastic Beach','Gorillaz','2010'],
+    ['Music Has the Right to Children','Boards of Canada','1998'],['Untrue','Burial','2007'],
+    ['Homogenic','Bjork','1997'],['Post','Bjork','1995'],['Vespertine','Bjork','2001'],
+    ['Play','Moby','1999'],['Cross','Justice','2007'],['Black Sands','Bonobo','2010'],
+    ['In Colour','Jamie xx','2015'],['Moon Safari','Air','1998'],
+    ['Since I Left You','The Avalanches','2000'],['Endtroducing','DJ Shadow','1996'],
+    ['Kid A','Radiohead','2000'],['Power Corruption and Lies','New Order','1983'],
+    ['Technique','New Order','1989'],['Swim','Caribou','2010'],
+  ],
+  'R&B':[
+    ['Songs in the Key of Life','Stevie Wonder','1976'],['Innervisions','Stevie Wonder','1973'],
+    ["What's Going On",'Marvin Gaye','1971'],['Blonde','Frank Ocean','2016'],['Channel Orange','Frank Ocean','2012'],
+    ['SOS','SZA','2022'],['Ctrl','SZA','2017'],['After Hours','The Weeknd','2020'],['Starboy','The Weeknd','2016'],
+    ['Voodoo','D Angelo','2000'],['Black Messiah','D Angelo','2014'],
+    ['Baduizm','Erykah Badu','1997'],['Miseducation of Lauryn Hill','Lauryn Hill','1998'],
+    ['Lemonade','Beyonce','2016'],['Dangerously in Love','Beyonce','2003'],
+    ['Confessions','Usher','2004'],['Songs in A Minor','Alicia Keys','2001'],
+    ['My Life','Mary J. Blige','1994'],['CrazySexyCool','TLC','1994'],
+    ['Freudian','Daniel Caesar','2017'],['A Seat at the Table','Solange','2016'],
+    ['Malibu','Anderson Paak','2016'],['Anti','Rihanna','2016'],
+    ['Thriller','Michael Jackson','1982'],['Off the Wall','Michael Jackson','1979'],
+    ['Purple Rain','Prince','1984'],['Sign o the Times','Prince','1987'],
+    ['Back of My Mind','H.E.R.','2021'],['Beauty Behind the Madness','The Weeknd','2015'],
+  ],
+  Jazz:[
+    ['Kind of Blue','Miles Davis','1959'],['Bitches Brew','Miles Davis','1970'],
+    ['A Love Supreme','John Coltrane','1965'],['Blue Train','John Coltrane','1958'],['Giant Steps','John Coltrane','1960'],
+    ['Mingus Ah Um','Charles Mingus','1959'],['Time Out','Dave Brubeck','1959'],
+    ['Waltz for Debby','Bill Evans','1962'],['Head Hunters','Herbie Hancock','1973'],['Maiden Voyage','Herbie Hancock','1965'],
+    ['Moanin','Art Blakey','1958'],['Ellington at Newport','Duke Ellington','1956'],
+    ['What a Wonderful World','Louis Armstrong','1967'],['Koln Concert','Keith Jarrett','1975'],
+    ['The Epic','Kamasi Washington','2015'],['Black Radio','Robert Glasper','2012'],
+    ['Chet Baker Sings','Chet Baker','1954'],['I Put a Spell on You','Nina Simone','1965'],
+    ['Night Train','Oscar Peterson','1963'],['Getz Gilberto','Stan Getz','1964'],
+    ['Speak No Evil','Wayne Shorter','1966'],['Saxophone Colossus','Sonny Rollins','1956'],
+    ['Brilliant Corners','Thelonious Monk','1957'],['In a Silent Way','Miles Davis','1969'],
+  ],
+  Folk:[
+    ['Highway 61 Revisited','Bob Dylan','1965'],['Blonde on Blonde','Bob Dylan','1966'],['Blood on the Tracks','Bob Dylan','1975'],
+    ['Blue','Joni Mitchell','1971'],['Court and Spark','Joni Mitchell','1974'],
+    ['Harvest','Neil Young','1972'],['After the Gold Rush','Neil Young','1970'],
+    ['Pink Moon','Nick Drake','1972'],['Five Leaves Left','Nick Drake','1969'],
+    ['Bridge over Troubled Water','Simon and Garfunkel','1970'],['Bookends','Simon and Garfunkel','1968'],
+    ['Helplessness Blues','Fleet Foxes','2011'],['Fleet Foxes','Fleet Foxes','2008'],
+    ['For Emma Forever Ago','Bon Iver','2007'],['Carrie and Lowell','Sufjan Stevens','2015'],
+    ['Hozier','Hozier','2014'],['Wasteland Baby','Hozier','2019'],
+    ['Punisher','Phoebe Bridgers','2020'],['Either Or','Elliott Smith','1997'],
+    ['Tea for the Tillerman','Cat Stevens','1970'],['Songs of Leonard Cohen','Leonard Cohen','1967'],
+    ['Sigh No More','Mumford and Sons','2009'],['Astral Weeks','Van Morrison','1968'],
+    ['Moondance','Van Morrison','1970'],['Tapestry','Carole King','1971'],['Graceland','Paul Simon','1986'],
+  ],
+  Punk:[
+    ['London Calling','The Clash','1979'],['The Clash','The Clash','1977'],
+    ['Ramones','Ramones','1976'],['Rocket to Russia','Ramones','1977'],
+    ['Never Mind the Bollocks','Sex Pistols','1977'],
+    ['Fresh Fruit for Rotting Vegetables','Dead Kennedys','1980'],
+    ['Damaged','Black Flag','1981'],['Bad Brains','Bad Brains','1982'],
+    ['Walk Among Us','Misfits','1982'],['Singles Going Steady','Buzzcocks','1979'],
+    ['Suffer','Bad Religion','1988'],['Milo Goes to College','Descendents','1982'],
+    ['Repeater','Fugazi','1990'],['13 Songs','Fugazi','1989'],
+    ['Fun House','The Stooges','1970'],['The Stooges','The Stooges','1969'],
+    ['Pink Flag','Wire','1977'],['Entertainment','Gang of Four','1979'],
+    ['Dookie','Green Day','1994'],['American Idiot','Green Day','2004'],
+    ['Enema of the State','Blink-182','1999'],['Punk in Drublic','NOFX','1994'],
+    ['Social Distortion','Social Distortion','1990'],['Damned Damned Damned','The Damned','1977'],
+  ],
+  Soul:[
+    ["What's Going On",'Marvin Gaye','1971'],["Let's Get It On",'Marvin Gaye','1973'],
+    ['Songs in the Key of Life','Stevie Wonder','1976'],['Innervisions','Stevie Wonder','1973'],
+    ['I Never Loved a Man','Aretha Franklin','1967'],['Lady Soul','Aretha Franklin','1968'],
+    ['Otis Blue','Otis Redding','1965'],['Live at the Apollo','James Brown','1963'],
+    ["Let's Stay Together",'Al Green','1972'],['Superfly','Curtis Mayfield','1972'],
+    ['Night Beat','Sam Cooke','1963'],['Modern Sounds in Country','Ray Charles','1962'],
+    ['Still Bill','Bill Withers','1972'],['Just as I Am','Bill Withers','1971'],
+    ['Hot Buttered Soul','Isaac Hayes','1969'],['Cloud Nine','The Temptations','1969'],
+    ['Coming Home','Leon Bridges','2015'],['A Quiet Storm','Smokey Robinson','1975'],
+  ],
+  Country:[
+    ['At Folsom Prison','Johnny Cash','1968'],['American Recordings','Johnny Cash','1994'],
+    ['Jolene','Dolly Parton','1974'],['Coat of Many Colors','Dolly Parton','1971'],
+    ['Red Headed Stranger','Willie Nelson','1975'],['Stardust','Willie Nelson','1978'],
+    ['40 Greatest Hits','Hank Williams','1978'],['No Fences','Garth Brooks','1990'],
+    ['Come On Over','Shania Twain','1997'],['Traveller','Chris Stapleton','2015'],
+    ['Golden Hour','Kacey Musgraves','2018'],['Southeastern','Jason Isbell','2013'],
+    ['Sailors Guide to Earth','Sturgill Simpson','2016'],['Purgatory','Tyler Childers','2017'],
+    ['Coal Miners Daughter','Loretta Lynn','1971'],['Honky Tonk Heroes','Waylon Jennings','1973'],
+    ['At San Quentin','Johnny Cash','1969'],['Ropin the Wind','Garth Brooks','1991'],
+  ],
+};
+
+function BrowseAlbumsPage({ onAddToLibrary, libraryItems }) {
+  const [genre,setGenre] = useState('All');
+  const [page,setPage] = useState(1);
+  const [covers,setCovers] = useState({});
+  const existingTitles = useMemo(()=>new Set((libraryItems||[]).map(i=>i.title)),[libraryItems]);
+  const perPage = 30;
+
+  const allAlbums = useMemo(()=>{
+    if (genre==='All') {
+      const seen = new Set();
+      const all = [];
+      Object.keys(BROWSE_ALBUMS).forEach(g=>{
+        BROWSE_ALBUMS[g].forEach(a=>{
+          const k = a[0]+'|'+a[1];
+          if (!seen.has(k)) { seen.add(k); all.push([...a,g]); }
+        });
+      });
+      return all.map((a,i)=>({title:a[0],artist:a[1],year:a[2],genre:a[3],idx:i}));
+    }
+    return (BROWSE_ALBUMS[genre]||[]).map((a,i)=>({title:a[0],artist:a[1],year:a[2],genre,idx:i}));
+  },[genre]);
+
+  const visible = allAlbums.slice(0, page*perPage);
+  const canLoadMore = visible.length < allAlbums.length;
+
+  useEffect(()=>{
+    let cancelled = false;
+    const fetchCovers = async ()=>{
+      for (const album of visible) {
+        const key = album.title+'|'+album.artist;
+        if (covers[key] || albumCoverCache[key] || cancelled) {
+          if (albumCoverCache[key] && !covers[key]) setCovers(p=>({...p,[key]:albumCoverCache[key]}));
+          continue;
+        }
+        try {
+          const q = encodeURIComponent('release:'+album.title+' AND artist:'+album.artist);
+          const r = await fetch('https://musicbrainz.org/ws/2/release-group/?query='+q+'&limit=1&fmt=json',{
+            headers:{'User-Agent':'ShelfApp/2.0 (https://shelf.app)'}
+          });
+          const d = await r.json();
+          const rg = (d['release-groups']||[])[0];
+          if (rg && !cancelled) {
+            const url = 'https://coverartarchive.org/release-group/'+rg.id+'/front-250';
+            albumCoverCache[key] = url;
+            setCovers(p=>({...p,[key]:url}));
+          }
+        } catch {}
+        await new Promise(r=>setTimeout(r,1100));
+        if (cancelled) break;
+      }
+    };
+    fetchCovers();
+    return ()=>{cancelled=true;};
+  },[visible.length, genre]);
+
+  useEffect(()=>setPage(1),[genre]);
+
+  return (
+    <div className="top300-page">
+      <div className="top300-header">
+        <div style={{display:'flex',alignItems:'baseline'}}>
+          <div className="top300-title">Browse Albums</div>
+          <span className="top300-sub">{allAlbums.length} albums{genre!=='All'?' \u00b7 '+genre:''} \u00b7 Covers via MusicBrainz</span>
+        </div>
+      </div>
+      <div className="tmdb-genre-tabs">
+        {BROWSE_GENRES.map(g=>(
+          <button key={g} className={'tmdb-genre-tab '+(genre===g?'active':'')} onClick={()=>setGenre(g)}>{g}</button>
+        ))}
+      </div>
+      <div className="top300-grid" style={{gridTemplateColumns:'repeat(auto-fill,minmax(148px,1fr))'}}>
+        {visible.map((a,i)=>{
+          const key = a.title+'|'+a.artist;
+          const coverUrl = covers[key] || albumCoverCache[key] || '';
+          const inLib = existingTitles.has(a.title);
+          return (
+            <div key={key+'-'+i} className="top300-item" style={{animationDelay:((i%30)*0.025)+'s'}}>
+              {inLib ? <div className="top300-added" title="In library">{'\u2713'}</div>
+                : <button className="top300-add-btn" title="Add to library" onClick={e=>{
+                    e.stopPropagation();
+                    onAddToLibrary({ext_id:'browse-'+i,title:a.title,subtitle:a.artist,cover_url:coverUrl,metadata:{year:a.year}});
+                  }}>+</button>}
+              <div className="top300-poster" style={{aspectRatio:'1',position:'relative'}}>
+                {coverUrl ? <img src={coverUrl} alt={a.title} loading="lazy" onError={e=>{e.target.style.display='none';if(e.target.nextSibling)e.target.nextSibling.style.display='flex'}}/> : null}
+                <div style={{display:coverUrl?'none':'flex',width:'100%',height:'100%',alignItems:'center',justifyContent:'center',background:'var(--bg3)',flexDirection:'column',gap:4,padding:8,position:coverUrl?'absolute':'relative',inset:0}}>
+                  <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:26,color:'var(--gold-dim)',opacity:.3}}>{'\u266b'}</span>
+                  <span style={{fontSize:8,color:'var(--text4)',textAlign:'center',lineHeight:1.2}}>{a.title.slice(0,18)}</span>
+                </div>
+              </div>
+              <div className="top300-info">
+                <div className="top300-name">{a.title}</div>
+                <div className="top300-meta">
+                  <span>{a.artist}</span>
+                  <span style={{color:'var(--text4)'}}>{a.year}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {canLoadMore && (
+        <div className="top300-load-more">
+          <button className="top300-load-btn" onClick={()=>setPage(p=>p+1)}>Load more ({visible.length}/{allAlbums.length})</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─── Insights Sidebar ────────────────────────────────────────────────────── */
 
 // Demo genre/director/actor data keyed by ext_id — in production this comes from TMDB detail endpoint
@@ -2485,7 +2883,7 @@ function GenreDonutSection({ data }) {
   );
 }
 
-function InsightsSidebar({ library, libraries, onOpenTop300, onOpenTopAlbums }) {
+function InsightsSidebar({ library, libraries, onOpenTop300, onOpenTopAlbums, onBrowseMovies, onBrowseAlbums }) {
   const insights = library ? computeInsights(library) : null;
   const topDirs = (library && library.type==='films' && insights) ? getTopDirectors(library, insights) : [];
 
@@ -2543,6 +2941,26 @@ function InsightsSidebar({ library, libraries, onOpenTop300, onOpenTopAlbums }) 
               </div>
               <div className="ins-top300-arrow">
                 <svg viewBox="0 0 16 16" width="16" height="16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </div>
+            </div>
+
+            {/* Browse full libraries */}
+            <div className="ins-browse-cards">
+              <div className="ins-browse-card" onClick={onBrowseMovies}>
+                <div className="ins-browse-icon" style={{background:'rgba(200,165,80,.06)',border:'0.5px solid rgba(200,165,80,.15)'}}>🎬</div>
+                <div className="ins-browse-info">
+                  <div className="ins-browse-title">All Movies</div>
+                  <div className="ins-browse-desc">Browse thousands of films by genre</div>
+                </div>
+                <div className="ins-browse-arrow"><svg viewBox="0 0 12 12" width="12" height="12" fill="none"><path d="M4 2l5 4-5 4" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/></svg></div>
+              </div>
+              <div className="ins-browse-card" onClick={onBrowseAlbums}>
+                <div className="ins-browse-icon" style={{background:'rgba(160,130,200,.06)',border:'0.5px solid rgba(160,130,200,.15)'}}>🎵</div>
+                <div className="ins-browse-info">
+                  <div className="ins-browse-title">All Albums</div>
+                  <div className="ins-browse-desc">Explore albums from MusicBrainz</div>
+                </div>
+                <div className="ins-browse-arrow"><svg viewBox="0 0 12 12" width="12" height="12" fill="none"><path d="M4 2l5 4-5 4" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/></svg></div>
               </div>
             </div>
           </>
@@ -2644,6 +3062,8 @@ function App() {
   const [activeIcon,setActiveIcon] = useState(null);
   const [showTop300,setShowTop300] = useState(false);
   const [showTopAlbums,setShowTopAlbums] = useState(false);
+  const [browseMovies,setBrowseMovies] = useState(false);
+  const [browseAlbums,setBrowseAlbums] = useState(false);
 
   // Load persisted state
   useEffect(()=>{
@@ -2737,6 +3157,8 @@ function App() {
     setActiveIcon(null);
     setShowTop300(false);
     setShowTopAlbums(false);
+    setBrowseMovies(false);
+    setBrowseAlbums(false);
   };
 
   const currentLib = currentPage ? libraries.find(l=>l.type===currentPage) : null;
@@ -2790,13 +3212,16 @@ function App() {
 
   const musicLibItems = libraries.find(l=>l.type==='music')?.items || [];
 
+  const handleBrowseMovies = ()=>{ setBrowseMovies(true);setBrowseAlbums(false);setShowTop300(false);setShowTopAlbums(false);setCurrentPage(null);setActiveIcon(null); };
+  const handleBrowseAlbums = ()=>{ setBrowseAlbums(true);setBrowseMovies(false);setShowTop300(false);setShowTopAlbums(false);setCurrentPage(null);setActiveIcon(null); };
+
   return (
     <>
-      <InsightsSidebar library={currentLib} libraries={libraries} onOpenTop300={handleOpenTop300} onOpenTopAlbums={handleOpenTopAlbums}/>
+      <InsightsSidebar library={currentLib} libraries={libraries} onOpenTop300={handleOpenTop300} onOpenTopAlbums={handleOpenTopAlbums} onBrowseMovies={handleBrowseMovies} onBrowseAlbums={handleBrowseAlbums}/>
       <div className="main-content">
         <div className="topbar">
           <div style={{display:'flex',alignItems:'center',gap:0}}>
-            {(currentPage || showTop300 || showTopAlbums) && <button onClick={goHome} style={{background:'none',border:'none',color:'var(--gold)',cursor:'pointer',padding:'4px 8px 4px 0',fontSize:'18px',lineHeight:1,opacity:.6,transition:'opacity .2s'}} onMouseEnter={e=>e.target.style.opacity=1} onMouseLeave={e=>e.target.style.opacity=.6}>‹</button>}
+            {(currentPage || showTop300 || showTopAlbums || browseMovies || browseAlbums) && <button onClick={goHome} style={{background:'none',border:'none',color:'var(--gold)',cursor:'pointer',padding:'4px 8px 4px 0',fontSize:'18px',lineHeight:1,opacity:.6,transition:'opacity .2s'}} onMouseEnter={e=>e.target.style.opacity=1} onMouseLeave={e=>e.target.style.opacity=.6}>‹</button>}
             <div className="brand" onClick={goHome}>Shelf</div>
           </div>
           <div className="topbar-right">
@@ -2812,7 +3237,7 @@ function App() {
           </div>
         </div>
 
-        {demoMode && !currentPage && !showTop300 && !showTopAlbums && (
+        {demoMode && !currentPage && !showTop300 && !showTopAlbums && !browseMovies && !browseAlbums && (
           <div className="api-notice">
             <strong>{fileMode ? 'Local file mode' : 'Demo mode'}</strong>&nbsp;
             {fileMode
@@ -2823,7 +3248,11 @@ function App() {
           </div>
         )}
 
-        {showTopAlbums ? (
+        {browseMovies ? (
+          <BrowseMoviesPage onAddToLibrary={handleAddFromTop300} libraryItems={filmsLibItems}/>
+        ) : browseAlbums ? (
+          <BrowseAlbumsPage onAddToLibrary={handleAddFromTopAlbums} libraryItems={musicLibItems}/>
+        ) : showTopAlbums ? (
           <TopAlbumsPage
             onBack={goHome}
             onAddToLibrary={handleAddFromTopAlbums}
