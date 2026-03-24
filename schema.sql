@@ -23,17 +23,17 @@ create table if not exists public.users (
 create index if not exists idx_users_username on public.users(username);
 create index if not exists idx_users_email    on public.users(email);
 
--- ─── Cached Albums (Spotify data cache) ──────────────────────────────────────
--- Server fetches from Spotify once → stores here → all users read from DB
+-- ─── Cached Albums (Last.fm popularity cache) ─────────────────────────────────
+-- Server fetches popularity-ranked albums once → stores here → all users read from DB
 -- One row per album, ~500 bytes each. 1M albums ≈ 500MB.
 create table if not exists public.cached_albums (
-  id            text primary key,                    -- Spotify album ID
+  id            text primary key,                    -- stable deterministic album id
   title         text not null,
   artist        text not null,
   year          smallint,
   cover_url     text,                                -- Spotify/Apple CDN URL (~120 bytes)
   genre         text not null default 'unknown',     -- genre tag for filtering
-  popularity    smallint default 0,                  -- Spotify popularity 0-100
+  popularity    integer default 0,                   -- popularity/listener score (sortable)
   track_count   smallint default 0,
   spotify_url   text,
   fetched_at    timestamptz default now()            -- for cache expiry
@@ -42,6 +42,34 @@ create table if not exists public.cached_albums (
 create index if not exists idx_cached_albums_genre on public.cached_albums(genre);
 create index if not exists idx_cached_albums_pop   on public.cached_albums(popularity desc);
 create index if not exists idx_cached_genre_pop    on public.cached_albums(genre, popularity desc);
+
+-- Ensure existing deployments can store larger popularity values
+alter table if exists public.cached_albums
+  alter column popularity type integer using popularity::integer;
+
+-- ─── Cached Artists (Spotify listeners/followers cache) ─────────────────────
+-- Server seeds top artists once, then all users read from DB.
+create table if not exists public.cached_artists (
+  id            text primary key,                -- Spotify artist id
+  name          text not null,
+  followers     bigint default 0,                -- Spotify followers.total
+  popularity    smallint default 0,              -- Spotify popularity 0-100
+  genres        text[] default '{}',             -- Spotify genre list
+  image_url     text,                            -- Spotify CDN image
+  country       text,                            -- optional enrichment field
+  spotify_url   text,
+  fetched_at    timestamptz default now()
+);
+
+create index if not exists idx_cached_artists_followers on public.cached_artists(followers desc);
+create index if not exists idx_cached_artists_pop       on public.cached_artists(popularity desc);
+create index if not exists idx_cached_artists_country   on public.cached_artists(country);
+
+-- PostgREST (Supabase) needs explicit grants for the service_role key used by the API server.
+grant usage on schema public to service_role;
+grant all on table public.cached_artists to service_role;
+grant all on table public.cached_artists to postgres;
+grant select on table public.cached_artists to anon, authenticated;
 
 -- ─── Libraries ────────────────────────────────────────────────────────────────
 -- One per type per user — enforced by unique constraint
@@ -251,3 +279,16 @@ create policy "fr_update" on public.friend_requests
   for update using (auth.uid() = receiver_id); -- only receiver can accept/reject
 create policy "fr_delete" on public.friend_requests
   for delete using (auth.uid() = sender_id or auth.uid() = receiver_id);
+
+-- ─── Album stats helper for /api/albums/stats ────────────────────────────────
+create or replace function public.album_genre_counts()
+returns table(genre text, total bigint)
+language sql
+security definer
+set search_path = public
+as $$
+  select genre, count(*)::bigint as total
+  from public.cached_albums
+  group by genre
+  order by total desc;
+$$;

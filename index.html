@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<!-- Dev-friendly CSP: allows API calls to localhost:3001 and scripts from unpkg (React/Babel). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self' http://127.0.0.1:3001 http://localhost:3001 https: ws: wss:; frame-src 'self'; base-uri 'self';">
 <title>Shelf</title>
 <link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -330,6 +332,31 @@ body{background:var(--bg);color:var(--text);font-family:'Geist',sans-serif;font-
 .tmdb-genre-tab{padding:6px 14px;border-radius:20px;font-family:'Geist',sans-serif;font-size:12px;font-weight:300;cursor:pointer;border:0.5px solid var(--border);background:transparent;color:var(--text3);transition:all .2s;white-space:nowrap}
 .tmdb-genre-tab:hover{border-color:var(--gold-dim);color:var(--text2)}
 .tmdb-genre-tab.active{border-color:var(--gold);background:rgba(200,165,80,.08);color:var(--gold);font-weight:400}
+
+/* Year filter bar */
+.browse-filters{display:flex;align-items:center;gap:16px;margin-bottom:22px;flex-wrap:wrap}
+.browse-filter-group{display:flex;align-items:center;gap:8px}
+.browse-filter-label{font-size:11px;font-weight:300;letter-spacing:.12em;text-transform:uppercase;color:var(--text3)}
+.browse-year-select{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:7px 30px 7px 12px;font-family:'Geist',sans-serif;font-size:13px;font-weight:300;color:var(--text2);outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='8' height='5' viewBox='0 0 8 5' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L4 4L7 1' stroke='%23726860' stroke-width='0.8'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;transition:border-color .2s}
+.browse-year-select:hover{border-color:var(--gold-dim)}
+.browse-year-select:focus{border-color:var(--gold)}
+
+/* Top Artists page */
+.artist-filters{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 18px}
+.artist-filter-select{background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius);padding:7px 30px 7px 10px;font-family:'Geist',sans-serif;font-size:12px;color:var(--text2);outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='8' height='5' viewBox='0 0 8 5' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L4 4L7 1' stroke='%23726860' stroke-width='0.8'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+.artist-filter-select:hover{border-color:var(--gold-dim)}
+.artist-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
+.artist-card{position:relative;border:0.5px solid var(--border);border-radius:8px;background:var(--bg2);padding:12px;transition:border-color .2s,transform .2s}
+.artist-card:hover{border-color:var(--gold-dim);transform:translateY(-2px)}
+.artist-avatar{width:100%;aspect-ratio:1;border-radius:8px;overflow:hidden;background:var(--bg3);border:0.5px solid var(--border);display:flex;align-items:center;justify-content:center}
+.artist-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.artist-initials{font-family:'Cormorant Garamond',serif;font-size:26px;color:var(--gold)}
+.artist-name{font-size:14px;font-weight:400;color:var(--text);margin-top:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.artist-meta{font-size:11px;color:var(--text3);margin-top:4px;display:flex;flex-direction:column;gap:2px}
+.artist-chip{display:inline-flex;align-items:center;padding:2px 8px;border:0.5px solid var(--border);border-radius:999px;font-size:10px;color:var(--text3);margin-top:8px}
+.artist-add-btn{position:absolute;top:16px;right:16px;width:28px;height:28px;border-radius:50%;background:rgba(10,9,8,.85);border:0.5px solid rgba(200,165,80,.3);color:var(--gold);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;z-index:3;transition:all .2s}
+.artist-add-btn:hover{background:rgba(200,165,80,.2);border-color:var(--gold);transform:scale(1.06)}
+.artist-added{position:absolute;top:16px;right:16px;width:28px;height:28px;border-radius:50%;background:rgba(74,140,92,.2);border:0.5px solid rgba(74,140,92,.4);color:var(--success);display:flex;align-items:center;justify-content:center;font-size:14px;line-height:1;z-index:3}
 
 /* Type counts — Movies / Shows */
 .ins-type-row{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border2)}
@@ -1576,6 +1603,7 @@ function LibraryPage({ library, onBack, onAddClick, onRemoveItem, onRateItem, on
   // Music: Albums / Artists (no watchlist)
   // Others: All / In Progress / Watchlist
   const isMusic = library.type === 'music';
+  const isMusicArtistItem = (i) => i?.metadata?.kind === 'artist';
   const filmTabs = [
     { key:'movies', label:'Movies' },
     { key:'shows',  label:'Shows'  },
@@ -1583,6 +1611,7 @@ function LibraryPage({ library, onBack, onAddClick, onRemoveItem, onRateItem, on
   ];
   const musicTabs = [
     { key:'all', label:'Albums' },
+    { key:'artists', label:'Artists' },
   ];
   const genericTabs = [
     { key:'all', label:'All' },
@@ -1614,6 +1643,9 @@ function LibraryPage({ library, onBack, onAddClick, onRemoveItem, onRateItem, on
         if (watchlistFilter==='movies') filtered = filtered.filter(i=>i.metadata?.media_type!=='tv');
         if (watchlistFilter==='shows')  filtered = filtered.filter(i=>i.metadata?.media_type==='tv');
       }
+    } else if (isMusic) {
+      if (tab==='all') filtered = filtered.filter(i => i.status !== 'wishlist' && !isMusicArtistItem(i));
+      else if (tab==='artists') filtered = filtered.filter(i => i.status !== 'wishlist' && isMusicArtistItem(i));
     } else {
       if (tab==='all')         filtered = filtered.filter(i=>i.status!=='wishlist');
       if (tab==='in_progress') filtered = filtered.filter(i=>i.status==='in_progress');
@@ -1625,8 +1657,9 @@ function LibraryPage({ library, onBack, onAddClick, onRemoveItem, onRateItem, on
     }
     if (sortBy==='rating')      filtered.sort((a,b)=>(b.metadata?.vote_average||b.metadata?.rating||0)-(a.metadata?.vote_average||a.metadata?.rating||0));
     if (sortBy==='user_rating') filtered.sort((a,b)=>(b.user_rating||0)-(a.user_rating||0));
+    if (sortBy==='followers')   filtered.sort((a,b)=>(b.metadata?.followers||0)-(a.metadata?.followers||0));
     return filtered;
-  },[library.items,tab,sortBy,watchlistFilter,libSearch,isFilms]);
+  },[library.items,tab,sortBy,watchlistFilter,libSearch,isFilms,isMusic]);
 
   const statusLabel = {collected:'Watched',in_progress:({films:'Watching',books:'Reading',music:'Listening',games:'Playing'})[library.type]||'In progress',wishlist:'Watchlist'};
 
@@ -1712,6 +1745,7 @@ function LibraryPage({ library, onBack, onAddClick, onRemoveItem, onRateItem, on
                 <option value="recent">Recently added</option>
                 <option value="rating">Rating</option>
                 <option value="user_rating">Your ratings</option>
+                {isMusic && tab==='artists' && <option value="followers">Spotify followers</option>}
               </select>
             </div>
           )}
@@ -1726,8 +1760,18 @@ function LibraryPage({ library, onBack, onAddClick, onRemoveItem, onRateItem, on
       {items.length === 0 && !(isFilms && tab==='shows' && currentlyWatchingShows.length > 0) ? (
         <div className="lib-empty-state">
           <ShelfIcon type={def.icon} active={false} size={48}/>
-          <p>{tab==='movies'||tab==='all'?'Your library is empty':tab==='shows'?'No watched shows yet — add some above!':'No items here yet'}</p>
-          {(tab==='movies'||tab==='all')&&<button className="btn-primary" onClick={onAddClick}>+ Add your first {isFilms?'film':def.label.split(' ')[0].toLowerCase()}</button>}
+          <p>
+            {isFilms && tab==='shows'
+              ? 'No watched shows yet — add some above!'
+              : isMusic && tab==='artists'
+                ? 'No artists in your library yet. Use Top Artists in the sidebar to add some.'
+              : isMusic && tab==='all'
+                ? 'No albums in your library yet.'
+              : tab==='movies' || tab==='all'
+                ? 'Your library is empty'
+                : 'No items here yet'}
+          </p>
+          {(tab==='movies' || tab==='all') && <button className="btn-primary" onClick={onAddClick}>+ Add your first {isFilms?'film':def.label.split(' ')[0].toLowerCase()}</button>}
         </div>
       ) : items.length > 0 && viewMode==='grid' ? (
         <div className="lib-grid">
@@ -1749,7 +1793,11 @@ function LibraryPage({ library, onBack, onAddClick, onRemoveItem, onRateItem, on
                 <div className="lib-grid-card-info-left" onClick={()=>setRatingItem(item)} style={{cursor:'pointer'}}>
                   <div className="lib-grid-card-title">{item.title}</div>
                   <div className="lib-grid-card-sub">
-                    <span>{item.subtitle}</span>
+                    <span>
+                      {isMusicArtistItem(item) && item.metadata?.followers != null
+                        ? `${Number(item.metadata.followers).toLocaleString()} followers`
+                        : item.subtitle}
+                    </span>
                   </div>
                 </div>
                 <CardMenu
@@ -1771,7 +1819,11 @@ function LibraryPage({ library, onBack, onAddClick, onRemoveItem, onRateItem, on
               </div>
               <div className="lib-list-info">
                 <div className="lib-list-title">{item.title}</div>
-                <div className="lib-list-sub">{item.subtitle}</div>
+                <div className="lib-list-sub">
+                  {isMusicArtistItem(item) && item.metadata?.followers != null
+                    ? `${Number(item.metadata.followers).toLocaleString()} followers`
+                    : item.subtitle}
+                </div>
               </div>
               <div className="lib-list-right">
                 {(()=>{
@@ -2385,57 +2437,74 @@ function BrowseMoviesPage({ onAddToLibrary, libraryItems }) {
  * ──────────────────────────────────────────────────────────────────────── */
 
 const ALBUM_BROWSE_GENRES = [
-  {id:'all',label:'All',term:'top albums'},
-  {id:'rock',label:'Rock',term:'rock'},
-  {id:'hip-hop',label:'Hip Hop',term:'hip hop rap'},
-  {id:'pop',label:'Pop',term:'pop'},
-  {id:'indie',label:'Indie',term:'indie alternative'},
-  {id:'metal',label:'Metal',term:'heavy metal'},
-  {id:'electronic',label:'Electronic',term:'electronic dance'},
-  {id:'rnb',label:'R&B',term:'r&b soul'},
-  {id:'jazz',label:'Jazz',term:'jazz'},
-  {id:'folk',label:'Folk',term:'folk singer songwriter'},
-  {id:'punk',label:'Punk',term:'punk'},
-  {id:'classical',label:'Classical',term:'classical'},
-  {id:'country',label:'Country',term:'country'},
-  {id:'reggae',label:'Reggae',term:'reggae'},
-  {id:'blues',label:'Blues',term:'blues'},
-  {id:'latin',label:'Latin',term:'latin'},
+  {id:'all',label:'All'},
+  {id:'rock',label:'Rock'},
+  {id:'hip-hop',label:'Hip Hop'},
+  {id:'pop',label:'Pop'},
+  {id:'rnb',label:'R&B'},
+  {id:'electronic',label:'Electronic'},
+  {id:'metal',label:'Metal'},
+  {id:'jazz',label:'Jazz'},
+  {id:'country',label:'Country'},
 ];
 
-// Try server API first (reads from Supabase cache, populated by Spotify)
-async function fetchAlbumsFromServer(genreId, page=1) {
+// Years from 2026 down to 1950
+const BROWSE_YEARS = [null, ...Array.from({length:2026-1950+1}, (_,i) => 2026-i)];
+
+// Fetch from your server (Supabase cache — Last.fm for all-time, MusicBrainz for year-specific)
+async function fetchAlbumsFromServer(genreId, page, year) {
   try {
-    const r = await fetch(`${API_BASE}/api/albums/browse?genre=${genreId}&page=${page}&limit=50`);
+    let url = `${API_BASE}/api/albums/browse?genre=${genreId}&page=${page}&limit=100`;
+    if (year) url += `&year=${year}`;
+    const r = await fetch(url);
     if (!r.ok) return null;
     const d = await r.json();
     if (d.albums && d.albums.length > 0) {
-      return d.albums.map(a => ({
-        ext_id: a.id, title: a.title, artist: a.artist, year: String(a.year||''),
-        cover: a.cover_url, genre: a.genre, popularity: a.popularity,
-      }));
+      return {
+        albums: d.albums.map(a => ({
+          ext_id: a.id, title: a.title, artist: a.artist, year: String(a.year||''),
+          cover: a.cover_url, genre: a.genre, popularity: a.popularity,
+        })),
+        source: d.source || 'cache',
+        total: d.total || d.albums.length,
+      };
     }
-    return null;
+    return { albums: [], source: d.source || 'empty', total: 0 };
   } catch { return null; }
 }
 
-// Fallback: iTunes API (free, no auth, client-side)
-async function fetchAlbumsFromItunes(term, limit=200, offset=0) {
+// Fallback: iTunes API — strictly albums only, no singles
+async function fetchAlbumsFromItunes(term, year, limit=200) {
   try {
-    const url = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=album&limit=${limit}&country=US&offset=${offset}`;
+    let searchTerm = term + ' album';
+    if (year) searchTerm += ' ' + year;
+    const url = `https://itunes.apple.com/search?term=${encodeURIComponent(searchTerm)}&entity=album&limit=${limit}&country=US`;
     const r = await fetch(url);
     const d = await r.json();
-    return (d.results||[]).map(a => ({
-      ext_id: String(a.collectionId), title: a.collectionName||'', artist: a.artistName||'',
-      year: a.releaseDate ? a.releaseDate.slice(0,4) : '',
-      cover: (a.artworkUrl100||'').replace('100x100', '300x300'),
-      genre: a.primaryGenreName||'', popularity: 0,
-    }));
+    return (d.results||[])
+      .filter(a => {
+        const name = (a.collectionName||'').toLowerCase();
+        if (name.includes('- single') || name.includes('- ep') || name.endsWith(' ep')) return false;
+        if (a.trackCount && a.trackCount < 5) return false;
+        if (a.collectionType && a.collectionType !== 'Album') return false;
+        if (year) {
+          const ry = a.releaseDate ? parseInt(a.releaseDate.slice(0,4)) : 0;
+          if (ry !== year) return false;
+        }
+        return true;
+      })
+      .map(a => ({
+        ext_id: String(a.collectionId), title: a.collectionName||'', artist: a.artistName||'',
+        year: a.releaseDate ? a.releaseDate.slice(0,4) : '',
+        cover: (a.artworkUrl100||'').replace('100x100', '300x300'),
+        genre: a.primaryGenreName||'', popularity: 0,
+      }));
   } catch { return []; }
 }
 
 function BrowseAlbumsPage({ onAddToLibrary, libraryItems }) {
   const [genre, setGenre] = useState(ALBUM_BROWSE_GENRES[0]);
+  const [yearFilter, setYearFilter] = useState(null);
   const [albums, setAlbums] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -2444,16 +2513,17 @@ function BrowseAlbumsPage({ onAddToLibrary, libraryItems }) {
   const [source, setSource] = useState('');
   const existingTitles = useMemo(()=>new Set((libraryItems||[]).map(i=>i.title)),[libraryItems]);
 
-  const fetchPage = async (g, p, append) => {
+  const fetchPage = async (g, year, p, append) => {
     if (!append) setLoading(true); else setLoadingMore(true);
 
-    // 1. Try server (Spotify cache in Supabase)
-    let data = await fetchAlbumsFromServer(g.id, p);
-    let src = 'server';
+    // 1. Try server (Last.fm cache for all-time, MusicBrainz for year-specific)
+    const serverResult = await fetchAlbumsFromServer(g.id, p, year);
+    let data = serverResult?.albums || [];
+    let src = serverResult?.source || 'none';
 
-    // 2. Fallback to iTunes
-    if (!data || data.length === 0) {
-      data = await fetchAlbumsFromItunes(g.term, 200, (p-1)*200);
+    // 2. Fallback to iTunes ONLY if server returned nothing
+    if (data.length === 0) {
+      data = await fetchAlbumsFromItunes(g.label, year);
       src = 'itunes';
     }
 
@@ -2466,37 +2536,78 @@ function BrowseAlbumsPage({ onAddToLibrary, libraryItems }) {
       return true;
     });
 
+    const totalInDb = serverResult?.total;
+    const newShownCount = append ? albums.length + unique.length : unique.length;
+    // Pagination uses Supabase exact count. iTunes fallback is one batch only (no server page 2).
+    const canLoadMore =
+      src === 'itunes'
+        ? false
+        : typeof totalInDb === 'number'
+          ? totalInDb > newShownCount
+          : unique.length >= 100;
     if (append) setAlbums(prev => [...prev, ...unique]);
     else setAlbums(unique);
     setSource(src);
-    setHasMore(unique.length >= 30);
+    setHasMore(canLoadMore);
     setLoading(false); setLoadingMore(false);
   };
 
-  useEffect(()=>{ setPage(1); fetchPage(genre, 1, false); },[genre]);
+  useEffect(()=>{ setPage(1); fetchPage(genre, yearFilter, 1, false); },[genre, yearFilter]);
 
-  const loadMore = ()=>{ const np=page+1; setPage(np); fetchPage(genre, np, true); };
+  const loadMore = ()=>{ const np=page+1; setPage(np); fetchPage(genre, yearFilter, np, true); };
 
   return (
     <div className="top300-page">
       <div className="top300-header">
         <div style={{display:'flex',alignItems:'baseline',flexWrap:'wrap',gap:'4px 0'}}>
           <div className="top300-title">Browse Albums</div>
-          <span className="top300-sub">{albums.length} albums{genre.id!=='all'?' · '+genre.label:''} · {source==='server'?'Spotify cache':'iTunes API'}</span>
+          <span className="top300-sub">
+            {albums.length} albums
+            {genre.id!=='all'?' · '+genre.label:''}
+            {yearFilter?' · '+yearFilter:''}
+            {' · '}{source==='cache'?'Last.fm listeners':'iTunes fallback'}
+          </span>
         </div>
       </div>
+
+      {/* Genre tabs */}
       <div className="tmdb-genre-tabs">
         {ALBUM_BROWSE_GENRES.map(g=>(
           <button key={g.id} className={'tmdb-genre-tab '+(genre.id===g.id?'active':'')} onClick={()=>setGenre(g)}>{g.label}</button>
         ))}
       </div>
+
+      {/* Year dropdown */}
+      <div className="browse-filters">
+        <span className="browse-filter-label">Year</span>
+        <select
+          className="browse-year-select"
+          value={yearFilter || ''}
+          onChange={e => setYearFilter(e.target.value ? parseInt(e.target.value) : null)}
+        >
+          <option value="">All Time</option>
+          {BROWSE_YEARS.filter(Boolean).map(y => (
+            <option key={y} value={y}>{y}</option>
+          ))}
+        </select>
+      </div>
+
       {loading ? (
         <div style={{textAlign:'center',padding:'60px 0'}}>
           <div className="loading-dots"><span/><span/><span/></div>
-          <div style={{fontSize:12,color:'var(--text4)',marginTop:14,letterSpacing:'.08em'}}>Fetching popular {genre.label.toLowerCase()} albums...</div>
+          <div style={{fontSize:12,color:'var(--text4)',marginTop:14,letterSpacing:'.08em'}}>
+            {yearFilter
+              ? `Searching ${genre.label.toLowerCase()} albums from ${yearFilter}...`
+              : `Loading top ${genre.label.toLowerCase()} albums...`}
+          </div>
         </div>
       ) : albums.length === 0 ? (
-        <div style={{textAlign:'center',padding:'60px 0',color:'var(--text3)',fontSize:14}}>No albums found for this genre. Try another.</div>
+        <div style={{textAlign:'center',padding:'60px 0',color:'var(--text3)',fontSize:14,lineHeight:1.8}}>
+          No albums found{yearFilter?' for '+yearFilter:''}{genre.id!=='all'?' in '+genre.label:''}.<br/>
+          <span style={{fontSize:12,color:'var(--text4)'}}>
+            {yearFilter ? 'Run: POST /api/albums/seed-years to populate year data.' : 'Run: POST /api/albums/seed-all to populate genre data.'}
+          </span>
+        </div>
       ) : (
         <>
           <div className="top300-grid" style={{gridTemplateColumns:'repeat(auto-fill,minmax(148px,1fr))'}}>
@@ -2535,6 +2646,174 @@ function BrowseAlbumsPage({ onAddToLibrary, libraryItems }) {
     </div>
   );
 }
+
+const ARTIST_GENRE_OPTIONS = [
+  { id: 'all', label: 'All Genres' },
+  { id: 'pop', label: 'Pop' },
+  { id: 'rock', label: 'Rock' },
+  { id: 'hip-hop', label: 'Hip Hop' },
+  { id: 'rnb', label: 'R&B' },
+  { id: 'electronic', label: 'Electronic' },
+  { id: 'metal', label: 'Metal' },
+  { id: 'jazz', label: 'Jazz' },
+  { id: 'country', label: 'Country' },
+  { id: 'latin', label: 'Latin' },
+];
+
+async function fetchArtistsFromServer({ page = 1, genre = 'all', sort = 'followers', country = 'all' }) {
+  try {
+    const url = `${API_BASE}/api/artists/browse?page=${page}&limit=50&genre=${encodeURIComponent(genre)}&sort=${encodeURIComponent(sort)}&country=${encodeURIComponent(country)}`;
+    const r = await fetch(url);
+    if (!r.ok) return null;
+    return await r.json();
+  } catch {
+    return null;
+  }
+}
+
+function BrowseArtistsPage({ onAddToLibrary, libraryItems }) {
+  const [artists, setArtists] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [genre, setGenre] = useState('all');
+  const [sortBy, setSortBy] = useState('followers');
+  const [country, setCountry] = useState('all');
+
+  const existingIds = useMemo(
+    () => new Set((libraryItems || []).map(i => String(i.ext_id || ''))),
+    [libraryItems]
+  );
+
+  const loadPage = async (p, append = false) => {
+    if (append) setLoadingMore(true);
+    else setLoading(true);
+
+    const data = await fetchArtistsFromServer({ page: p, genre, sort: sortBy, country });
+    const rows = data?.artists || [];
+
+    if (append) setArtists(prev => [...prev, ...rows]);
+    else setArtists(rows);
+
+    const total = data?.total || 0;
+    const nextLoaded = (append ? artists.length : 0) + rows.length;
+    setHasMore(nextLoaded < total && rows.length > 0);
+
+    setLoading(false);
+    setLoadingMore(false);
+  };
+
+  useEffect(() => {
+    setPage(1);
+    loadPage(1, false);
+  }, [genre, sortBy, country]);
+
+  const loadMore = () => {
+    const np = page + 1;
+    setPage(np);
+    loadPage(np, true);
+  };
+
+  return (
+    <div className="top300-page">
+      <div className="top300-header">
+        <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: '4px 0' }}>
+          <div className="top300-title">Top Artists Worldwide</div>
+          <span className="top300-sub">{artists.length} artists loaded</span>
+        </div>
+      </div>
+
+      <div className="artist-filters">
+        <select className="artist-filter-select" value={genre} onChange={e => setGenre(e.target.value)}>
+          {ARTIST_GENRE_OPTIONS.map(g => <option key={g.id} value={g.id}>{g.label}</option>)}
+        </select>
+        <select className="artist-filter-select" value={sortBy} onChange={e => setSortBy(e.target.value)}>
+          <option value="followers">Sort: Followers</option>
+          <option value="popularity">Sort: Popularity</option>
+        </select>
+        <select className="artist-filter-select" value={country} onChange={e => setCountry(e.target.value)}>
+          <option value="all">Country: All</option>
+          <option value="unknown">Country: Unknown</option>
+        </select>
+      </div>
+
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '60px 0' }}>
+          <div className="loading-dots"><span /><span /><span /></div>
+          <div style={{ fontSize: 12, color: 'var(--text4)', marginTop: 14, letterSpacing: '.08em' }}>Loading top artists...</div>
+        </div>
+      ) : artists.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text3)', fontSize: 14, lineHeight: 1.8 }}>
+          No artists in cache yet.<br />
+          <span style={{ fontSize: 12, color: 'var(--text4)' }}>Run: POST /api/artists/seed</span>
+        </div>
+      ) : (
+        <>
+          <div className="artist-grid">
+            {artists.map((a, i) => {
+              const id = `artist-${a.id}`;
+              const inLib = existingIds.has(id);
+              const initials = (a.name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+              const followersLabel = Number(a.followers || 0).toLocaleString();
+              const topGenre = Array.isArray(a.genres) && a.genres.length > 0 ? a.genres[0] : (a.primary_genre || 'Unknown');
+              return (
+                <div key={a.id || i} className="artist-card" style={{ animationDelay: ((i % 30) * 0.02) + 's' }}>
+                  {inLib ? (
+                    <div className="artist-added" title="In library">{'\u2713'}</div>
+                  ) : (
+                    <button
+                      className="artist-add-btn"
+                      title="Add artist to Music library"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAddToLibrary({
+                          ext_id: id,
+                          title: a.name,
+                          subtitle: 'Artist',
+                          cover_url: a.image_url || '',
+                          metadata: {
+                            kind: 'artist',
+                            spotify_artist_id: a.id,
+                            followers: a.followers || 0,
+                            popularity: a.popularity || 0,
+                            genres: a.genres || [],
+                            spotify_url: a.spotify_url || '',
+                          }
+                        });
+                      }}
+                    >+</button>
+                  )}
+
+                  <div className="artist-avatar">
+                    {a.image_url
+                      ? <img src={a.image_url} alt={a.name} loading="lazy" onError={e => { e.target.style.display = 'none'; }} />
+                      : <div className="artist-initials">{initials}</div>}
+                  </div>
+                  <div className="artist-name">{a.name}</div>
+                  <div className="artist-meta">
+                    <span>{followersLabel} followers</span>
+                    <span>Popularity {a.popularity || 0}/100</span>
+                  </div>
+                  <span className="artist-chip">{topGenre}</span>
+                </div>
+              );
+            })}
+          </div>
+
+          {hasMore && (
+            <div className="top300-load-more">
+              <button className="top300-load-btn" onClick={loadMore} disabled={loadingMore}>
+                {loadingMore ? 'Loading...' : 'Load more artists'}
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 
 /* ─── Insights Sidebar ────────────────────────────────────────────────────── */
 
@@ -2751,7 +3030,7 @@ function GenreDonutSection({ data }) {
   );
 }
 
-function InsightsSidebar({ library, libraries, onOpenTop300, onOpenTopAlbums, onBrowseMovies, onBrowseAlbums }) {
+function InsightsSidebar({ library, libraries, onOpenTop300, onOpenTopAlbums, onBrowseMovies, onBrowseAlbums, onBrowseArtists }) {
   const insights = library ? computeInsights(library) : null;
   const topDirs = (library && library.type==='films' && insights) ? getTopDirectors(library, insights) : [];
 
@@ -2827,6 +3106,14 @@ function InsightsSidebar({ library, libraries, onOpenTop300, onOpenTopAlbums, on
                 <div className="ins-browse-info">
                   <div className="ins-browse-title">All Albums</div>
                   <div className="ins-browse-desc">Explore albums from MusicBrainz</div>
+                </div>
+                <div className="ins-browse-arrow"><svg viewBox="0 0 12 12" width="12" height="12" fill="none"><path d="M4 2l5 4-5 4" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/></svg></div>
+              </div>
+              <div className="ins-browse-card" onClick={onBrowseArtists}>
+                <div className="ins-browse-icon" style={{background:'rgba(200,120,80,.06)',border:'0.5px solid rgba(200,120,80,.15)'}}>🌍</div>
+                <div className="ins-browse-info">
+                  <div className="ins-browse-title">Top Artists</div>
+                  <div className="ins-browse-desc">Most listened artists worldwide</div>
                 </div>
                 <div className="ins-browse-arrow"><svg viewBox="0 0 12 12" width="12" height="12" fill="none"><path d="M4 2l5 4-5 4" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/></svg></div>
               </div>
@@ -2932,6 +3219,7 @@ function App() {
   const [showTopAlbums,setShowTopAlbums] = useState(false);
   const [browseMovies,setBrowseMovies] = useState(false);
   const [browseAlbums,setBrowseAlbums] = useState(false);
+  const [browseArtists,setBrowseArtists] = useState(false);
 
   // Load persisted state
   useEffect(()=>{
@@ -3027,6 +3315,7 @@ function App() {
     setShowTopAlbums(false);
     setBrowseMovies(false);
     setBrowseAlbums(false);
+    setBrowseArtists(false);
   };
 
   const currentLib = currentPage ? libraries.find(l=>l.type===currentPage) : null;
@@ -3082,14 +3371,30 @@ function App() {
 
   const handleBrowseMovies = ()=>{ setBrowseMovies(true);setBrowseAlbums(false);setShowTop300(false);setShowTopAlbums(false);setCurrentPage(null);setActiveIcon(null); };
   const handleBrowseAlbums = ()=>{ setBrowseAlbums(true);setBrowseMovies(false);setShowTop300(false);setShowTopAlbums(false);setCurrentPage(null);setActiveIcon(null); };
+  const handleBrowseArtists = ()=>{ setBrowseArtists(true);setBrowseAlbums(false);setBrowseMovies(false);setShowTop300(false);setShowTopAlbums(false);setCurrentPage(null);setActiveIcon(null); };
+
+  const handleAddFromTopArtists = (artist) => {
+    let musicLib = libraries.find(l=>l.type==='music');
+    if (!musicLib) {
+      musicLib = { id:'lib-'+Date.now(), type:'music', items:[] };
+      setLibraries(prev=>[...prev,musicLib]);
+    }
+    if ((musicLib.items||[]).some(i => i.ext_id===artist.ext_id || i.title===artist.title)) {
+      showT(`"${artist.title}" is already in your library`);
+      return;
+    }
+    const item = { ...artist, status:'collected' };
+    setLibraries(prev=>prev.map(l=>l.type==='music'?{...l,items:[item,...(l.items||[])]}:l));
+    showT(`"${artist.title}" added to Music`);
+  };
 
   return (
     <>
-      <InsightsSidebar library={currentLib} libraries={libraries} onOpenTop300={handleOpenTop300} onOpenTopAlbums={handleOpenTopAlbums} onBrowseMovies={handleBrowseMovies} onBrowseAlbums={handleBrowseAlbums}/>
+      <InsightsSidebar library={currentLib} libraries={libraries} onOpenTop300={handleOpenTop300} onOpenTopAlbums={handleOpenTopAlbums} onBrowseMovies={handleBrowseMovies} onBrowseAlbums={handleBrowseAlbums} onBrowseArtists={handleBrowseArtists}/>
       <div className="main-content">
         <div className="topbar">
           <div style={{display:'flex',alignItems:'center',gap:0}}>
-            {(currentPage || showTop300 || showTopAlbums || browseMovies || browseAlbums) && <button onClick={goHome} style={{background:'none',border:'none',color:'var(--gold)',cursor:'pointer',padding:'4px 8px 4px 0',fontSize:'18px',lineHeight:1,opacity:.6,transition:'opacity .2s'}} onMouseEnter={e=>e.target.style.opacity=1} onMouseLeave={e=>e.target.style.opacity=.6}>‹</button>}
+            {(currentPage || showTop300 || showTopAlbums || browseMovies || browseAlbums || browseArtists) && <button onClick={goHome} style={{background:'none',border:'none',color:'var(--gold)',cursor:'pointer',padding:'4px 8px 4px 0',fontSize:'18px',lineHeight:1,opacity:.6,transition:'opacity .2s'}} onMouseEnter={e=>e.target.style.opacity=1} onMouseLeave={e=>e.target.style.opacity=.6}>‹</button>}
             <div className="brand" onClick={goHome}>Shelf</div>
           </div>
           <div className="topbar-right">
@@ -3105,7 +3410,7 @@ function App() {
           </div>
         </div>
 
-        {demoMode && !currentPage && !showTop300 && !showTopAlbums && !browseMovies && !browseAlbums && (
+        {demoMode && !currentPage && !showTop300 && !showTopAlbums && !browseMovies && !browseAlbums && !browseArtists && (
           <div className="api-notice">
             <strong>{fileMode ? 'Local file mode' : 'Demo mode'}</strong>&nbsp;
             {fileMode
@@ -3120,6 +3425,8 @@ function App() {
           <BrowseMoviesPage onAddToLibrary={handleAddFromTop300} libraryItems={filmsLibItems}/>
         ) : browseAlbums ? (
           <BrowseAlbumsPage onAddToLibrary={handleAddFromTopAlbums} libraryItems={musicLibItems}/>
+        ) : browseArtists ? (
+          <BrowseArtistsPage onAddToLibrary={handleAddFromTopArtists} libraryItems={musicLibItems}/>
         ) : showTopAlbums ? (
           <TopAlbumsPage
             onBack={goHome}

@@ -30,31 +30,48 @@ cp .env.example .env
 # Edit .env with your Supabase URL, service key, and a JWT secret
 ```
 
-### 3. Spotify Album Browse (Recommended)
+### 3. Last.fm Album Database (Recommended)
 
-The album browsing feature uses Spotify's Client Credentials flow — no user login, no extended quota needed.
+The album browsing feature uses Last.fm's API — returns albums sorted by real listener count (millions of users). Free API key, no quota issues.
 
-1. Go to [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard)
-2. Create an app (any name, any description)
-3. Copy **Client ID** and **Client Secret** into your `.env`
-4. Seed your database (one-time, takes ~30 seconds):
+1. Go to [last.fm/api/account/create](https://www.last.fm/api/account/create)
+2. Create an API account (instant, free)
+3. Copy your **API Key** into `.env` as `LASTFM_API_KEY`
+4. Seed your database (one-time):
 
 ```bash
-# Start your server first
+# Start your server
 node server.js
 
-# Then seed each genre (run once — data lives in Supabase forever)
-curl -X POST http://localhost:3001/api/albums/seed -H "Content-Type: application/json" -d '{"genre":"rock"}'
-curl -X POST http://localhost:3001/api/albums/seed -H "Content-Type: application/json" -d '{"genre":"pop"}'
-curl -X POST http://localhost:3001/api/albums/seed -H "Content-Type: application/json" -d '{"genre":"hip-hop"}'
-curl -X POST http://localhost:3001/api/albums/seed -H "Content-Type: application/json" -d '{"genre":"electronic"}'
-curl -X POST http://localhost:3001/api/albums/seed -H "Content-Type: application/json" -d '{"genre":"jazz"}'
-# ... repeat for metal, folk, country, rnb, indie, punk, classical, reggae, blues, latin
+# Seed ALL genres at once (runs in background, ~5 min)
+curl -X POST http://localhost:3001/api/albums/seed-all -H "Content-Type: application/json" -d '{"pages":5}'
+
+# Or seed individual genres with year data (slower but gets years):
+curl -X POST http://localhost:3001/api/albums/seed -H "Content-Type: application/json" -d '{"genre":"rock","pages":5}'
+curl -X POST http://localhost:3001/api/albums/seed -H "Content-Type: application/json" -d '{"genre":"hip-hop","pages":5}'
+curl -X POST http://localhost:3001/api/albums/seed -H "Content-Type: application/json" -d '{"genre":"pop","pages":5}'
+# ... repeat for: rnb, electronic, metal, jazz, country, indie, folk, punk, classical, blues, soul, reggae, latin
+
+# Check stats:
+curl http://localhost:3001/api/albums/stats
 ```
 
-After seeding: **Spotify is never called again.** All 50+ users read from your Supabase `cached_albums` table.
+After seeding genres: **Last.fm is never called again** for genre browsing. 10 genres × 1000 albums = ~5MB total.
 
-Without Spotify setup, the app falls back to iTunes Search API (free, no auth, works out of the box).
+**Step 2 — Seed by Year (required for year dropdown):**
+
+```bash
+# Seeds 100 most-listened albums per year (1980–2025) with real play counts + genre tags
+# Takes ~10 min. Run ONCE — data lives in Supabase forever.
+curl -X POST http://localhost:3001/api/albums/seed-years -H "Content-Type: application/json" -d '{"from":1980,"to":2025,"limit":100}'
+
+# PowerShell:
+Invoke-RestMethod -Method Post -Uri "http://localhost:3001/api/albums/seed-years" -ContentType "application/json" -Body '{"from":1980,"to":2025,"limit":100}'
+```
+
+After seeding years: Pick "Hip Hop" + "2017" → DAMN., Flower Boy, 4:44 sorted by real listener count.
+
+Without Last.fm, the app falls back to iTunes Search API (free, no auth, decent results).
 
 ### 3. Install & Run
 
