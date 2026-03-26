@@ -1145,6 +1145,17 @@ async function searchSpotifyArtist(token, name) {
   } catch { return null; }
 }
 
+async function searchSpotifyArtists(token, query, offset = 0, limit = 50) {
+  try {
+    const url = `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=artist&limit=${limit}&offset=${offset}&market=US`;
+    const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+    const data = await res.json();
+    return data?.artists?.items || [];
+  } catch {
+    return [];
+  }
+}
+
 // Get related artists for a Spotify artist ID
 async function getRelatedArtists(token, artistId) {
   try {
@@ -1179,30 +1190,129 @@ app.get('/api/artists/browse', async (req, res) => {
     const offset = (page - 1) * limit;
     const sort = req.query.sort === 'popularity' ? 'popularity' : 'followers';
 
-    let query = supabase
-      .from('cached_artists')
-      .select('*')
-      .order(sort, { ascending: false })
-      .range(offset, offset + limit - 1);
+    // Fast path for "all" genre
+    if (genre === 'all') {
+      const query = supabase
+        .from('cached_artists')
+        .select('*')
+        .order(sort, { ascending: false })
+        .range(offset, offset + limit - 1);
+      const { data, error } = await query;
+      if (error) return res.status(500).json({ error: 'Database error' });
+      const { count: totalCount } = await supabase.from('cached_artists').select('*', { count: 'exact', head: true });
+      return res.json({
+        artists: data || [],
+        total: totalCount || 0,
+        page, limit, sort
+      });
+    }
 
-    if (genre !== 'all') query = query.eq('primary_genre', genre);
+    // Compatibility path:
+    // older seeds may have primary_genre='other' for many artists.
+    // In that case, fallback to dynamic mapSpotifyGenre(genres) filtering.
+    const pageSize = 1000;
+    let from = 0;
+    const allRows = [];
+    for (;;) {
+      const { data, error } = await supabase
+        .from('cached_artists')
+        .select('*')
+        .order(sort, { ascending: false })
+        .range(from, from + pageSize - 1);
+      if (error) return res.status(500).json({ error: 'Database error' });
+      if (!data || data.length === 0) break;
+      allRows.push(...data);
+      if (data.length < pageSize) break;
+      from += pageSize;
+    }
 
-    // Get total count
-    let countQ = supabase.from('cached_artists').select('*', { count: 'exact', head: true });
-    if (genre !== 'all') countQ = countQ.eq('primary_genre', genre);
-    const { count: totalCount } = await countQ;
+    let filtered = allRows.filter((r) => {
+      const pg = (r.primary_genre || '').toLowerCase();
+      if (pg === genre) return true;
+      return mapSpotifyGenre(r.genres || []) === genre;
+    });
 
-    const { data, error } = await query;
-    if (error) return res.status(500).json({ error: 'Database error' });
+    // If old cached rows lack genre data, fallback to live Spotify genre search.
+    if (filtered.length === 0) {
+      const token = await getSpotifyToken();
+      if (token) {
+        const q = genre === 'hip-hop' ? 'hip hop' : genre === 'rnb' ? 'r&b' : genre;
+        const live = [];
+        const seen = new Set();
+        for (const off of [0, 50]) {
+          const items = await searchSpotifyArtists(token, q, off, 50);
+          for (const a of items) {
+            if (!a?.id || seen.has(a.id)) continue;
+            const row = artistToRow(a);
+            if (mapSpotifyGenre(row.genres || []) !== genre) continue;
+            seen.add(a.id);
+            live.push(row);
+          }
+          await new Promise(r => setTimeout(r, 80));
+        }
+        filtered = live.sort((a, b) => ((b[sort] || 0) - (a[sort] || 0)));
+      }
+    }
 
     res.json({
-      artists: data || [],
-      total: totalCount || 0,
+      artists: filtered.slice(offset, offset + limit),
+      total: filtered.length,
       page, limit, sort
     });
   } catch (e) {
     console.error('Browse artists error:', e);
     res.status(500).json({ error: 'Failed to fetch artists' });
+  }
+});
+
+// ── Artist Discography endpoint (albums only, no singles) ─────────────────
+// GET /api/artists/:spotifyId/albums?market=US
+app.get('/api/artists/:spotifyId/albums', async (req, res) => {
+  const spotifyId = req.params.spotifyId || '';
+  if (!/^[0-9A-Za-z]+$/.test(spotifyId)) {
+    return res.status(400).json({ error: 'Invalid Spotify artist id', albums: [] });
+  }
+
+  const token = await getSpotifyToken();
+  if (!token) {
+    return res.status(503).json({ error: 'Spotify credentials missing or invalid', albums: [] });
+  }
+
+  const market = String(req.query.market || 'US').slice(0, 2).toUpperCase();
+  const albums = [];
+  const seen = new Set();
+  let nextUrl = `https://api.spotify.com/v1/artists/${encodeURIComponent(spotifyId)}/albums?include_groups=album&market=${encodeURIComponent(market)}&limit=50`;
+
+  try {
+    while (nextUrl && albums.length < 500) {
+      const r = await fetch(nextUrl, { headers: { Authorization: `Bearer ${token}` } });
+      const d = await r.json();
+      if (!r.ok) {
+        return res.status(r.status || 500).json({ error: d?.error?.message || 'Spotify request failed', albums: [] });
+      }
+
+      for (const al of (d.items || [])) {
+        if (!al?.id || seen.has(al.id)) continue;
+        seen.add(al.id);
+        albums.push({
+          id: al.id,
+          name: al.name || '',
+          release_date: al.release_date || '',
+          total_tracks: al.total_tracks || 0,
+          images: al.images || [],
+          external_urls: al.external_urls || {},
+          artists: (al.artists || []).map(a => ({ id: a.id, name: a.name })),
+        });
+      }
+      nextUrl = d.next || null;
+      if (nextUrl) await new Promise(r => setTimeout(r, 60));
+    }
+
+    albums.sort((a, b) => String(b.release_date || '').localeCompare(String(a.release_date || '')));
+    res.json({ albums });
+  } catch (e) {
+    console.error('Artist albums error:', e.message);
+    res.status(500).json({ error: 'Failed to load artist albums', albums: [] });
   }
 });
 
@@ -1283,6 +1393,85 @@ app.get('/api/artists/stats', async (req, res) => {
     const total = Object.values(counts).reduce((s, n) => s + n, 0);
     res.json({ total, genres: counts });
   } catch { res.json({ total: 0, genres: {} }); }
+});
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// STEAM INTEGRATION — Import user's game library with playtime
+// ════════════════════════════════════════════════════════════════════════════
+/*
+ * HOW IT WORKS:
+ * 1. User enters their Steam ID or vanity URL name
+ * 2. Server resolves vanity name → Steam64 ID (if needed)
+ * 3. Server calls Steam IPlayerService/GetOwnedGames → all games with playtime
+ * 4. Returns: game name, appid, playtime (hours), cover image URL
+ * 5. Frontend imports them into the Games library
+ *
+ * SETUP: Add to .env:
+ *   STEAM_API_KEY=your-steam-web-api-key
+ *   (Free at https://steamcommunity.com/dev/apikey)
+ *
+ * NOTE: User's Steam profile must be PUBLIC for this to work.
+ */
+
+const STEAM_KEY = process.env.STEAM_API_KEY || '';
+
+// Resolve Steam vanity URL name → Steam64 ID
+app.get('/api/steam/resolve/:vanityName', async (req, res) => {
+  if (!STEAM_KEY) return res.status(503).json({ error: 'STEAM_API_KEY not set in .env' });
+  try {
+    const url = `https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/?key=${STEAM_KEY}&vanityurl=${encodeURIComponent(req.params.vanityName)}`;
+    const r = await fetch(url);
+    const data = await r.json();
+    if (data?.response?.success === 1) {
+      res.json({ steamId: data.response.steamid });
+    } else {
+      res.status(404).json({ error: 'Steam user not found. Make sure you use your Steam custom URL name or 64-bit ID.' });
+    }
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to resolve Steam ID' });
+  }
+});
+
+// Get a user's owned games with playtime
+app.get('/api/steam/library/:steamId', async (req, res) => {
+  if (!STEAM_KEY) return res.status(503).json({ error: 'STEAM_API_KEY not set in .env' });
+  try {
+    const steamId = req.params.steamId;
+    const url = `https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key=${STEAM_KEY}&steamid=${steamId}&include_appinfo=1&include_played_free_games=1&format=json`;
+    const r = await fetch(url);
+    const data = await r.json();
+    const games = data?.response?.games || [];
+
+    if (games.length === 0) {
+      return res.json({ games: [], total: 0, note: 'No games found. Is the Steam profile set to PUBLIC?' });
+    }
+
+    // Sort by playtime descending (most played first)
+    games.sort((a, b) => (b.playtime_forever || 0) - (a.playtime_forever || 0));
+
+    const result = games.map(g => ({
+      ext_id: `steam-${g.appid}`,
+      appid: g.appid,
+      title: g.name || `App ${g.appid}`,
+      // Steam library cover (600x900 portrait) with header fallback
+      cover_url: `https://steamcdn-a.akamaihd.net/steam/apps/${g.appid}/library_600x900_2x.jpg`,
+      cover_fallback: `https://steamcdn-a.akamaihd.net/steam/apps/${g.appid}/header.jpg`,
+      playtime_hours: Math.round((g.playtime_forever || 0) / 60 * 10) / 10,
+      playtime_2weeks: Math.round((g.playtime_2weeks || 0) / 60 * 10) / 10,
+      metadata: {
+        platform: 'Steam',
+        appid: g.appid,
+        playtime_minutes: g.playtime_forever || 0,
+        playtime_2weeks_minutes: g.playtime_2weeks || 0,
+      }
+    }));
+
+    res.json({ games: result, total: result.length, steamId });
+  } catch (e) {
+    console.error('Steam library error:', e.message);
+    res.status(500).json({ error: 'Failed to fetch Steam library' });
+  }
 });
 
 
