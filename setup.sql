@@ -1,12 +1,12 @@
 -- ============================================================
--- SHELF — Supabase PostgreSQL Schema (v2)
--- Run this in your Supabase SQL editor
+-- SHELF — Complete Supabase Setup (safe to run multiple times)
+-- Copy-paste this ENTIRE file into Supabase SQL Editor → Run
 -- ============================================================
 
 -- Enable UUID extension
 create extension if not exists "uuid-ossp";
 
--- ─── Users ────────────────────────────────────────────────────────────────────
+-- ─── 1. Users ────────────────────────────────────────────────────────────────
 create table if not exists public.users (
   id            uuid primary key default uuid_generate_v4(),
   username      text unique not null check (length(username) >= 2 and length(username) <= 30),
@@ -23,73 +23,109 @@ create table if not exists public.users (
 create index if not exists idx_users_username on public.users(username);
 create index if not exists idx_users_email    on public.users(email);
 
--- ─── Cached Albums (Last.fm data cache) ─────────────────────────────────────
--- Server fetches from Last.fm once → stores here → all users read from DB
--- One row per album, ~500 bytes each. 10K albums ≈ 5MB. 1M albums ≈ 500MB.
+-- ─── 2. Cached Albums (Last.fm → your DB → users read from here) ─────────────
+-- This is the album browse cache. Server seeds it once from Last.fm API.
+-- ~500 bytes per row. 16,000 albums = ~8MB. Tiny.
 create table if not exists public.cached_albums (
-  id            text primary key,                    -- Last.fm stable ID (base64 of artist|title)
+  id            text primary key,
   title         text not null,
   artist        text not null,
   year          smallint,
-  cover_url     text,                                -- Last.fm/Apple CDN URL (~120 bytes)
-  genre         text not null default 'unknown',     -- genre tag for filtering
-  popularity    integer default 0,                   -- Last.fm listener count (can be millions)
+  cover_url     text,
+  genre         text not null default 'unknown',
+  popularity    integer default 0,
   track_count   smallint default 0,
-  spotify_url   text,                                -- optional external link
-  fetched_at    timestamptz default now()            -- for cache expiry
+  spotify_url   text,
+  fetched_at    timestamptz default now()
 );
+
+-- If table already exists but popularity is smallint, fix it:
+DO $$ 
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'cached_albums' AND column_name = 'popularity' AND data_type = 'smallint'
+  ) THEN
+    ALTER TABLE public.cached_albums ALTER COLUMN popularity TYPE integer USING popularity::integer;
+    RAISE NOTICE 'Fixed: popularity column upgraded to integer';
+  END IF;
+END $$;
 
 create index if not exists idx_cached_albums_genre on public.cached_albums(genre);
 create index if not exists idx_cached_albums_pop   on public.cached_albums(popularity desc);
 create index if not exists idx_cached_genre_pop    on public.cached_albums(genre, popularity desc);
 
--- ─── Cached Artists (Spotify data — top 2000 worldwide) ─────────────────────
--- Seeded from Spotify API: 100 seed artists → "Related Artists" expansion → 2000+
--- Each row: ~300 bytes. 2000 artists = ~600KB. Tiny.
+-- ─── 2b. Cached Artists (Spotify data — top 2000 worldwide) ──────────────────
 create table if not exists public.cached_artists (
-  id            text primary key,                    -- Spotify artist ID
+  id            text primary key,
   name          text not null,
-  followers     integer default 0,                   -- Spotify follower count
-  popularity    smallint default 0,                  -- Spotify 0-100 score
-  genres        text[] default '{}',                 -- Genre array from Spotify
-  primary_genre text default 'other',                -- Mapped to our genre categories
-  image_url     text,                                -- Spotify CDN photo (~120 bytes)
+  followers     integer default 0,
+  popularity    smallint default 0,
+  genres        text[] default '{}',
+  primary_genre text default 'other',
+  image_url     text,
   fetched_at    timestamptz default now()
 );
+
+-- If cached_artists already existed from an older run, add any missing columns
+-- (CREATE TABLE IF NOT EXISTS does NOT evolve existing tables.)
+alter table public.cached_artists
+  add column if not exists primary_genre text default 'other',
+  add column if not exists country text,
+  add column if not exists spotify_url text;
+
+-- Align followers type with current backend expectations (Spotify followers can exceed 2^31)
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public'
+      AND table_name='cached_artists'
+      AND column_name='followers'
+      AND data_type IN ('integer','smallint')
+  ) THEN
+    ALTER TABLE public.cached_artists ALTER COLUMN followers TYPE bigint USING followers::bigint;
+    RAISE NOTICE 'Fixed: cached_artists.followers upgraded to bigint';
+  END IF;
+END $$;
 
 create index if not exists idx_artists_pop on public.cached_artists(popularity desc);
 create index if not exists idx_artists_followers on public.cached_artists(followers desc);
 create index if not exists idx_artists_genre on public.cached_artists(primary_genre);
 create index if not exists idx_artists_genre_pop on public.cached_artists(primary_genre, followers desc);
 
--- ─── Libraries ────────────────────────────────────────────────────────────────
--- One per type per user — enforced by unique constraint
+-- Grants (required for PostgREST / Supabase API roles)
+grant usage on schema public to service_role;
+grant all on table public.cached_albums to service_role;
+grant all on table public.cached_artists to service_role;
+grant select on table public.cached_albums to anon, authenticated;
+grant select on table public.cached_artists to anon, authenticated;
+
+-- ─── 3. Libraries ────────────────────────────────────────────────────────────
 create table if not exists public.libraries (
   id         uuid primary key default uuid_generate_v4(),
   user_id    uuid not null references public.users(id) on delete cascade,
   type       text not null check (type in ('books', 'films', 'music', 'games')),
   is_public  boolean default true,
   created_at timestamptz default now(),
-
   unique (user_id, type)
 );
 
 create index if not exists idx_libraries_user_id on public.libraries(user_id);
 
--- ─── Library Items ────────────────────────────────────────────────────────────
+-- ─── 4. Library Items ────────────────────────────────────────────────────────
 create table if not exists public.library_items (
   id           uuid primary key default uuid_generate_v4(),
   library_id   uuid not null references public.libraries(id) on delete cascade,
-  ext_id       text,                              -- external API id (TMDB, IGDB, etc.)
+  ext_id       text,
   title        text not null,
-  subtitle     text,                              -- artist / author / studio / year
+  subtitle     text,
   year         int,
   cover_url    text,
-  cover_color  text,                              -- hex accent for placeholder cover
+  cover_color  text,
   rating       numeric(3,1) check (rating >= 0 and rating <= 10),
-  status       text default 'collected'
-               check (status in ('collected', 'in_progress', 'wishlist')),
-  metadata     jsonb default '{}',                -- flexible: platform, genre, vote_average…
+  status       text default 'collected' check (status in ('collected', 'in_progress', 'wishlist')),
+  metadata     jsonb default '{}',
   notes        text,
   created_at   timestamptz default now(),
   updated_at   timestamptz default now()
@@ -100,8 +136,7 @@ create index if not exists idx_items_ext_id     on public.library_items(ext_id);
 create index if not exists idx_items_status     on public.library_items(status);
 create index if not exists idx_items_title      on public.library_items using gin(to_tsvector('english', title));
 
--- ─── Friend Requests ─────────────────────────────────────────────────────────
--- Bidirectional friendship via requests (pending → accepted → friends)
+-- ─── 5. Friend Requests ─────────────────────────────────────────────────────
 create table if not exists public.friend_requests (
   id           uuid primary key default uuid_generate_v4(),
   sender_id    uuid not null references public.users(id) on delete cascade,
@@ -109,14 +144,13 @@ create table if not exists public.friend_requests (
   status       text default 'pending' check (status in ('pending', 'accepted', 'rejected')),
   created_at   timestamptz default now(),
   updated_at   timestamptz default now(),
-  
   unique (sender_id, receiver_id)
 );
 
 create index if not exists idx_fr_sender   on public.friend_requests(sender_id);
 create index if not exists idx_fr_receiver on public.friend_requests(receiver_id);
 
--- ─── Follows (one-directional, for activity feed) ────────────────────────────
+-- ─── 6. Follows ─────────────────────────────────────────────────────────────
 create table if not exists public.follows (
   follower_id  uuid not null references public.users(id) on delete cascade,
   following_id uuid not null references public.users(id) on delete cascade,
@@ -126,7 +160,7 @@ create table if not exists public.follows (
 
 create index if not exists idx_follows_following on public.follows(following_id);
 
--- ─── Likes (items) ───────────────────────────────────────────────────────────
+-- ─── 7. Item Likes ──────────────────────────────────────────────────────────
 create table if not exists public.item_likes (
   user_id    uuid not null references public.users(id) on delete cascade,
   item_id    uuid not null references public.library_items(id) on delete cascade,
@@ -134,8 +168,7 @@ create table if not exists public.item_likes (
   primary key (user_id, item_id)
 );
 
--- ─── Friends View ────────────────────────────────────────────────────────────
--- Returns accepted friendships for a user (both directions)
+-- ─── 8. Views ───────────────────────────────────────────────────────────────
 create or replace view public.user_friends as
   select 
     fr.sender_id as user_id,
@@ -159,8 +192,6 @@ create or replace view public.user_friends as
   join public.users u on u.id = fr.sender_id
   where fr.status = 'accepted';
 
--- ─── Activity Feed View ──────────────────────────────────────────────────────
--- Items added by friends (via accepted friend requests)
 create or replace view public.activity_feed as
   select
     li.id,
@@ -183,7 +214,6 @@ create or replace view public.activity_feed as
   where l.is_public = true
   order by li.created_at desc;
 
--- ─── Stats View ──────────────────────────────────────────────────────────────
 create or replace view public.user_stats as
   select
     u.id,
@@ -196,36 +226,59 @@ create or replace view public.user_stats as
   left join public.library_items li on li.library_id = l.id
   group by u.id, u.username;
 
--- ─── Auto-update updated_at ─────────────────────────────────────────────────
+-- ─── 9. Auto-update triggers ────────────────────────────────────────────────
 create or replace function public.set_updated_at()
 returns trigger language plpgsql as $$
 begin new.updated_at = now(); return new; end; $$;
 
+-- Drop and recreate triggers safely
+drop trigger if exists trg_users_updated_at on public.users;
 create trigger trg_users_updated_at
   before update on public.users
   for each row execute procedure public.set_updated_at();
 
+drop trigger if exists trg_items_updated_at on public.library_items;
 create trigger trg_items_updated_at
   before update on public.library_items
   for each row execute procedure public.set_updated_at();
 
+drop trigger if exists trg_fr_updated_at on public.friend_requests;
 create trigger trg_fr_updated_at
   before update on public.friend_requests
   for each row execute procedure public.set_updated_at();
 
--- ─── Row-Level Security ─────────────────────────────────────────────────────
+-- ─── 10. Row-Level Security ─────────────────────────────────────────────────
 alter table public.users           enable row level security;
 alter table public.libraries       enable row level security;
 alter table public.library_items   enable row level security;
 alter table public.follows         enable row level security;
 alter table public.item_likes      enable row level security;
 alter table public.friend_requests enable row level security;
+-- cached_albums: NO RLS — public read for all users, server writes with service key
 
--- Users: readable by all, writable by self
+-- Drop existing policies first (safe if they don't exist)
+drop policy if exists "users_select" on public.users;
+drop policy if exists "users_update" on public.users;
+drop policy if exists "libs_select_public" on public.libraries;
+drop policy if exists "libs_insert" on public.libraries;
+drop policy if exists "libs_update" on public.libraries;
+drop policy if exists "libs_delete" on public.libraries;
+drop policy if exists "items_select" on public.library_items;
+drop policy if exists "items_insert" on public.library_items;
+drop policy if exists "items_update" on public.library_items;
+drop policy if exists "items_delete" on public.library_items;
+drop policy if exists "follows_select" on public.follows;
+drop policy if exists "follows_insert" on public.follows;
+drop policy if exists "follows_delete" on public.follows;
+drop policy if exists "fr_select" on public.friend_requests;
+drop policy if exists "fr_insert" on public.friend_requests;
+drop policy if exists "fr_update" on public.friend_requests;
+drop policy if exists "fr_delete" on public.friend_requests;
+
+-- Recreate policies
 create policy "users_select" on public.users for select using (true);
 create policy "users_update" on public.users for update using (auth.uid() = id);
 
--- Libraries: public ones readable by all; owner can do everything
 create policy "libs_select_public" on public.libraries
   for select using (is_public = true or auth.uid() = user_id);
 create policy "libs_insert" on public.libraries
@@ -235,7 +288,6 @@ create policy "libs_update" on public.libraries
 create policy "libs_delete" on public.libraries
   for delete using (auth.uid() = user_id);
 
--- Library items: inherit from parent library visibility
 create policy "items_select" on public.library_items
   for select using (
     exists (
@@ -256,17 +308,31 @@ create policy "items_delete" on public.library_items
     exists (select 1 from public.libraries l where l.id = library_id and l.user_id = auth.uid())
   );
 
--- Follows
 create policy "follows_select" on public.follows for select using (true);
 create policy "follows_insert" on public.follows for insert with check (auth.uid() = follower_id);
 create policy "follows_delete" on public.follows for delete using (auth.uid() = follower_id);
 
--- Friend requests: involved parties can read; sender can create/delete
 create policy "fr_select" on public.friend_requests
   for select using (auth.uid() = sender_id or auth.uid() = receiver_id);
 create policy "fr_insert" on public.friend_requests
   for insert with check (auth.uid() = sender_id);
 create policy "fr_update" on public.friend_requests
-  for update using (auth.uid() = receiver_id); -- only receiver can accept/reject
+  for update using (auth.uid() = receiver_id);
 create policy "fr_delete" on public.friend_requests
   for delete using (auth.uid() = sender_id or auth.uid() = receiver_id);
+
+-- ============================================================
+-- DONE! You should see "Success. No rows returned."
+-- 
+-- Tables created:
+--   users, cached_albums, libraries, library_items,
+--   friend_requests, follows, item_likes
+--
+-- Views created:
+--   user_friends, activity_feed, user_stats
+--
+-- Next steps:
+--   1. Add LASTFM_API_KEY to your .env
+--   2. Run: npm run dev
+--   3. Seed albums: POST http://localhost:3001/api/albums/seed-all
+-- ============================================================

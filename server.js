@@ -22,7 +22,6 @@
 
 require('dotenv').config();
 
-const crypto = require('crypto');
 const express = require('express');
 const cors    = require('cors');
 const fetch   = require('node-fetch');
@@ -36,7 +35,7 @@ const app = express();
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '2mb' }));
 
-// Chrome DevTools probes this URL — without a route it shows 404 in the Network tab.
+// Chrome DevTools probes this endpoint; return 200 to avoid noisy 404s.
 app.get('/.well-known/appspecific/com.chrome.devtools.json', (_req, res) => {
   res.type('application/json').send('{}');
 });
@@ -602,7 +601,7 @@ app.get('/api/search/games', async (req, res) => {
  * HOW IT WORKS:
  * 1. POST /api/albums/seed → fetches 1000 top albums per genre from Last.fm
  * 2. For each album, gets year from Last.fm album.getInfo
- * 3. Stores in cached_albums: title, artist, year, cover URL, popularity (position score), genre
+ * 3. Stores in cached_albums: title, artist, year, cover URL, listeners, genre
  * 4. GET /api/albums/browse → reads from Supabase, filters by genre + year
  * 5. All users read from YOUR DB — Last.fm is never called per-user
  *
@@ -635,28 +634,21 @@ const LASTFM_GENRE_TAGS = {
   'latin': 'latin',
 };
 
-// Fetch top albums for a genre tag from Last.fm.
-// API order = real popularity order, but playcount/tagcount are NOT comparable across rows.
-// We store position-based scores so ORDER BY popularity DESC matches Last.fm order.
+// Fetch top albums for a genre tag from Last.fm (sorted by listeners)
 async function fetchLastfmTopAlbums(tag, page = 1, limit = 200) {
   if (!LASTFM_KEY) return [];
   try {
     const url = `${LASTFM_BASE}?method=tag.getTopAlbums&tag=${encodeURIComponent(tag)}&api_key=${LASTFM_KEY}&format=json&page=${page}&limit=${limit}`;
     const res = await fetch(url);
     const data = await res.json();
-    const raw = data?.albums?.album || [];
-    return raw.map((a, idx) => {
-      const globalRank = (page - 1) * limit + idx + 1;
-      // High score = higher on Last.fm chart (same order as API response).
-      const popularityScore = Math.max(1, 1_000_000 - globalRank);
-      return {
-        title: a.name,
-        artist: a.artist?.name || '',
-        popularityScore,
-        cover: a.image?.[3]?.['#text'] || a.image?.[2]?.['#text'] || '',
-        mbid: a.mbid || '',
-      };
-    }).filter(a => a.title && a.artist && a.cover);
+    return (data?.albums?.album || []).map(a => ({
+      title: a.name,
+      artist: a.artist?.name || '',
+      listeners: parseInt(a.playcount || a.tagcount || '0'),
+      // Last.fm images: [0]=small, [1]=medium, [2]=large, [3]=extralarge
+      cover: a.image?.[3]?.['#text'] || a.image?.[2]?.['#text'] || '',
+      mbid: a.mbid || '',
+    })).filter(a => a.title && a.artist && a.cover);
   } catch (e) {
     console.error(`Last.fm tag.getTopAlbums error (${tag}):`, e.message);
     return [];
@@ -698,10 +690,6 @@ app.get('/api/albums/browse', async (req, res) => {
 
     // ── CASE 1: No year filter → serve from Last.fm tag cache (fast) ──
     if (!year) {
-      let countQ = supabase.from('cached_albums').select('*', { count: 'exact', head: true });
-      if (genre !== 'all') countQ = countQ.eq('genre', genre);
-      const { count: totalMatching } = await countQ;
-
       let query = supabase
         .from('cached_albums')
         .select('*')
@@ -710,22 +698,13 @@ app.get('/api/albums/browse', async (req, res) => {
       if (genre !== 'all') query = query.eq('genre', genre);
       const { data, error } = await query;
       if (error) return res.status(500).json({ error: 'Database error' });
-      return res.json({
-        albums: data || [],
-        source: 'cache',
-        total: totalMatching ?? (data || []).length,
-        page,
-        limit
-      });
+      return res.json({ albums: data || [], source: 'cache', total: (data||[]).length, page, limit });
     }
 
     // ── CASE 2: Year filter → read from cache (populated by seed-years) ────
     // The cached_albums table is pre-filled by POST /api/albums/seed-years
-    // (Last.fm year-tag charts). popularity = position score so ORDER BY matches chart order.
-    let countYearQ = supabase.from('cached_albums').select('*', { count: 'exact', head: true }).eq('year', year);
-    if (genre !== 'all') countYearQ = countYearQ.eq('genre', genre);
-    const { count: totalForYear } = await countYearQ;
-
+    // which uses Last.fm year tags (tag.getTopAlbums&tag=2017) — already
+    // sorted by real play count. No runtime API calls needed.
     let cacheQuery = supabase
       .from('cached_albums')
       .select('*')
@@ -738,9 +717,8 @@ app.get('/api/albums/browse', async (req, res) => {
     return res.json({
       albums: cached || [],
       source: 'cache',
-      total: totalForYear ?? (cached || []).length,
-      page,
-      limit
+      total: (cached || []).length,
+      page, limit
     });
   } catch (e) {
     console.error('Browse albums error:', e);
@@ -782,6 +760,7 @@ app.post('/api/albums/seed', async (req, res) => {
 
     // Get years for each album (with rate limiting)
     const rows = [];
+    let idx = 0;
     for (const album of albums) {
       // Create a stable ID from artist+title
       const id = `lfm-${Buffer.from(album.artist + '|' + album.title).toString('base64').slice(0, 40)}`;
@@ -802,11 +781,13 @@ app.post('/api/albums/seed', async (req, res) => {
         year: year,
         cover_url: album.cover,
         genre: genre,
-        popularity: album.popularityScore,
+        // Position-based: page 1 idx 0 = highest score
+        popularity: ((pages + 1 - p) * 200 + (200 - idx)) * 100,
         track_count: 0,
         spotify_url: '',
         fetched_at: new Date().toISOString(),
       });
+      idx++;
     }
 
     // Upsert batch into Supabase
@@ -856,11 +837,13 @@ app.post('/api/albums/seed-all', async (req, res) => {
         const albums = await fetchLastfmTopAlbums(tag, p, 200);
         if (albums.length === 0) break;
 
-        const rows = albums.map(album => ({
+        const rows = albums.map((album, idx) => ({
           id: `lfm-${Buffer.from(album.artist + '|' + album.title).toString('base64').slice(0, 40)}`,
           title: album.title, artist: album.artist, year: null,
           cover_url: album.cover, genre: genre,
-          popularity: album.popularityScore, track_count: 0,
+          // Position-based: page 1 idx 0 = highest, page 5 idx 199 = lowest
+          popularity: ((6 - p) * 200 + (200 - idx)) * 100,
+          track_count: 0,
           spotify_url: '', fetched_at: new Date().toISOString(),
         }));
 
@@ -920,8 +903,11 @@ app.post('/api/albums/seed-years', async (req, res) => {
           continue;
         }
 
-        // 2. Build rows — popularity = list position only (Last.fm order is already correct;
-        //    playcount/tagcount here are tag-application counts, not comparable across rows)
+        // 2. Build rows — Last.fm ALREADY returns these sorted by real popularity.
+        //    Position 0 = most popular album for this year tag.
+        //    We store position as the popularity score so ORDER BY popularity DESC
+        //    preserves Last.fm's real ranking. The playcount field from tag.getTopAlbums
+        //    is a TAG count (how many users applied this tag), NOT album plays — useless for sorting.
         const rows = [];
         for (let idx = 0; idx < albums.length; idx++) {
           const a = albums[idx];
@@ -929,13 +915,14 @@ app.post('/api/albums/seed-years', async (req, res) => {
           const artist = a.artist?.name || '';
           if (!title || !artist) continue;
 
-          const popularity = Math.max(1, 1_000_000 - idx);
+          // Position-based score: #1 most popular = highest number
+          const popularity = (perYear - idx) * 1000;
 
           // Cover from Last.fm
           const cover = a.image?.[3]?.['#text'] || a.image?.[2]?.['#text'] || '';
 
-          // Stable ID (full hash — truncated base64 could collide → duplicate PK in one upsert)
-          const id = `yr-${year}-${crypto.createHash('md5').update(`${artist}|${title}`).digest('hex')}`;
+          // Stable ID
+          const id = `yr-${year}-${Buffer.from(artist + '|' + title).toString('base64').replace(/[/+=]/g, '').slice(0, 30)}`;
 
           rows.push({
             id,
@@ -995,26 +982,19 @@ app.post('/api/albums/seed-years', async (req, res) => {
           await new Promise(r => setTimeout(r, 220)); // rate limit
         }
 
-        // 4. Dedupe by id (Last.fm sometimes returns duplicate entries in one response)
-        const byId = new Map();
-        for (const row of rows) {
-          if (!byId.has(row.id)) byId.set(row.id, row);
-        }
-        const uniqueRows = [...byId.values()];
-
-        // 5. Upsert into Supabase
-        if (uniqueRows.length > 0) {
+        // 4. Upsert into Supabase
+        if (rows.length > 0) {
           const { error } = await supabase
             .from('cached_albums')
-            .upsert(uniqueRows, { onConflict: 'id' });
+            .upsert(rows, { onConflict: 'id' });
 
           if (error) {
             console.error(`[Seed-Years] ${year}: upsert error:`, error.message);
           } else {
             const genreCounts = {};
-            uniqueRows.forEach(r => { genreCounts[r.genre] = (genreCounts[r.genre]||0)+1; });
-            console.log(`[Seed-Years] ${year}: ${uniqueRows.length} albums cached. Genres:`, genreCounts);
-            grandTotal += uniqueRows.length;
+            rows.forEach(r => { genreCounts[r.genre] = (genreCounts[r.genre]||0)+1; });
+            console.log(`[Seed-Years] ${year}: ${rows.length} albums cached. Genres:`, genreCounts);
+            grandTotal += rows.length;
           }
         }
 
@@ -1048,19 +1028,36 @@ app.get('/api/albums/stats', async (req, res) => {
   }
 });
 
-// ════════════════════════════════════════════════════════════════════════════
-// ARTIST CACHE — Spotify top artists (Client Credentials)
-// ════════════════════════════════════════════════════════════════════════════
-let spotifyArtistToken = null;
-let spotifyArtistTokenExpiry = 0;
 
-async function getSpotifyArtistToken() {
-  if (spotifyArtistToken && Date.now() < spotifyArtistTokenExpiry) return spotifyArtistToken;
 
+// ════════════════════════════════════════════════════════════════════════════
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// TOP ARTISTS — Spotify API (Client Credentials, no user login needed)
+// ════════════════════════════════════════════════════════════════════════════
+/*
+ * STRATEGY (same as ChartMasters):
+ * 1. Start with 100 seed artists (the biggest names worldwide)
+ * 2. For each seed: Spotify "Get Related Artists" → 20 more artists
+ * 3. 100 seeds × 20 related = 2000+ artists, all with real data
+ * 4. Each artist: name, followers, popularity, genres, photo from Spotify
+ * 5. Store in cached_artists → users browse from your DB, zero API calls
+ *
+ * SETUP: Add to .env:
+ *   SPOTIFY_CLIENT_ID=your-spotify-client-id
+ *   SPOTIFY_CLIENT_SECRET=your-spotify-client-secret
+ *   (Free at https://developer.spotify.com/dashboard)
+ */
+
+let spotifyToken = null;
+let spotifyTokenExpiry = 0;
+
+async function getSpotifyToken() {
+  if (spotifyToken && Date.now() < spotifyTokenExpiry) return spotifyToken;
   const clientId = process.env.SPOTIFY_CLIENT_ID;
   const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
   if (!clientId || !clientSecret) return null;
-
   try {
     const res = await fetch('https://accounts.spotify.com/api/token', {
       method: 'POST',
@@ -1071,199 +1068,231 @@ async function getSpotifyArtistToken() {
       body: 'grant_type=client_credentials'
     });
     const data = await res.json();
-    if (!data.access_token) return null;
-    spotifyArtistToken = data.access_token;
-    spotifyArtistTokenExpiry = Date.now() + ((data.expires_in || 3600) - 60) * 1000;
-    return spotifyArtistToken;
-  } catch {
+    spotifyToken = data.access_token;
+    spotifyTokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
+    return spotifyToken;
+  } catch (e) {
+    console.error('Spotify token error:', e.message);
     return null;
   }
 }
 
-function normalizeGenreTag(g = '') {
-  const x = g.toLowerCase();
-  if (x.includes('hip hop') || x.includes('rap') || x.includes('trap')) return 'hip-hop';
-  if (x.includes('r&b') || x.includes('rnb') || x.includes('rhythm')) return 'rnb';
-  if (x.includes('electronic') || x.includes('edm') || x.includes('house') || x.includes('techno')) return 'electronic';
-  if (x.includes('metal')) return 'metal';
-  if (x.includes('jazz')) return 'jazz';
-  if (x.includes('country')) return 'country';
-  if (x.includes('reggae')) return 'reggae';
-  if (x.includes('latin') || x.includes('reggaeton')) return 'latin';
-  if (x.includes('blues')) return 'blues';
-  if (x.includes('classical') || x.includes('orchestra') || x.includes('symphony')) return 'classical';
-  if (x.includes('punk')) return 'punk';
-  if (x.includes('indie') || x.includes('shoegaze') || x.includes('dream pop')) return 'indie';
-  if (x.includes('folk') || x.includes('singer-songwriter')) return 'folk';
-  if (x.includes('rock')) return 'rock';
-  if (x.includes('pop')) return 'pop';
+// Map Spotify genres to our categories
+function mapSpotifyGenre(genres) {
+  const g = (genres || []).join(' ').toLowerCase();
+  if (/hip.?hop|rap|trap/.test(g)) return 'hip-hop';
+  if (/rock|grunge|punk rock/.test(g)) return 'rock';
+  if (/pop(?!.*punk)/.test(g) && !/k-pop/.test(g)) return 'pop';
+  if (/k-pop|k pop/.test(g)) return 'k-pop';
+  if (/r&b|rnb|soul|neo.?soul|motown/.test(g)) return 'rnb';
+  if (/electro|edm|house|techno|dance|ambient/.test(g)) return 'electronic';
+  if (/metal|death|thrash|doom/.test(g)) return 'metal';
+  if (/jazz|bebop|swing/.test(g)) return 'jazz';
+  if (/country|americana|bluegrass/.test(g)) return 'country';
+  if (/indie|alternative/.test(g)) return 'indie';
+  if (/folk|singer.?song/.test(g)) return 'folk';
+  if (/punk|hardcore|emo/.test(g)) return 'punk';
+  if (/classical|orchestra|symphony/.test(g)) return 'classical';
+  if (/reggae|ska|dub/.test(g)) return 'reggae';
+  if (/blues/.test(g)) return 'blues';
+  if (/latin|reggaeton|salsa/.test(g)) return 'latin';
   return 'other';
 }
 
-async function spotifySearchArtists(token, query, offset = 0, limit = 50) {
-  const url = `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=artist&market=US&limit=${limit}&offset=${offset}`;
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-  const data = await res.json();
-  return data?.artists?.items || [];
+// 100 seed artists — the biggest names worldwide across all genres
+const SEED_ARTISTS = [
+  // Pop
+  'Taylor Swift','Ed Sheeran','Adele','Billie Eilish','Harry Styles','Dua Lipa','Bruno Mars',
+  'Lady Gaga','Ariana Grande','Justin Bieber','Rihanna','Beyoncé','Shakira','Katy Perry',
+  'The Weeknd','Post Malone','Doja Cat','Olivia Rodrigo','SZA','Bad Bunny',
+  // Rock
+  'Queen','The Beatles','Led Zeppelin','Pink Floyd','Nirvana','Radiohead','Coldplay',
+  'Linkin Park','Foo Fighters','AC/DC','Guns N Roses','Red Hot Chili Peppers','U2',
+  'Imagine Dragons','Arctic Monkeys','Muse','Pearl Jam','Oasis','The Rolling Stones','Green Day',
+  // Hip Hop
+  'Eminem','Drake','Kanye West','Kendrick Lamar','Jay-Z','Travis Scott','J. Cole',
+  'Lil Wayne','50 Cent','Snoop Dogg','Nicki Minaj','Future','21 Savage','Lil Baby',
+  'Tyler, the Creator','Mac Miller','Juice WRLD','XXXTentacion','A$AP Rocky','Cardi B',
+  // R&B / Soul
+  'Frank Ocean','Daniel Caesar','Stevie Wonder','Marvin Gaye','Alicia Keys','Usher',
+  'Chris Brown','Khalid','H.E.R.','Summer Walker',
+  // Electronic
+  'Daft Punk','Calvin Harris','David Guetta','Marshmello','Skrillex','Avicii','Tiësto',
+  'Deadmau5','Martin Garrix','Kygo',
+  // Metal
+  'Metallica','Iron Maiden','Black Sabbath','Slipknot','System of a Down','Tool',
+  'Avenged Sevenfold','Rammstein',
+  // Latin
+  'J Balvin','Ozuna','Daddy Yankee','Maluma','Rosalía','Karol G',
+  // Country
+  'Morgan Wallen','Luke Combs','Chris Stapleton','Zach Bryan',
+  // Jazz
+  'Miles Davis','Louis Armstrong',
+  // K-Pop
+  'BTS','BLACKPINK','Stray Kids','TWICE',
+  // Other global
+  'Bob Marley','Michael Jackson','Elvis Presley','David Bowie','Prince','Whitney Houston',
+  'Elton John','Madonna','Amy Winehouse','Lana Del Rey',
+];
+
+// Search Spotify for an artist by name, return full artist object
+async function searchSpotifyArtist(token, name) {
+  try {
+    const url = `https://api.spotify.com/v1/search?q=${encodeURIComponent(name)}&type=artist&limit=1&market=US`;
+    const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+    const data = await res.json();
+    return data?.artists?.items?.[0] || null;
+  } catch { return null; }
 }
 
-/** PostgREST returns max ~1000 rows per request — page through for full table scans. */
-async function supabaseSelectAll(table, columns = '*') {
-  const pageSize = 1000;
-  const all = [];
-  let from = 0;
-  for (;;) {
-    const { data, error } = await supabase.from(table).select(columns).range(from, from + pageSize - 1);
-    if (error) throw error;
-    if (!data || data.length === 0) break;
-    all.push(...data);
-    if (data.length < pageSize) break;
-    from += pageSize;
-  }
-  return all;
+// Get related artists for a Spotify artist ID
+async function getRelatedArtists(token, artistId) {
+  try {
+    const url = `https://api.spotify.com/v1/artists/${artistId}/related-artists`;
+    const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+    const data = await res.json();
+    return data?.artists || [];
+  } catch { return []; }
 }
 
-// POST /api/artists/seed
-// body: { target: 2000, reset: false }
-app.post('/api/artists/seed', async (req, res) => {
-  const token = await getSpotifyArtistToken();
-  if (!token) return res.status(400).json({ error: 'Spotify credentials missing or invalid' });
+// Convert Spotify artist object to our DB row
+function artistToRow(a) {
+  return {
+    id: a.id,
+    name: a.name,
+    followers: a.followers?.total || 0,
+    popularity: a.popularity || 0,
+    genres: a.genres || [],
+    primary_genre: mapSpotifyGenre(a.genres),
+    image_url: a.images?.[1]?.url || a.images?.[0]?.url || '',
+    fetched_at: new Date().toISOString(),
+  };
+}
 
-  const target = Math.max(100, Math.min(parseInt(req.body?.target) || 2000, 5000));
-  const reset = !!req.body?.reset;
-
-  // Query mix gives broad coverage while still weighted toward global popularity.
-  const seedQueries = [
-    'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z',
-    'pop','rock','hip hop','rap','r&b','electronic','metal','jazz','country','latin','k-pop','indie'
-  ];
-  const offsets = [0, 50, 100, 150];
-
-  const byId = new Map();
-  for (const q of seedQueries) {
-    for (const off of offsets) {
-      const items = await spotifySearchArtists(token, q, off, 50);
-      for (const a of items) {
-        const followers = a?.followers?.total || 0;
-        const popularity = a?.popularity || 0;
-        const genres = Array.isArray(a?.genres) ? a.genres : [];
-        const existing = byId.get(a.id);
-        const row = {
-          id: a.id,
-          name: a.name || 'Unknown',
-          followers,
-          popularity,
-          genres,
-          image_url: a.images?.[1]?.url || a.images?.[0]?.url || null,
-          country: null,
-          spotify_url: a?.external_urls?.spotify || null,
-          fetched_at: new Date().toISOString(),
-          primary_genre: genres.map(normalizeGenreTag).find(g => g !== 'other') || 'other',
-        };
-        if (!existing || (row.followers > existing.followers)) byId.set(a.id, row);
-      }
-      if (byId.size >= target * 1.4) break;
-      await new Promise(r => setTimeout(r, 80));
-    }
-    if (byId.size >= target * 1.4) break;
-  }
-
-  // Rank by followers first, then popularity, and trim to target.
-  const ranked = [...byId.values()]
-    .sort((a, b) => (b.followers - a.followers) || (b.popularity - a.popularity))
-    .slice(0, target);
-
-  const upsertRows = ranked.map(({ primary_genre, ...rest }) => rest);
-
-  if (reset) {
-    await supabase.from('cached_artists').delete().neq('id', '');
-  }
-
-  const BATCH = 500;
-  let saved = 0;
-  for (let i = 0; i < upsertRows.length; i += BATCH) {
-    const chunk = upsertRows.slice(i, i + BATCH);
-    const { error } = await supabase.from('cached_artists').upsert(chunk, { onConflict: 'id' });
-    if (error) return res.status(500).json({ error: error.message });
-    saved += chunk.length;
-  }
-
-  res.json({
-    message: `Seeded ${saved} artists`,
-    total: saved
-  });
-});
-
-// GET /api/artists/browse?genre=rock&country=all&sort=followers&page=1&limit=50
+// ── Browse Artists endpoint ──────────────────────────────────────────────
+// GET /api/artists/browse?genre=rock&page=1&limit=50&sort=followers
 app.get('/api/artists/browse', async (req, res) => {
   try {
-    const genre = (req.query.genre || 'all').toLowerCase();
-    const country = (req.query.country || 'all').toLowerCase();
-    const sort = (req.query.sort || 'followers').toLowerCase();
+    const genre = req.query.genre || 'all';
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(200, parseInt(req.query.limit) || 50);
     const offset = (page - 1) * limit;
+    const sort = req.query.sort === 'popularity' ? 'popularity' : 'followers';
 
-    // Load full cache (paginated — PostgREST max ~1000 rows per call).
-    let allRows;
-    try {
-      allRows = await supabaseSelectAll('cached_artists', '*');
-    } catch (err) {
-      return res.status(500).json({ error: err.message });
-    }
+    let query = supabase
+      .from('cached_artists')
+      .select('*')
+      .order(sort, { ascending: false })
+      .range(offset, offset + limit - 1);
 
-    const filtered = (allRows || []).filter((r) => {
-      if (country !== 'all' && (r.country || '').toLowerCase() !== country) return false;
-      if (genre === 'all') return true;
-      const tags = Array.isArray(r.genres) ? r.genres : [];
-      const normalized = tags.map(normalizeGenreTag);
-      return normalized.includes(genre);
-    });
+    if (genre !== 'all') query = query.eq('primary_genre', genre);
 
-    filtered.sort((a, b) => {
-      if (sort === 'popularity') return (b.popularity || 0) - (a.popularity || 0);
-      return (b.followers || 0) - (a.followers || 0);
-    });
+    // Get total count
+    let countQ = supabase.from('cached_artists').select('*', { count: 'exact', head: true });
+    if (genre !== 'all') countQ = countQ.eq('primary_genre', genre);
+    const { count: totalCount } = await countQ;
 
-    const pageRows = filtered.slice(offset, offset + limit).map((r) => ({
-      ...r,
-      primary_genre: (Array.isArray(r.genres) ? r.genres.map(normalizeGenreTag).find(g => g !== 'other') : null) || 'other',
-    }));
+    const { data, error } = await query;
+    if (error) return res.status(500).json({ error: 'Database error' });
 
     res.json({
-      artists: pageRows,
-      total: filtered.length,
-      page,
-      limit
+      artists: data || [],
+      total: totalCount || 0,
+      page, limit, sort
     });
   } catch (e) {
-    res.status(500).json({ error: 'Failed to browse artists' });
+    console.error('Browse artists error:', e);
+    res.status(500).json({ error: 'Failed to fetch artists' });
   }
 });
 
-app.get('/api/artists/stats', async (_req, res) => {
+// ── Seed Artists endpoint ────────────────────────────────────────────────
+// POST /api/artists/seed
+// Strategy: 100 seeds → search each on Spotify → get related → 2000+ artists
+app.post('/api/artists/seed', async (req, res) => {
+  const token = await getSpotifyToken();
+  if (!token) {
+    return res.status(400).json({ error: 'Spotify credentials not set. Add SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET to .env' });
+  }
+
+  console.log(`[Artist Seed] Starting with ${SEED_ARTISTS.length} seed artists...`);
+  res.json({ message: `Seeding artists from ${SEED_ARTISTS.length} seeds + related artists. Check server logs.` });
+
+  // Run in background
+  (async () => {
+    const seen = new Set();
+    const allRows = [];
+
+    // Phase 1: Search each seed artist on Spotify
+    console.log('[Artist Seed] Phase 1: Searching seed artists...');
+    const seedIds = [];
+    for (let i = 0; i < SEED_ARTISTS.length; i++) {
+      const name = SEED_ARTISTS[i];
+      const artist = await searchSpotifyArtist(token, name);
+      if (artist && !seen.has(artist.id)) {
+        seen.add(artist.id);
+        seedIds.push(artist.id);
+        allRows.push(artistToRow(artist));
+        if ((i + 1) % 10 === 0) console.log(`[Artist Seed] Phase 1: ${i + 1}/${SEED_ARTISTS.length} seeds found (${allRows.length} total)`);
+      }
+      await new Promise(r => setTimeout(r, 100)); // rate limit
+    }
+    console.log(`[Artist Seed] Phase 1 complete: ${seedIds.length} seed artists found`);
+
+    // Phase 2: Get related artists for each seed
+    console.log('[Artist Seed] Phase 2: Expanding via related artists...');
+    for (let i = 0; i < seedIds.length; i++) {
+      const related = await getRelatedArtists(token, seedIds[i]);
+      for (const a of related) {
+        if (!seen.has(a.id)) {
+          seen.add(a.id);
+          allRows.push(artistToRow(a));
+        }
+      }
+      if ((i + 1) % 20 === 0) console.log(`[Artist Seed] Phase 2: ${i + 1}/${seedIds.length} seeds expanded (${allRows.length} total artists)`);
+      await new Promise(r => setTimeout(r, 100));
+    }
+    console.log(`[Artist Seed] Phase 2 complete: ${allRows.length} total unique artists`);
+
+    // Phase 3: Upsert all into Supabase in batches of 100
+    console.log('[Artist Seed] Phase 3: Saving to database...');
+    let saved = 0;
+    for (let i = 0; i < allRows.length; i += 100) {
+      const batch = allRows.slice(i, i + 100);
+      const { error } = await supabase.from('cached_artists').upsert(batch, { onConflict: 'id' });
+      if (error) console.error('[Artist Seed] Upsert error:', error.message);
+      else saved += batch.length;
+    }
+
+    // Genre breakdown
+    const genreCounts = {};
+    allRows.forEach(r => { genreCounts[r.primary_genre] = (genreCounts[r.primary_genre] || 0) + 1; });
+
+    console.log(`[Artist Seed] ══════ COMPLETE ══════`);
+    console.log(`[Artist Seed] Total: ${saved} artists saved`);
+    console.log(`[Artist Seed] Genres:`, genreCounts);
+  })();
+});
+
+// ── Artist Stats endpoint ────────────────────────────────────────────────
+app.get('/api/artists/stats', async (req, res) => {
   try {
-    const rows = await supabaseSelectAll('cached_artists', 'genres');
+    const { data } = await supabase.from('cached_artists').select('primary_genre');
     const counts = {};
-    rows.forEach(r => {
-      (r.genres || []).map(normalizeGenreTag).forEach(g => { counts[g] = (counts[g] || 0) + 1; });
-    });
-    res.json({ total: rows.length, genres: counts });
-  } catch {
-    res.json({ total: 0, genres: {} });
-  }
+    (data || []).forEach(r => { counts[r.primary_genre] = (counts[r.primary_genre] || 0) + 1; });
+    const total = Object.values(counts).reduce((s, n) => s + n, 0);
+    res.json({ total, genres: counts });
+  } catch { res.json({ total: 0, genres: {} }); }
 });
 
 
-
-// ════════════════════════════════════════════════════════════════════════════
 // HEALTH CHECK
 // ════════════════════════════════════════════════════════════════════════════
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', version: '2.0.0', timestamp: new Date().toISOString() });
 });
 
-// Main UI — open http://localhost:3001/ (same origin as API_BASE in index.html)
+// Main UI
 app.get('/', (_req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
@@ -1272,7 +1301,6 @@ app.get('/', (_req, res) => {
 // ════════════════════════════════════════════════════════════════════════════
 // START — with graceful port handling
 // ════════════════════════════════════════════════════════════════════════════
-// env vars are strings — must be numeric or `3001 + 1` becomes `30011` (concat)
 const PORT = parseInt(process.env.PORT, 10) || 3001;
 
 function startServer(port) {
@@ -1287,7 +1315,7 @@ function startServer(port) {
   server.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
       console.log(`  ⚠ Port ${port} is in use, trying ${port + 1}...`);
-      startServer(Number(port) + 1);
+      startServer(port + 1);
     } else {
       console.error('Server error:', err);
       process.exit(1);

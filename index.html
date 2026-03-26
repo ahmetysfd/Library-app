@@ -3,8 +3,6 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<!-- Dev-friendly CSP: allows API calls to localhost:3001 and scripts from unpkg (React/Babel). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self' http://127.0.0.1:3001 http://localhost:3001 https: ws: wss:; frame-src 'self'; base-uri 'self';">
 <title>Shelf</title>
 <link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -35,6 +33,25 @@ body{background:var(--bg);color:var(--text);font-family:'Geist',sans-serif;font-
 .avatar-name{font-size:13px;letter-spacing:.06em;color:var(--text2)}
 .btn-signin{font-family:'Geist',sans-serif;font-size:12px;font-weight:300;letter-spacing:.18em;text-transform:uppercase;padding:10px 24px;background:transparent;border:0.5px solid var(--gold-dim);color:var(--gold);cursor:pointer;border-radius:var(--radius);transition:all .2s}
 .btn-signin:hover{background:var(--gold-faint);border-color:var(--gold)}
+
+/* ─── Hamburger Menu + Left Nav Drawer ────────────────────────────────────── */
+.hamburger-btn{background:none;border:none;cursor:pointer;padding:6px;display:flex;flex-direction:column;gap:4px;margin-right:14px;opacity:.6;transition:opacity .2s}
+.hamburger-btn:hover{opacity:1}
+.hamburger-btn span{display:block;width:18px;height:1.5px;background:var(--gold);border-radius:1px;transition:all .2s}
+.nav-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:90;opacity:0;pointer-events:none;transition:opacity .25s}
+.nav-overlay.open{opacity:1;pointer-events:auto}
+.nav-drawer{position:fixed;top:0;left:0;width:260px;height:100vh;background:var(--bg2);border-right:0.5px solid var(--border);z-index:95;transform:translateX(-100%);transition:transform .3s cubic-bezier(.22,.61,.36,1);display:flex;flex-direction:column;overflow-y:auto}
+.nav-drawer.open{transform:translateX(0)}
+.nav-drawer-header{padding:24px 24px 20px;border-bottom:0.5px solid var(--border)}
+.nav-drawer-brand{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:400;letter-spacing:.4em;text-transform:uppercase;color:var(--gold)}
+.nav-drawer-section{padding:16px 0}
+.nav-drawer-label{font-size:10px;font-weight:300;letter-spacing:.2em;text-transform:uppercase;color:var(--text4);padding:0 24px;margin-bottom:8px}
+.nav-drawer-item{display:flex;align-items:center;gap:12px;padding:12px 24px;cursor:pointer;transition:all .15s;color:var(--text2);font-size:14px;font-weight:300}
+.nav-drawer-item:hover{background:var(--gold-faint);color:var(--text)}
+.nav-drawer-item.active{color:var(--gold);background:rgba(200,165,80,.04)}
+.nav-drawer-icon{width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:16px;opacity:.7}
+.nav-drawer-item:hover .nav-drawer-icon{opacity:1}
+.nav-drawer-divider{height:0.5px;background:var(--border);margin:4px 24px}
 
 /* ─── API Notice ──────────────────────────────────────────────────────────── */
 .api-notice{margin:20px 48px;padding:16px 22px;border:0.5px solid #2a2010;border-radius:var(--radius);background:#120e06;font-size:13px;font-weight:300;color:#8a7040;line-height:1.7;letter-spacing:.02em}
@@ -316,22 +333,25 @@ body{background:var(--bg);color:var(--text);font-family:'Geist',sans-serif;font-
 .album-genre-tab.active{border-color:var(--gold);background:rgba(200,165,80,.08);color:var(--gold);font-weight:400}
 .album-genre-count{font-size:10px;opacity:.6;margin-left:4px}
 
-/* Browse library cards — compact version */
-.ins-browse-cards{display:flex;flex-direction:column;gap:10px;padding:20px 28px 0}
-.ins-browse-card{display:flex;align-items:center;gap:14px;padding:14px 16px;border:0.5px solid var(--border);border-radius:6px;cursor:pointer;transition:all .2s;background:var(--bg3)}
-.ins-browse-card:hover{border-color:var(--gold-dim);background:var(--bg4)}
-.ins-browse-icon{width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px}
-.ins-browse-info{flex:1;min-width:0}
-.ins-browse-title{font-size:14px;font-weight:400;color:var(--text)}
-.ins-browse-desc{font-size:11px;font-weight:300;color:var(--text3);margin-top:2px}
-.ins-browse-arrow{color:var(--text4);transition:color .2s,transform .2s;flex-shrink:0}
-.ins-browse-card:hover .ins-browse-arrow{color:var(--gold);transform:translateX(2px)}
-
 /* TMDB genre filter row */
 .tmdb-genre-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px}
 .tmdb-genre-tab{padding:6px 14px;border-radius:20px;font-family:'Geist',sans-serif;font-size:12px;font-weight:300;cursor:pointer;border:0.5px solid var(--border);background:transparent;color:var(--text3);transition:all .2s;white-space:nowrap}
 .tmdb-genre-tab:hover{border-color:var(--gold-dim);color:var(--text2)}
 .tmdb-genre-tab.active{border-color:var(--gold);background:rgba(200,165,80,.08);color:var(--gold);font-weight:400}
+
+/* Artist browse grid */
+.artist-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:20px}
+.artist-card{text-align:center;animation:fadeUp .3s ease both;cursor:pointer;transition:transform .2s}
+.artist-card:hover{transform:translateY(-3px)}
+.artist-photo{width:120px;height:120px;border-radius:50%;margin:0 auto 10px;overflow:hidden;border:2px solid var(--border);background:var(--bg3);transition:border-color .2s}
+.artist-card:hover .artist-photo{border-color:var(--gold-dim)}
+.artist-photo img{width:100%;height:100%;object-fit:cover;display:block}
+.artist-photo-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:32px;color:var(--gold-dim);opacity:.4}
+.artist-name{font-size:13px;font-weight:400;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.artist-meta{font-size:11px;font-weight:300;color:var(--text3);margin-top:3px}
+.artist-rank{font-family:'Cormorant Garamond',serif;font-size:12px;font-weight:400;color:var(--gold-dim);margin-bottom:2px}
+.artist-sort-bar{display:flex;align-items:center;gap:16px;margin-bottom:22px}
+.artist-sort-label{font-size:11px;font-weight:300;letter-spacing:.12em;text-transform:uppercase;color:var(--text3)}
 
 /* Year filter bar */
 .browse-filters{display:flex;align-items:center;gap:16px;margin-bottom:22px;flex-wrap:wrap}
@@ -340,23 +360,6 @@ body{background:var(--bg);color:var(--text);font-family:'Geist',sans-serif;font-
 .browse-year-select{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius);padding:7px 30px 7px 12px;font-family:'Geist',sans-serif;font-size:13px;font-weight:300;color:var(--text2);outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='8' height='5' viewBox='0 0 8 5' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L4 4L7 1' stroke='%23726860' stroke-width='0.8'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;transition:border-color .2s}
 .browse-year-select:hover{border-color:var(--gold-dim)}
 .browse-year-select:focus{border-color:var(--gold)}
-
-/* Top Artists page */
-.artist-filters{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 18px}
-.artist-filter-select{background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius);padding:7px 30px 7px 10px;font-family:'Geist',sans-serif;font-size:12px;color:var(--text2);outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='8' height='5' viewBox='0 0 8 5' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L4 4L7 1' stroke='%23726860' stroke-width='0.8'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
-.artist-filter-select:hover{border-color:var(--gold-dim)}
-.artist-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
-.artist-card{position:relative;border:0.5px solid var(--border);border-radius:8px;background:var(--bg2);padding:12px;transition:border-color .2s,transform .2s}
-.artist-card:hover{border-color:var(--gold-dim);transform:translateY(-2px)}
-.artist-avatar{width:100%;aspect-ratio:1;border-radius:8px;overflow:hidden;background:var(--bg3);border:0.5px solid var(--border);display:flex;align-items:center;justify-content:center}
-.artist-avatar img{width:100%;height:100%;object-fit:cover;display:block}
-.artist-initials{font-family:'Cormorant Garamond',serif;font-size:26px;color:var(--gold)}
-.artist-name{font-size:14px;font-weight:400;color:var(--text);margin-top:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.artist-meta{font-size:11px;color:var(--text3);margin-top:4px;display:flex;flex-direction:column;gap:2px}
-.artist-chip{display:inline-flex;align-items:center;padding:2px 8px;border:0.5px solid var(--border);border-radius:999px;font-size:10px;color:var(--text3);margin-top:8px}
-.artist-add-btn{position:absolute;top:16px;right:16px;width:28px;height:28px;border-radius:50%;background:rgba(10,9,8,.85);border:0.5px solid rgba(200,165,80,.3);color:var(--gold);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;z-index:3;transition:all .2s}
-.artist-add-btn:hover{background:rgba(200,165,80,.2);border-color:var(--gold);transform:scale(1.06)}
-.artist-added{position:absolute;top:16px;right:16px;width:28px;height:28px;border-radius:50%;background:rgba(74,140,92,.2);border:0.5px solid rgba(74,140,92,.4);color:var(--success);display:flex;align-items:center;justify-content:center;font-size:14px;line-height:1;z-index:3}
 
 /* Type counts — Movies / Shows */
 .ins-type-row{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border2)}
@@ -1765,13 +1768,13 @@ function LibraryPage({ library, onBack, onAddClick, onRemoveItem, onRateItem, on
               ? 'No watched shows yet — add some above!'
               : isMusic && tab==='artists'
                 ? 'No artists in your library yet. Use Top Artists in the sidebar to add some.'
-              : isMusic && tab==='all'
-                ? 'No albums in your library yet.'
-              : tab==='movies' || tab==='all'
-                ? 'Your library is empty'
-                : 'No items here yet'}
+                : isMusic && tab==='all'
+                  ? 'No albums in your library yet.'
+                  : tab==='movies' || tab==='all'
+                    ? 'Your library is empty'
+                    : 'No items here yet'}
           </p>
-          {(tab==='movies' || tab==='all') && <button className="btn-primary" onClick={onAddClick}>+ Add your first {isFilms?'film':def.label.split(' ')[0].toLowerCase()}</button>}
+          {(tab==='movies'||tab==='all')&&<button className="btn-primary" onClick={onAddClick}>+ Add your first {isFilms?'film':def.label.split(' ')[0].toLowerCase()}</button>}
         </div>
       ) : items.length > 0 && viewMode==='grid' ? (
         <div className="lib-grid">
@@ -2536,19 +2539,10 @@ function BrowseAlbumsPage({ onAddToLibrary, libraryItems }) {
       return true;
     });
 
-    const totalInDb = serverResult?.total;
-    const newShownCount = append ? albums.length + unique.length : unique.length;
-    // Pagination uses Supabase exact count. iTunes fallback is one batch only (no server page 2).
-    const canLoadMore =
-      src === 'itunes'
-        ? false
-        : typeof totalInDb === 'number'
-          ? totalInDb > newShownCount
-          : unique.length >= 100;
     if (append) setAlbums(prev => [...prev, ...unique]);
     else setAlbums(unique);
     setSource(src);
-    setHasMore(canLoadMore);
+    setHasMore(unique.length >= 30);
     setLoading(false); setLoadingMore(false);
   };
 
@@ -2647,164 +2641,114 @@ function BrowseAlbumsPage({ onAddToLibrary, libraryItems }) {
   );
 }
 
-const ARTIST_GENRE_OPTIONS = [
-  { id: 'all', label: 'All Genres' },
-  { id: 'pop', label: 'Pop' },
-  { id: 'rock', label: 'Rock' },
-  { id: 'hip-hop', label: 'Hip Hop' },
-  { id: 'rnb', label: 'R&B' },
-  { id: 'electronic', label: 'Electronic' },
-  { id: 'metal', label: 'Metal' },
-  { id: 'jazz', label: 'Jazz' },
-  { id: 'country', label: 'Country' },
-  { id: 'latin', label: 'Latin' },
-];
 
-async function fetchArtistsFromServer({ page = 1, genre = 'all', sort = 'followers', country = 'all' }) {
-  try {
-    const url = `${API_BASE}/api/artists/browse?page=${page}&limit=50&genre=${encodeURIComponent(genre)}&sort=${encodeURIComponent(sort)}&country=${encodeURIComponent(country)}`;
-    const r = await fetch(url);
-    if (!r.ok) return null;
-    return await r.json();
-  } catch {
-    return null;
-  }
+/* ─── Browse Artists Page — Top 2000 Worldwide ────────────────────────────── */
+const ARTIST_GENRES = ['all','rock','hip-hop','pop','rnb','electronic','metal','indie','country','latin','k-pop','jazz'];
+
+function formatFollowers(n) {
+  if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+  if (n >= 1000) return (n/1000).toFixed(0) + 'K';
+  return String(n);
 }
 
-function BrowseArtistsPage({ onAddToLibrary, libraryItems }) {
+function BrowseArtistsPage({ onAddToLibrary }) {
   const [artists, setArtists] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
   const [genre, setGenre] = useState('all');
   const [sortBy, setSortBy] = useState('followers');
-  const [country, setCountry] = useState('all');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  const existingIds = useMemo(
-    () => new Set((libraryItems || []).map(i => String(i.ext_id || ''))),
-    [libraryItems]
-  );
-
-  const loadPage = async (p, append = false) => {
-    if (append) setLoadingMore(true);
-    else setLoading(true);
-
-    const data = await fetchArtistsFromServer({ page: p, genre, sort: sortBy, country });
-    const rows = data?.artists || [];
-
-    if (append) setArtists(prev => [...prev, ...rows]);
-    else setArtists(rows);
-
-    const total = data?.total || 0;
-    const nextLoaded = (append ? artists.length : 0) + rows.length;
-    setHasMore(nextLoaded < total && rows.length > 0);
-
-    setLoading(false);
-    setLoadingMore(false);
+  const fetchPage = async (g, s, p, append) => {
+    if (!append) setLoading(true); else setLoadingMore(true);
+    try {
+      const url = `${API_BASE}/api/artists/browse?genre=${g}&page=${p}&limit=50&sort=${s}`;
+      const r = await fetch(url);
+      const d = await r.json();
+      const items = (d.artists || []).map(a => ({
+        ...a, genres: a.genres || []
+      }));
+      if (append) setArtists(prev => [...prev, ...items]);
+      else setArtists(items);
+      setTotal(d.total || 0);
+    } catch {}
+    setLoading(false); setLoadingMore(false);
   };
 
-  useEffect(() => {
-    setPage(1);
-    loadPage(1, false);
-  }, [genre, sortBy, country]);
+  useEffect(() => { setPage(1); fetchPage(genre, sortBy, 1, false); }, [genre, sortBy]);
 
-  const loadMore = () => {
-    const np = page + 1;
-    setPage(np);
-    loadPage(np, true);
-  };
+  const loadMore = () => { const np = page + 1; setPage(np); fetchPage(genre, sortBy, np, true); };
 
   return (
     <div className="top300-page">
       <div className="top300-header">
-        <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: '4px 0' }}>
+        <div style={{display:'flex',alignItems:'baseline',flexWrap:'wrap',gap:'4px 0'}}>
           <div className="top300-title">Top Artists Worldwide</div>
-          <span className="top300-sub">{artists.length} artists loaded</span>
+          <span className="top300-sub">
+            {total > 0 ? total.toLocaleString() : artists.length} artists
+            {genre !== 'all' ? ' · ' + genre.charAt(0).toUpperCase() + genre.slice(1) : ''}
+            {' · sorted by '}{sortBy === 'followers' ? 'followers' : 'popularity'}
+          </span>
         </div>
       </div>
 
-      <div className="artist-filters">
-        <select className="artist-filter-select" value={genre} onChange={e => setGenre(e.target.value)}>
-          {ARTIST_GENRE_OPTIONS.map(g => <option key={g.id} value={g.id}>{g.label}</option>)}
-        </select>
-        <select className="artist-filter-select" value={sortBy} onChange={e => setSortBy(e.target.value)}>
-          <option value="followers">Sort: Followers</option>
-          <option value="popularity">Sort: Popularity</option>
-        </select>
-        <select className="artist-filter-select" value={country} onChange={e => setCountry(e.target.value)}>
-          <option value="all">Country: All</option>
-          <option value="unknown">Country: Unknown</option>
+      {/* Genre tabs */}
+      <div className="tmdb-genre-tabs">
+        {ARTIST_GENRES.map(g => (
+          <button key={g} className={'tmdb-genre-tab ' + (genre === g ? 'active' : '')} onClick={() => setGenre(g)}>
+            {g === 'all' ? 'All' : g === 'rnb' ? 'R&B' : g === 'k-pop' ? 'K-Pop' : g.charAt(0).toUpperCase() + g.slice(1).replace('-', ' ')}
+          </button>
+        ))}
+      </div>
+
+      {/* Sort bar */}
+      <div className="artist-sort-bar">
+        <span className="artist-sort-label">Sort by</span>
+        <select className="browse-year-select" value={sortBy} onChange={e => setSortBy(e.target.value)}>
+          <option value="followers">Followers</option>
+          <option value="popularity">Popularity</option>
         </select>
       </div>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '60px 0' }}>
-          <div className="loading-dots"><span /><span /><span /></div>
-          <div style={{ fontSize: 12, color: 'var(--text4)', marginTop: 14, letterSpacing: '.08em' }}>Loading top artists...</div>
+        <div style={{textAlign:'center',padding:'60px 0'}}>
+          <div className="loading-dots"><span/><span/><span/></div>
+          <div style={{fontSize:12,color:'var(--text4)',marginTop:14,letterSpacing:'.08em'}}>Loading top artists...</div>
         </div>
       ) : artists.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text3)', fontSize: 14, lineHeight: 1.8 }}>
-          No artists in cache yet.<br />
-          <span style={{ fontSize: 12, color: 'var(--text4)' }}>Run: POST /api/artists/seed</span>
+        <div style={{textAlign:'center',padding:'60px 0',color:'var(--text3)',fontSize:14,lineHeight:1.8}}>
+          No artists found. Seed your database first:<br/>
+          <code style={{fontSize:11,color:'var(--text4)',background:'var(--bg3)',padding:'4px 8px',borderRadius:3}}>POST /api/artists/seed</code>
         </div>
       ) : (
         <>
           <div className="artist-grid">
             {artists.map((a, i) => {
-              const id = `artist-${a.id}`;
-              const inLib = existingIds.has(id);
-              const initials = (a.name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-              const followersLabel = Number(a.followers || 0).toLocaleString();
-              const topGenre = Array.isArray(a.genres) && a.genres.length > 0 ? a.genres[0] : (a.primary_genre || 'Unknown');
+              const rank = (page - 1) * 50 + i + 1;
               return (
-                <div key={a.id || i} className="artist-card" style={{ animationDelay: ((i % 30) * 0.02) + 's' }}>
-                  {inLib ? (
-                    <div className="artist-added" title="In library">{'\u2713'}</div>
-                  ) : (
-                    <button
-                      className="artist-add-btn"
-                      title="Add artist to Music library"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onAddToLibrary({
-                          ext_id: id,
-                          title: a.name,
-                          subtitle: 'Artist',
-                          cover_url: a.image_url || '',
-                          metadata: {
-                            kind: 'artist',
-                            spotify_artist_id: a.id,
-                            followers: a.followers || 0,
-                            popularity: a.popularity || 0,
-                            genres: a.genres || [],
-                            spotify_url: a.spotify_url || '',
-                          }
-                        });
-                      }}
-                    >+</button>
-                  )}
-
-                  <div className="artist-avatar">
+                <div key={a.id} className="artist-card" style={{animationDelay: ((i % 50) * 0.02) + 's'}}
+                  onClick={() => onAddToLibrary && onAddToLibrary(a)}>
+                  <div className="artist-rank">#{rank}</div>
+                  <div className="artist-photo">
                     {a.image_url
-                      ? <img src={a.image_url} alt={a.name} loading="lazy" onError={e => { e.target.style.display = 'none'; }} />
-                      : <div className="artist-initials">{initials}</div>}
+                      ? <img src={a.image_url} alt={a.name} loading="lazy" onError={e => { e.target.style.display = 'none'; if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex'; }}/>
+                      : null}
+                    <div className="artist-photo-placeholder" style={{display: a.image_url ? 'none' : 'flex'}}>
+                      {a.name?.charAt(0) || '?'}
+                    </div>
                   </div>
                   <div className="artist-name">{a.name}</div>
-                  <div className="artist-meta">
-                    <span>{followersLabel} followers</span>
-                    <span>Popularity {a.popularity || 0}/100</span>
-                  </div>
-                  <span className="artist-chip">{topGenre}</span>
+                  <div className="artist-meta">{formatFollowers(a.followers)} followers</div>
+                  <div className="artist-meta" style={{color:'var(--gold-dim)',fontSize:10}}>{a.primary_genre}</div>
                 </div>
               );
             })}
           </div>
-
-          {hasMore && (
+          {artists.length < total && (
             <div className="top300-load-more">
               <button className="top300-load-btn" onClick={loadMore} disabled={loadingMore}>
-                {loadingMore ? 'Loading...' : 'Load more artists'}
+                {loadingMore ? 'Loading...' : `Load more (${artists.length}/${total})`}
               </button>
             </div>
           )}
@@ -2813,7 +2757,6 @@ function BrowseArtistsPage({ onAddToLibrary, libraryItems }) {
     </div>
   );
 }
-
 
 /* ─── Insights Sidebar ────────────────────────────────────────────────────── */
 
@@ -3030,7 +2973,7 @@ function GenreDonutSection({ data }) {
   );
 }
 
-function InsightsSidebar({ library, libraries, onOpenTop300, onOpenTopAlbums, onBrowseMovies, onBrowseAlbums, onBrowseArtists }) {
+function InsightsSidebar({ library, libraries }) {
   const insights = library ? computeInsights(library) : null;
   const topDirs = (library && library.type==='films' && insights) ? getTopDirectors(library, insights) : [];
 
@@ -3063,60 +3006,6 @@ function InsightsSidebar({ library, libraries, onOpenTop300, onOpenTopAlbums, on
             <div className="ins-empty" style={{padding:'32px 38px'}}>
               <svg viewBox="0 0 48 48" width="48" height="48" fill="none" opacity=".15"><rect x="4" y="20" width="8" height="24" rx="1" fill="var(--gold)"/><rect x="16" y="12" width="8" height="32" rx="1" fill="var(--gold)"/><rect x="28" y="6" width="8" height="38" rx="1" fill="var(--gold)"/><rect x="40" y="16" width="4" height="28" rx="1" fill="var(--gold)"/></svg>
               <p>Open a library to see detailed analytics</p>
-            </div>
-            {/* Top 300 Card */}
-            <div className="ins-top300-card" onClick={onOpenTop300}>
-              <div className="ins-top300-bg">
-                <div className="ins-top300-number">300</div>
-              </div>
-              <div className="ins-top300-body">
-                <div className="ins-top300-title">Top Rated Movies</div>
-                <div className="ins-top300-desc">IMDb-style Bayesian weighted ranking. Only films with 8K+ votes qualify — no inflated niche ratings.</div>
-              </div>
-              <div className="ins-top300-arrow">
-                <svg viewBox="0 0 16 16" width="16" height="16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              </div>
-            </div>
-            {/* Top Albums Card */}
-            <div className="ins-top300-card" onClick={onOpenTopAlbums} style={{marginTop:12}}>
-              <div className="ins-top300-bg" style={{height:100,background:'linear-gradient(135deg,#12100e 0%,#1a1418 50%,#141012 100%)'}}>
-                <div className="ins-top300-number" style={{fontSize:42}}>♫</div>
-              </div>
-              <div className="ins-top300-body">
-                <div className="ins-top300-title">Greatest Albums</div>
-                <div className="ins-top300-desc">Curated list of the most iconic albums. Track what you've listened to.</div>
-              </div>
-              <div className="ins-top300-arrow">
-                <svg viewBox="0 0 16 16" width="16" height="16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              </div>
-            </div>
-
-            {/* Browse full libraries */}
-            <div className="ins-browse-cards">
-              <div className="ins-browse-card" onClick={onBrowseMovies}>
-                <div className="ins-browse-icon" style={{background:'rgba(200,165,80,.06)',border:'0.5px solid rgba(200,165,80,.15)'}}>🎬</div>
-                <div className="ins-browse-info">
-                  <div className="ins-browse-title">All Movies</div>
-                  <div className="ins-browse-desc">Browse thousands of films by genre</div>
-                </div>
-                <div className="ins-browse-arrow"><svg viewBox="0 0 12 12" width="12" height="12" fill="none"><path d="M4 2l5 4-5 4" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/></svg></div>
-              </div>
-              <div className="ins-browse-card" onClick={onBrowseAlbums}>
-                <div className="ins-browse-icon" style={{background:'rgba(160,130,200,.06)',border:'0.5px solid rgba(160,130,200,.15)'}}>🎵</div>
-                <div className="ins-browse-info">
-                  <div className="ins-browse-title">All Albums</div>
-                  <div className="ins-browse-desc">Explore albums from MusicBrainz</div>
-                </div>
-                <div className="ins-browse-arrow"><svg viewBox="0 0 12 12" width="12" height="12" fill="none"><path d="M4 2l5 4-5 4" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/></svg></div>
-              </div>
-              <div className="ins-browse-card" onClick={onBrowseArtists}>
-                <div className="ins-browse-icon" style={{background:'rgba(200,120,80,.06)',border:'0.5px solid rgba(200,120,80,.15)'}}>🌍</div>
-                <div className="ins-browse-info">
-                  <div className="ins-browse-title">Top Artists</div>
-                  <div className="ins-browse-desc">Most listened artists worldwide</div>
-                </div>
-                <div className="ins-browse-arrow"><svg viewBox="0 0 12 12" width="12" height="12" fill="none"><path d="M4 2l5 4-5 4" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/></svg></div>
-              </div>
             </div>
           </>
         ) : !insights ? (
@@ -3321,9 +3210,14 @@ function App() {
   const currentLib = currentPage ? libraries.find(l=>l.type===currentPage) : null;
 
   const handleOpenTop300 = () => {
+    setBrowseMovies(false);
+    setBrowseAlbums(false);
+    setBrowseArtists(false);
     setShowTop300(true);
+    setShowTopAlbums(false);
     setCurrentPage(null);
     setActiveIcon(null);
+    setNavOpen(false);
   };
 
   const handleAddFromTop300 = (movie) => {
@@ -3346,10 +3240,14 @@ function App() {
   const filmsLibItems = libraries.find(l=>l.type==='films')?.items || [];
 
   const handleOpenTopAlbums = () => {
+    setBrowseMovies(false);
+    setBrowseAlbums(false);
+    setBrowseArtists(false);
     setShowTopAlbums(true);
     setShowTop300(false);
     setCurrentPage(null);
     setActiveIcon(null);
+    setNavOpen(false);
   };
 
   const handleAddFromTopAlbums = (album) => {
@@ -3369,31 +3267,68 @@ function App() {
 
   const musicLibItems = libraries.find(l=>l.type==='music')?.items || [];
 
-  const handleBrowseMovies = ()=>{ setBrowseMovies(true);setBrowseAlbums(false);setShowTop300(false);setShowTopAlbums(false);setCurrentPage(null);setActiveIcon(null); };
-  const handleBrowseAlbums = ()=>{ setBrowseAlbums(true);setBrowseMovies(false);setShowTop300(false);setShowTopAlbums(false);setCurrentPage(null);setActiveIcon(null); };
-  const handleBrowseArtists = ()=>{ setBrowseArtists(true);setBrowseAlbums(false);setBrowseMovies(false);setShowTop300(false);setShowTopAlbums(false);setCurrentPage(null);setActiveIcon(null); };
+  const handleBrowseMovies = ()=>{ setBrowseMovies(true);setBrowseAlbums(false);setBrowseArtists(false);setShowTop300(false);setShowTopAlbums(false);setCurrentPage(null);setActiveIcon(null);setNavOpen(false); };
+  const handleBrowseAlbums = ()=>{ setBrowseAlbums(true);setBrowseMovies(false);setBrowseArtists(false);setShowTop300(false);setShowTopAlbums(false);setCurrentPage(null);setActiveIcon(null);setNavOpen(false); };
+  const handleBrowseArtists = ()=>{ setBrowseArtists(true);setBrowseMovies(false);setBrowseAlbums(false);setShowTop300(false);setShowTopAlbums(false);setCurrentPage(null);setActiveIcon(null);setNavOpen(false); };
 
-  const handleAddFromTopArtists = (artist) => {
-    let musicLib = libraries.find(l=>l.type==='music');
-    if (!musicLib) {
-      musicLib = { id:'lib-'+Date.now(), type:'music', items:[] };
-      setLibraries(prev=>[...prev,musicLib]);
-    }
-    if ((musicLib.items||[]).some(i => i.ext_id===artist.ext_id || i.title===artist.title)) {
-      showT(`"${artist.title}" is already in your library`);
-      return;
-    }
-    const item = { ...artist, status:'collected' };
-    setLibraries(prev=>prev.map(l=>l.type==='music'?{...l,items:[item,...(l.items||[])]}:l));
-    showT(`"${artist.title}" added to Music`);
-  };
+  const [navOpen, setNavOpen] = useState(false);
 
   return (
     <>
-      <InsightsSidebar library={currentLib} libraries={libraries} onOpenTop300={handleOpenTop300} onOpenTopAlbums={handleOpenTopAlbums} onBrowseMovies={handleBrowseMovies} onBrowseAlbums={handleBrowseAlbums} onBrowseArtists={handleBrowseArtists}/>
+      <InsightsSidebar library={currentLib} libraries={libraries}/>
+
+      {/* Left nav drawer */}
+      <div className={`nav-overlay ${navOpen?'open':''}`} onClick={()=>setNavOpen(false)}/>
+      <div className={`nav-drawer ${navOpen?'open':''}`}>
+        <div className="nav-drawer-header">
+          <div className="nav-drawer-brand">Shelf</div>
+        </div>
+        <div className="nav-drawer-section">
+          <div className="nav-drawer-label">Browse</div>
+          <div className={`nav-drawer-item ${browseMovies?'active':''}`} onClick={handleBrowseMovies}>
+            <div className="nav-drawer-icon">🎬</div>
+            <span>Movies</span>
+          </div>
+          <div className={`nav-drawer-item ${browseAlbums?'active':''}`} onClick={handleBrowseAlbums}>
+            <div className="nav-drawer-icon">🎵</div>
+            <span>Albums</span>
+          </div>
+          <div className={`nav-drawer-item ${browseArtists?'active':''}`} onClick={handleBrowseArtists}>
+            <div className="nav-drawer-icon">🎤</div>
+            <span>Top Artists</span>
+          </div>
+        </div>
+        <div className="nav-drawer-divider"/>
+        <div className="nav-drawer-section">
+          <div className="nav-drawer-label">Curated</div>
+          <div className={`nav-drawer-item ${showTop300?'active':''}`} onClick={()=>{handleOpenTop300();setNavOpen(false);}}>
+            <div className="nav-drawer-icon">🏆</div>
+            <span>Top 300 Movies</span>
+          </div>
+          <div className={`nav-drawer-item ${showTopAlbums?'active':''}`} onClick={()=>{handleOpenTopAlbums();setNavOpen(false);}}>
+            <div className="nav-drawer-icon">💿</div>
+            <span>Greatest Albums</span>
+          </div>
+        </div>
+        <div className="nav-drawer-divider"/>
+        <div className="nav-drawer-section">
+          <div className="nav-drawer-label">My Library</div>
+          {libraries.map(lib=>(
+            <div key={lib.type} className={`nav-drawer-item ${currentPage===lib.type?'active':''}`} onClick={()=>{handleIconClick(lib);setNavOpen(false);}}>
+              <div className="nav-drawer-icon">{({films:'🎥',music:'🎵',books:'📚',games:'🎮'})[lib.type]||'📁'}</div>
+              <span>{LIBRARY_TYPES.find(t=>t.key===lib.type)?.label||lib.type}</span>
+              <span style={{marginLeft:'auto',fontSize:11,color:'var(--text4)'}}>{(lib.items||[]).length}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="main-content">
         <div className="topbar">
           <div style={{display:'flex',alignItems:'center',gap:0}}>
+            <button className="hamburger-btn" onClick={()=>setNavOpen(!navOpen)} title="Menu">
+              <span/><span/><span/>
+            </button>
             {(currentPage || showTop300 || showTopAlbums || browseMovies || browseAlbums || browseArtists) && <button onClick={goHome} style={{background:'none',border:'none',color:'var(--gold)',cursor:'pointer',padding:'4px 8px 4px 0',fontSize:'18px',lineHeight:1,opacity:.6,transition:'opacity .2s'}} onMouseEnter={e=>e.target.style.opacity=1} onMouseLeave={e=>e.target.style.opacity=.6}>‹</button>}
             <div className="brand" onClick={goHome}>Shelf</div>
           </div>
@@ -3421,12 +3356,12 @@ function App() {
           </div>
         )}
 
-        {browseMovies ? (
+        {browseArtists ? (
+          <BrowseArtistsPage onAddToLibrary={handleAddFromTopArtists}/>
+        ) : browseMovies ? (
           <BrowseMoviesPage onAddToLibrary={handleAddFromTop300} libraryItems={filmsLibItems}/>
         ) : browseAlbums ? (
           <BrowseAlbumsPage onAddToLibrary={handleAddFromTopAlbums} libraryItems={musicLibItems}/>
-        ) : browseArtists ? (
-          <BrowseArtistsPage onAddToLibrary={handleAddFromTopArtists} libraryItems={musicLibItems}/>
         ) : showTopAlbums ? (
           <TopAlbumsPage
             onBack={goHome}
