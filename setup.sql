@@ -23,37 +23,9 @@ create table if not exists public.users (
 create index if not exists idx_users_username on public.users(username);
 create index if not exists idx_users_email    on public.users(email);
 
--- ─── 2. Cached Albums (Last.fm → your DB → users read from here) ─────────────
--- This is the album browse cache. Server seeds it once from Last.fm API.
--- ~500 bytes per row. 16,000 albums = ~8MB. Tiny.
-create table if not exists public.cached_albums (
-  id            text primary key,
-  title         text not null,
-  artist        text not null,
-  year          smallint,
-  cover_url     text,
-  genre         text not null default 'unknown',
-  popularity    integer default 0,
-  track_count   smallint default 0,
-  spotify_url   text,
-  fetched_at    timestamptz default now()
-);
-
--- If table already exists but popularity is smallint, fix it:
-DO $$ 
-BEGIN
-  IF EXISTS (
-    SELECT 1 FROM information_schema.columns 
-    WHERE table_name = 'cached_albums' AND column_name = 'popularity' AND data_type = 'smallint'
-  ) THEN
-    ALTER TABLE public.cached_albums ALTER COLUMN popularity TYPE integer USING popularity::integer;
-    RAISE NOTICE 'Fixed: popularity column upgraded to integer';
-  END IF;
-END $$;
-
-create index if not exists idx_cached_albums_genre on public.cached_albums(genre);
-create index if not exists idx_cached_albums_pop   on public.cached_albums(popularity desc);
-create index if not exists idx_cached_genre_pop    on public.cached_albums(genre, popularity desc);
+-- ─── 2. Legacy album cache removed (browse was Last.fm). Albums → Spotify artist API only.
+--     Run once in SQL Editor if you still have the old table:
+--     drop table if exists public.cached_albums cascade;
 
 -- ─── 2b. Cached Artists (Spotify data — top 2000 worldwide) ──────────────────
 create table if not exists public.cached_artists (
@@ -87,15 +59,32 @@ create table if not exists public.cached_games (
   fetched_at      timestamptz default now()
 );
 
-create index if not exists idx_games_owners on public.cached_games(owners desc);
-create index if not exists idx_games_rating on public.cached_games(positive_ratio desc);
-create index if not exists idx_games_genres on public.cached_games using gin(genres);
-
--- Older projects may have cached_games without columns the current server seed sends
+-- Upgrades for older cached_games (must run BEFORE indexes on these columns)
 alter table public.cached_games add column if not exists header_url text;
 alter table public.cached_games add column if not exists positive_ratio smallint default 0;
 alter table public.cached_games add column if not exists total_reviews integer default 0;
 alter table public.cached_games add column if not exists price numeric(6,2) default 0;
+
+-- Legacy schema used "score" for review % — copy into positive_ratio (dynamic SQL so missing "score" never errors)
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'cached_games' and column_name = 'score'
+  ) then
+    execute $mig$
+      update public.cached_games g
+      set positive_ratio = coalesce(nullif(g.positive_ratio, 0)::integer, g.score::integer)::smallint
+      where g.score is not null and (g.positive_ratio is null or g.positive_ratio = 0)
+    $mig$;
+  end if;
+end $$;
+
+drop index if exists idx_games_rating;
+
+create index if not exists idx_games_owners on public.cached_games(owners desc);
+create index if not exists idx_games_rating on public.cached_games(positive_ratio desc);
+create index if not exists idx_games_genres on public.cached_games using gin(genres);
 
 -- ─── 3. Libraries ────────────────────────────────────────────────────────────
 create table if not exists public.libraries (
@@ -250,8 +239,6 @@ alter table public.library_items   enable row level security;
 alter table public.follows         enable row level security;
 alter table public.item_likes      enable row level security;
 alter table public.friend_requests enable row level security;
--- cached_albums: NO RLS — public read for all users, server writes with service key
-
 -- Drop existing policies first (safe if they don't exist)
 drop policy if exists "users_select" on public.users;
 drop policy if exists "users_update" on public.users;
@@ -317,18 +304,17 @@ create policy "fr_update" on public.friend_requests
 create policy "fr_delete" on public.friend_requests
   for delete using (auth.uid() = sender_id or auth.uid() = receiver_id);
 
+-- ─── Drop legacy Last.fm album cache (no longer used) ───────────────────────
+drop table if exists public.cached_albums cascade;
+
 -- ============================================================
 -- DONE! You should see "Success. No rows returned."
 -- 
--- Tables created:
---   users, cached_albums, libraries, library_items,
---   friend_requests, follows, item_likes
+-- Tables: users, cached_artists, cached_games, libraries, library_items,
+--         friend_requests, follows, item_likes
 --
--- Views created:
---   user_friends, activity_feed, user_stats
+-- Views: user_friends, activity_feed, user_stats
 --
--- Next steps:
---   1. Add LASTFM_API_KEY to your .env
---   2. Run: npm run dev
---   3. Seed albums: POST http://localhost:3001/api/albums/seed-all
+-- Next: add TMDB + Spotify + Supabase keys to .env, run node server.js,
+--       seed games POST /api/games/seed if you use Browse / Top Games.
 -- ============================================================

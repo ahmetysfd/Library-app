@@ -1669,8 +1669,10 @@ function LibraryPage({ library, onBack, onAddClick, onRemoveItem, onRateItem, on
 
   // Films: Movies / Shows / Watchlist  (Watching removed — lives inside Shows)
   // Music: Albums / Artists (no watchlist)
-  // Others: All / In Progress / Watchlist
+  // Games: single All tab — every title together (any status / playtime)
+  // Books: All / In Progress / Watchlist
   const isMusic = library.type === 'music';
+  const isGames = library.type === 'games';
   const isMusicArtistItem = (i) => i?.metadata?.kind === 'artist';
   const filmTabs = [
     { key:'movies', label:'Movies' },
@@ -1686,7 +1688,8 @@ function LibraryPage({ library, onBack, onAddClick, onRemoveItem, onRateItem, on
     { key:'in_progress', label:({books:'Reading',games:'Playing'})[library.type]||'In progress' },
     { key:'wishlist', label:'Watchlist' },
   ];
-  const tabs = isFilms ? filmTabs : isMusic ? musicTabs : genericTabs;
+  const gamesTabs = [{ key:'all', label:'All' }];
+  const tabs = isFilms ? filmTabs : isMusic ? musicTabs : isGames ? gamesTabs : genericTabs;
 
   // Currently Watching = TV shows marked in_progress; shown as a section inside Shows tab
   const currentlyWatchingShows = useMemo(()=>
@@ -1714,6 +1717,8 @@ function LibraryPage({ library, onBack, onAddClick, onRemoveItem, onRateItem, on
     } else if (isMusic) {
       if (tab==='all') filtered = filtered.filter(i => i.status !== 'wishlist' && !isMusicArtistItem(i));
       else if (tab==='artists') filtered = filtered.filter(i => i.status !== 'wishlist' && isMusicArtistItem(i));
+    } else if (isGames) {
+      // One list: owned, backlog (wishlist), and in-progress — including 0h / never launched
     } else {
       if (tab==='all')         filtered = filtered.filter(i=>i.status!=='wishlist');
       if (tab==='in_progress') filtered = filtered.filter(i=>i.status==='in_progress');
@@ -1727,7 +1732,7 @@ function LibraryPage({ library, onBack, onAddClick, onRemoveItem, onRateItem, on
     if (sortBy==='user_rating') filtered.sort((a,b)=>(b.user_rating||0)-(a.user_rating||0));
     if (sortBy==='followers')   filtered.sort((a,b)=>(b.metadata?.followers||0)-(a.metadata?.followers||0));
     return filtered;
-  },[library.items,tab,sortBy,watchlistFilter,libSearch,isFilms,isMusic]);
+  },[library.items,tab,sortBy,watchlistFilter,libSearch,isFilms,isMusic,isGames]);
 
   const statusLabel = {collected:'Watched',in_progress:({films:'Watching',books:'Reading',music:'Listening',games:'Playing'})[library.type]||'In progress',wishlist:'Watchlist'};
 
@@ -1778,13 +1783,15 @@ function LibraryPage({ library, onBack, onAddClick, onRemoveItem, onRateItem, on
         <div className="lib-page-header-right"/>
       </div>
 
-      <div className="lib-page-tabs">
-        {tabs.map(t=>(
-          <button key={t.key} className={`lib-tab ${tab===t.key?'active':''}`} onClick={()=>{setTab(t.key);setWatchlistFilter('all');}}>
-            {t.label}
-          </button>
-        ))}
-      </div>
+      {tabs.length > 1 && (
+        <div className="lib-page-tabs">
+          {tabs.map(t=>(
+            <button key={t.key} className={`lib-tab ${tab===t.key?'active':''}`} onClick={()=>{setTab(t.key);setWatchlistFilter('all');}}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="lib-page-sortbar">
         <div className="lib-sort-left">
@@ -1836,7 +1843,7 @@ function LibraryPage({ library, onBack, onAddClick, onRemoveItem, onRateItem, on
                 : isMusic && tab==='all'
                   ? 'No albums in your library yet.'
                   : tab==='movies' || tab==='all'
-                    ? 'Your library is empty'
+                    ? (isGames ? 'No games in your library yet.' : 'Your library is empty')
                     : 'No items here yet'}
           </p>
           {(tab==='movies'||tab==='all')&&<button className="btn-primary" onClick={onAddClick}>+ Add your first {isFilms?'film':def.label.split(' ')[0].toLowerCase()}</button>}
@@ -1971,7 +1978,7 @@ function LibraryPage({ library, onBack, onAddClick, onRemoveItem, onRateItem, on
   );
 }
 
-/* ─── Top 300 Movies Page ─────────────────────────────────────────────────── */
+/* ─── Top 500 Movies Page — TMDB discover/movie ─────────────────────────────── */
 
 /*
  * IMDb Top 250 uses a Bayesian weighted rating formula:
@@ -2045,12 +2052,12 @@ function demoTop300(page) {
   }));
 }
 
-function Top300Page({ onBack, onAddToLibrary, libraryItems }) {
+function Top300Page({ onAddToLibrary, libraryItems }) {
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
-  const maxPages = 15; // 15 pages × 20 = 300
+  const maxPages = 25; // 25 pages × 20 = 500
 
   const existingIds = useMemo(()=> new Set((libraryItems||[]).map(i=>i.ext_id)),[libraryItems]);
   const watchedCount = movies.filter(m=>existingIds.has(m.ext_id)).length;
@@ -2074,8 +2081,8 @@ function Top300Page({ onBack, onAddToLibrary, libraryItems }) {
     <div className="top300-page">
       <div className="top300-header">
         <div style={{display:'flex',alignItems:'baseline'}}>
-          <div className="top300-title">Top Rated Movies</div>
-          <span className="top300-sub">Bayesian weighted · 8K+ votes minimum</span>
+          <div className="top300-title">Top 500 Movies</div>
+          <span className="top300-sub">Bayesian weighted · 8K+ TMDB votes minimum</span>
         </div>
       </div>
 
@@ -2131,7 +2138,7 @@ function Top300Page({ onBack, onAddToLibrary, libraryItems }) {
           {page < maxPages && (
             <div className="top300-load-more">
               <button className="top300-load-btn" onClick={loadMore} disabled={loadingMore}>
-                {loadingMore ? 'Loading…' : `Load more (${movies.length}/300)`}
+                {loadingMore ? 'Loading…' : `Load more (${movies.length}/500)`}
               </button>
             </div>
           )}
@@ -2141,266 +2148,213 @@ function Top300Page({ onBack, onAddToLibrary, libraryItems }) {
   );
 }
 
-/* ─── Top Albums Page — Dynamic covers from MusicBrainz ──────────────────── */
-/*
- * DATA SOURCE: MusicBrainz API (free, no key needed)
- * - Album search: /ws/2/release/?query=release:TITLE+AND+artist:ARTIST&limit=1&fmt=json
- * - Cover art: Cover Art Archive → https://coverartarchive.org/release/{mbid}/front-250
- * 
- * HOW IT WORKS:
- * 1. We maintain a curated list of 300 greatest-selling album titles + artists
- * 2. On page load, we search MusicBrainz for each album in batches of 20
- * 3. MusicBrainz returns the real release MBID (MusicBrainz ID)
- * 4. We construct cover art URLs from those real MBIDs
- * 5. Results are cached in memory so repeated visits don't re-fetch
- *
- * SCALABILITY:
- * - In production, move this to your Express server (server.js) as /api/top-albums
- * - Cache MusicBrainz responses in Redis/Supabase (covers rarely change)
- * - Rate limit: MusicBrainz allows 1 req/sec — we throttle with 1s delays
- * - The curated list lives in the database, editable via admin panel
- * - User libraries are stored in Supabase with full RLS (see schema.sql)
- */
-
-const GREATEST_ALBUMS = [
-  ['Thriller','Michael Jackson','1982','Pop'],['Back in Black','AC/DC','1980','Rock'],['The Dark Side of the Moon','Pink Floyd','1973','Rock'],
-  ['Bat Out of Hell','Meat Loaf','1977','Rock'],['Their Greatest Hits','Eagles','1976','Rock'],['Dirty Dancing','Soundtrack','1987','Pop'],
-  ['Rumours','Fleetwood Mac','1977','Rock'],['Saturday Night Fever','Bee Gees','1977','Pop'],['Come On Over','Shania Twain','1997','Country'],
-  ['Led Zeppelin IV','Led Zeppelin','1971','Rock'],['The Bodyguard','Whitney Houston','1992','Pop'],['Born in the U.S.A.','Bruce Springsteen','1984','Rock'],
-  ['Brothers in Arms','Dire Straits','1985','Rock'],['Bad','Michael Jackson','1987','Pop'],['Dangerous','Michael Jackson','1991','Pop'],
-  ['Abbey Road','The Beatles','1969','Rock'],['Nevermind','Nirvana','1991','Rock'],['The Wall','Pink Floyd','1979','Rock'],
-  ['A Night at the Opera','Queen','1975','Rock'],['Hotel California','Eagles','1976','Rock'],['Appetite for Destruction',"Guns N' Roses",'1987','Rock'],
-  ['21','Adele','2011','Pop'],['Purple Rain','Prince','1984','Pop'],['OK Computer','Radiohead','1997','Rock'],
-  ['Legend','Bob Marley','1984','Reggae'],['Jagged Little Pill','Alanis Morissette','1995','Rock'],['Supernatural','Santana','1999','Rock'],
-  ['Metallica','Metallica','1991','Metal'],['Falling into You','Celine Dion','1996','Pop'],["Let's Talk About Love",'Celine Dion','1997','Pop'],
-  ['Born to Run','Bruce Springsteen','1975','Rock'],['Slippery When Wet','Bon Jovi','1986','Rock'],['1','The Beatles','2000','Rock'],
-  ['Hysteria','Def Leppard','1987','Rock'],['The Joshua Tree','U2','1987','Rock'],['No Fences','Garth Brooks','1990','Country'],
-  ['Wish You Were Here','Pink Floyd','1975','Rock'],['Revolver','The Beatles','1966','Rock'],['Sgt. Pepper','The Beatles','1967','Rock'],
-  ['Kind of Blue','Miles Davis','1959','Jazz'],['Graceland','Paul Simon','1986','Pop'],['Automatic for the People','R.E.M.','1992','Rock'],
-  ['The Eminem Show','Eminem','2002','Rap'],['The Marshall Mathers LP','Eminem','2000','Rap'],['Curtain Call','Eminem','2005','Rap'],
-  ['Hybrid Theory','Linkin Park','2000','Rock'],['Meteora','Linkin Park','2003','Rock'],['In Utero','Nirvana','1993','Rock'],
-  ['Ten','Pearl Jam','1991','Rock'],['Vs.','Pearl Jam','1993','Rock'],['Blood Sugar Sex Magik','Red Hot Chili Peppers','1991','Rock'],
-  ['Californication','Red Hot Chili Peppers','1999','Rock'],['By the Way','Red Hot Chili Peppers','2002','Rock'],
-  ['The Rise and Fall of Ziggy Stardust','David Bowie','1972','Rock'],['Hunky Dory','David Bowie','1971','Rock'],
-  ['In Rainbows','Radiohead','2007','Rock'],['Kid A','Radiohead','2000','Rock'],['The Bends','Radiohead','1995','Rock'],
-  ['To Pimp a Butterfly','Kendrick Lamar','2015','Rap'],['good kid, m.A.A.d city','Kendrick Lamar','2012','Rap'],['DAMN.','Kendrick Lamar','2017','Rap'],
-  ['My Beautiful Dark Twisted Fantasy','Kanye West','2010','Rap'],['The College Dropout','Kanye West','2004','Rap'],['808s & Heartbreak','Kanye West','2008','Rap'],
-  ['Blonde','Frank Ocean','2016','R&B'],['Channel Orange','Frank Ocean','2012','R&B'],
-  ['Ready to Die','The Notorious B.I.G.','1994','Rap'],['All Eyez on Me','2Pac','1996','Rap'],['The Chronic','Dr. Dre','1992','Rap'],
-  ['Illmatic','Nas','1994','Rap'],['Enter the Wu-Tang','Wu-Tang Clan','1993','Rap'],['Reasonable Doubt','Jay-Z','1996','Rap'],
-  ['The Blueprint','Jay-Z','2001','Rap'],['Madvillainy','Madvillain','2004','Rap'],['Aquemini','Outkast','1998','Rap'],
-  ['Stankonia','Outkast','2000','Rap'],['Low End Theory','A Tribe Called Quest','1991','Rap'],
-  ['Funeral','Arcade Fire','2004','Indie'],['The Suburbs','Arcade Fire','2010','Indie'],
-  ['Is This It','The Strokes','2001','Indie'],['Room on Fire','The Strokes','2003','Indie'],
-  ['Whatever People Say I Am','Arctic Monkeys','2006','Indie'],['AM','Arctic Monkeys','2013','Indie'],
-  ['Turn on the Bright Lights','Interpol','2002','Indie'],['Hot Fuss','The Killers','2004','Indie'],
-  ['Origin of Symmetry','Muse','2001','Rock'],['Absolution','Muse','2003','Rock'],['Black Holes and Revelations','Muse','2006','Rock'],
-  ['Parachutes','Coldplay','2000','Pop'],['A Rush of Blood to the Head','Coldplay','2002','Pop'],['Viva la Vida','Coldplay','2008','Pop'],
-  ['(What\'s the Story) Morning Glory?','Oasis','1995','Rock'],['Definitely Maybe','Oasis','1994','Rock'],
-  ['The Queen Is Dead','The Smiths','1986','Indie'],['Disintegration','The Cure','1989','Indie'],['Violator','Depeche Mode','1990','Electronic'],
-  ['Achtung Baby','U2','1991','Rock'],['All That You Can\'t Leave Behind','U2','2000','Rock'],
-  ['The Stranger','Billy Joel','1977','Pop'],['Piano Man','Billy Joel','1973','Pop'],
-  ['Tapestry','Carole King','1971','Pop'],['Blue','Joni Mitchell','1971','Folk'],['Court and Spark','Joni Mitchell','1974','Folk'],
-  ['Horses','Patti Smith','1975','Rock'],['Parallel Lines','Blondie','1978','Pop'],['London Calling','The Clash','1979','Rock'],
-  ['Unknown Pleasures','Joy Division','1979','Indie'],['Closer','Joy Division','1980','Indie'],
-  ['Doolittle','Pixies','1989','Indie'],['Surfer Rosa','Pixies','1988','Indie'],['Loveless','My Bloody Valentine','1991','Indie'],
-  ['Remain in Light','Talking Heads','1980','Rock'],['Stop Making Sense','Talking Heads','1984','Rock'],
-  ['Exile on Main St.','The Rolling Stones','1972','Rock'],['Let It Bleed','The Rolling Stones','1969','Rock'],['Sticky Fingers','The Rolling Stones','1971','Rock'],
-  ['Who\'s Next','The Who','1971','Rock'],['Tommy','The Who','1969','Rock'],
-  ['Are You Experienced','Jimi Hendrix','1967','Rock'],['Electric Ladyland','Jimi Hendrix','1968','Rock'],
-  ['Pet Sounds','The Beach Boys','1966','Rock'],['Harvest','Neil Young','1972','Folk'],['After the Gold Rush','Neil Young','1970','Folk'],
-  ['Astral Weeks','Van Morrison','1968','Folk'],['Moondance','Van Morrison','1970','Folk'],
-  ['What\'s Going On','Marvin Gaye','1971','R&B'],['Songs in the Key of Life','Stevie Wonder','1976','R&B'],['Innervisions','Stevie Wonder','1973','R&B'],
-  ['Off the Wall','Michael Jackson','1979','Pop'],['Sign o\' the Times','Prince','1987','Pop'],
-  ['Raise the Dead','Phantom Planet','1998','Rock'],['Rage Against the Machine','Rage Against the Machine','1992','Metal'],
-  ['The Downward Spiral','Nine Inch Nails','1994','Metal'],['Siamese Dream','Smashing Pumpkins','1993','Rock'],['Mellon Collie','Smashing Pumpkins','1995','Rock'],
-  ['Dookie','Green Day','1994','Rock'],['American Idiot','Green Day','2004','Rock'],
-  ['Toxicity','System of a Down','2001','Metal'],['Images and Words','Dream Theater','1992','Metal'],
-  ['Master of Puppets','Metallica','1986','Metal'],['Ride the Lightning','Metallica','1984','Metal'],['...And Justice for All','Metallica','1988','Metal'],
-  ['The Number of the Beast','Iron Maiden','1982','Metal'],['Paranoid','Black Sabbath','1970','Metal'],['Black Sabbath','Black Sabbath','1970','Metal'],
-  ['Highway to Hell','AC/DC','1979','Rock'],['For Those About to Rock','AC/DC','1981','Rock'],
-  ['Wish You Were Here','Pink Floyd','1975','Rock'],['Animals','Pink Floyd','1977','Rock'],
-  ['Moving Pictures','Rush','1981','Rock'],['2112','Rush','1976','Rock'],
-  ['Aqualung','Jethro Tull','1971','Rock'],['Close to the Edge','Yes','1972','Rock'],['In the Court of the Crimson King','King Crimson','1969','Rock'],
-  ['Random Access Memories','Daft Punk','2013','Electronic'],['Discovery','Daft Punk','2001','Electronic'],['Homework','Daft Punk','1997','Electronic'],
-  ['Cross','Justice','2007','Electronic'],['Selected Ambient Works','Aphex Twin','1992','Electronic'],
-  ['Dummy','Portishead','1994','Electronic'],['Mezzanine','Massive Attack','1998','Electronic'],['Blue Lines','Massive Attack','1991','Electronic'],
-  ['Homogenic','Bjork','1997','Electronic'],['Post','Bjork','1995','Electronic'],['Debut','Bjork','1993','Electronic'],
-  ['The Miseducation of Lauryn Hill','Lauryn Hill','1998','R&B'],['Baduizm','Erykah Badu','1997','R&B'],['Mama\'s Gun','Erykah Badu','2000','R&B'],
-  ['Voodoo','D\'Angelo','2000','R&B'],['Black Messiah','D\'Angelo','2014','R&B'],
-  ['Lemonade','Beyonce','2016','R&B'],['B\'Day','Beyonce','2006','R&B'],['Dangerously in Love','Beyonce','2003','R&B'],
-  ['Anti','Rihanna','2016','Pop'],['1989','Taylor Swift','2014','Pop'],['Folklore','Taylor Swift','2020','Indie'],['Midnights','Taylor Swift','2022','Pop'],
-  ['Born This Way','Lady Gaga','2011','Pop'],['The Fame Monster','Lady Gaga','2009','Pop'],
-  ['25','Adele','2015','Pop'],['30','Adele','2021','Pop'],['19','Adele','2008','Pop'],
-  ['Future Nostalgia','Dua Lipa','2020','Pop'],['After Hours','The Weeknd','2020','R&B'],['Starboy','The Weeknd','2016','R&B'],
-  ['Currents','Tame Impala','2015','Indie'],['Lonerism','Tame Impala','2012','Indie'],
-  ['Norman Fucking Rockwell!','Lana Del Rey','2019','Indie'],['Born to Die','Lana Del Rey','2012','Pop'],
-  ['When We All Fall Asleep','Billie Eilish','2019','Pop'],['Happier Than Ever','Billie Eilish','2021','Pop'],
-  ['Igor','Tyler, the Creator','2019','Rap'],['Flower Boy','Tyler, the Creator','2017','Rap'],
-  ['Astroworld','Travis Scott','2018','Rap'],['Rodeo','Travis Scott','2015','Rap'],
-  ['Swimming','Mac Miller','2018','Rap'],['Circles','Mac Miller','2020','Rap'],
-  ['Man on the Moon','Kid Cudi','2009','Rap'],['SOS','SZA','2022','R&B'],['Ctrl','SZA','2017','R&B'],
-  ['Punisher','Phoebe Bridgers','2020','Indie'],['For Emma, Forever Ago','Bon Iver','2007','Indie'],['22, A Million','Bon Iver','2016','Indie'],
-  ['Carrie & Lowell','Sufjan Stevens','2015','Indie'],['Illinois','Sufjan Stevens','2005','Indie'],
-  ['In the Aeroplane Over the Sea','Neutral Milk Hotel','1998','Indie'],['Transatlanticism','Death Cab for Cutie','2003','Indie'],
-  ['The Moon & Antarctica','Modest Mouse','2000','Indie'],['Good News for People','Modest Mouse','2004','Indie'],
-  ['Lifted','Bright Eyes','2002','Indie'],['I\'m Wide Awake, It\'s Morning','Bright Eyes','2005','Indie'],
-  ['Feel Good Inc','Gorillaz','2005','Electronic'],['Demon Days','Gorillaz','2005','Electronic'],['Plastic Beach','Gorillaz','2010','Electronic'],
-  ['Hozier','Hozier','2014','Folk'],['Wasteland, Baby!','Hozier','2019','Folk'],
-  ['The Suburbs','Arcade Fire','2010','Indie'],['Neon Bible','Arcade Fire','2007','Indie'],
-  ['Vessel','Twenty One Pilots','2013','Pop'],['Blurryface','Twenty One Pilots','2015','Pop'],
-  ['A Fever You Can\'t Sweat Out','Panic! at the Disco','2005','Rock'],
-  ['From Under the Cork Tree','Fall Out Boy','2005','Rock'],['Infinity on High','Fall Out Boy','2007','Rock'],
-  ['The Black Parade','My Chemical Romance','2006','Rock'],['Three Cheers for Sweet Revenge','My Chemical Romance','2004','Rock'],
-  ['Night Visions','Imagine Dragons','2012','Pop'],['Evolve','Imagine Dragons','2017','Pop'],
-  ['Songs About Jane','Maroon 5','2002','Pop'],['Morning View','Incubus','2001','Rock'],
-  ['Stadium Arcadium','Red Hot Chili Peppers','2006','Rock'],['One Hot Minute','Red Hot Chili Peppers','1995','Rock'],
-  ['Songs for the Deaf','Queens of the Stone Age','2002','Rock'],['...Like Clockwork','Queens of the Stone Age','2013','Rock'],
-  ['Weezer','Weezer','1994','Rock'],['Pinkerton','Weezer','1996','Rock'],
-  ['Enema of the State','Blink-182','1999','Rock'],['Untitled','Blink-182','2003','Rock'],
-  ['White Blood Cells','The White Stripes','2001','Rock'],['Elephant','The White Stripes','2003','Rock'],
-  ['Lateralus','Tool','2001','Metal'],['10,000 Days','Tool','2006','Metal'],['Fear Inoculum','Tool','2019','Metal'],
-  ['Colors','Between the Buried and Me','2007','Metal'],['Crack the Skye','Mastodon','2009','Metal'],
-  ['Blackwater Park','Opeth','2001','Metal'],['Still Life','Opeth','1999','Metal'],
-  ['Aja','Steely Dan','1977','Jazz'],['Rumours','Fleetwood Mac','1977','Rock'],
-].map((a,i)=>({title:a[0],artist:a[1],year:a[2],genre:a[3],rank:i+1}));
-
-const ALBUM_GENRES = ['All','Rock','Rap','Pop','Indie','Metal','Electronic','R&B','Folk','Jazz','Country','Reggae'];
-
-// Search MusicBrainz for a single album to get cover URL
-async function searchAlbumCover(title, artist) {
+/* ─── Top 500 TV Shows — TMDB discover/tv ─────────────────────────────────── */
+async function fetchTop500TV(page = 1) {
+  if (!TMDB_KEY || location.protocol === 'file:') return demoTop500TV(page);
   try {
-    const q = encodeURIComponent(`release:${title} AND artist:${artist}`);
-    const r = await fetch(`https://musicbrainz.org/ws/2/release/?query=${q}&limit=1&fmt=json`, {
-      headers:{'User-Agent':'ShelfApp/2.0 (https://shelf.app)'}
-    });
+    const r = await fetch(`${TMDB_BASE}/discover/tv?api_key=${TMDB_KEY}&language=en-US&sort_by=vote_average.desc&vote_count.gte=2500&page=${page}`);
     const d = await r.json();
-    const rel = (d.releases||[])[0];
-    if (rel) return { id:rel.id, cover:`https://coverartarchive.org/release/${rel.id}/front-250` };
-  } catch {}
-  return null;
+    if (!r.ok) return demoTop500TV(page);
+    return (d.results || []).map((x, i) => {
+      const wr = bayesianRating(x.vote_average, x.vote_count);
+      return {
+        ext_id: String(x.id),
+        title: x.name || x.title,
+        subtitle: (x.first_air_date || '').slice(0, 4),
+        cover_url: x.poster_path ? TMDB_IMG + x.poster_path : '',
+        metadata: { vote_average: x.vote_average, vote_count: x.vote_count, weighted_rating: wr, media_type: 'tv' },
+        rank: (page - 1) * 20 + i + 1,
+        weighted_rating: wr
+      };
+    });
+  } catch { return demoTop500TV(page); }
 }
 
-// Cache for fetched covers
-const albumCoverCache = {};
+function demoTop500TV(page) {
+  const all = [
+    { ext_id: '1396', title: 'Breaking Bad', subtitle: '2008', cover_url: 'https://image.tmdb.org/t/p/w185/ggFHVNu6YYI5L9pCfOacjizRGt.jpg', metadata: { vote_average: 8.8, vote_count: 8000, media_type: 'tv' } },
+    { ext_id: '1399', title: 'Game of Thrones', subtitle: '2011', cover_url: 'https://image.tmdb.org/t/p/w185/u3bZgnGQ9T01sWNhyveQz0wH0Hl.jpg', metadata: { vote_average: 8.2, vote_count: 12000, media_type: 'tv' } },
+    { ext_id: '69478', title: 'The Boys', subtitle: '2019', cover_url: 'https://image.tmdb.org/t/p/w185/mY7SeH4HFFxW1hiI6c1uwzyzYj.jpg', metadata: { vote_average: 8.4, vote_count: 5000, media_type: 'tv' } }
+  ];
+  return all.slice(0, 20).map((m, i) => ({
+    ...m,
+    rank: (page - 1) * 20 + i + 1,
+    weighted_rating: bayesianRating(m.metadata.vote_average, m.metadata.vote_count)
+  }));
+}
 
-function TopAlbumsPage({ onBack, onAddToLibrary, libraryItems }) {
+function Top500ShowsPage({ onAddToLibrary, libraryItems }) {
+  const [shows, setShows] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [covers, setCovers] = useState({});
-  const [loadingCovers, setLoadingCovers] = useState(false);
-  const [genreFilter, setGenreFilter] = useState('All');
-  const perPage = 20;
+  const [loadingMore, setLoadingMore] = useState(false);
+  const maxPages = 25;
 
-  const filteredAlbums = useMemo(()=>{
-    if (genreFilter === 'All') return GREATEST_ALBUMS;
-    return GREATEST_ALBUMS.filter(a=>a.genre===genreFilter);
-  },[genreFilter]);
+  const existingIds = useMemo(() => new Set((libraryItems || []).map(i => i.ext_id)), [libraryItems]);
+  const inLibCount = shows.filter(s => existingIds.has(s.ext_id)).length;
 
-  const maxPages = Math.ceil(filteredAlbums.length / perPage);
-  const visibleAlbums = filteredAlbums.slice(0, page * perPage);
+  useEffect(() => {
+    setLoading(true);
+    fetchTop500TV(1).then(data => { setShows(data); setLoading(false); });
+  }, []);
 
-  const existingTitles = useMemo(()=> new Set((libraryItems||[]).map(i=>i.title)),[libraryItems]);
-
-  // Genre counts
-  const genreCounts = useMemo(()=>{
-    const c = {};
-    GREATEST_ALBUMS.forEach(a=>{ c[a.genre] = (c[a.genre]||0)+1; });
-    return c;
-  },[]);
-
-  // Reset page when genre changes
-  useEffect(()=>setPage(1),[genreFilter]);
-
-  // Fetch covers for visible albums
-  useEffect(()=>{
-    let cancelled = false;
-    const fetchBatch = async ()=>{
-      const toFetch = visibleAlbums.filter(a=>!covers[a.rank] && !albumCoverCache[a.rank]);
-      if (!toFetch.length) return;
-      setLoadingCovers(true);
-      for (const album of toFetch) {
-        if (cancelled) break;
-        if (albumCoverCache[album.rank]) { setCovers(p=>({...p,[album.rank]:albumCoverCache[album.rank]})); continue; }
-        const result = await searchAlbumCover(album.title, album.artist);
-        if (result) {
-          albumCoverCache[album.rank] = result.cover;
-          if (!cancelled) setCovers(p=>({...p,[album.rank]:result.cover}));
-        }
-        // MusicBrainz rate limit: 1 req/sec
-        await new Promise(r=>setTimeout(r,1100));
-      }
-      if (!cancelled) setLoadingCovers(false);
-    };
-    fetchBatch();
-    return ()=>{cancelled=true;};
-  },[visibleAlbums.length]);
-
-  const loadMore = ()=>{ if(page<maxPages) setPage(p=>p+1); };
+  const loadMore = async () => {
+    if (page >= maxPages) return;
+    setLoadingMore(true);
+    const next = page + 1;
+    const data = await fetchTop500TV(next);
+    setShows(prev => [...prev, ...data]);
+    setPage(next);
+    setLoadingMore(false);
+  };
 
   return (
     <div className="top300-page">
       <div className="top300-header">
-        <div style={{display:'flex',alignItems:'baseline'}}>
-          <div className="top300-title">Greatest Albums of All Time</div>
-          <span className="top300-sub">{filteredAlbums.length} albums{genreFilter!=='All'?` · ${genreFilter}`:' · Best-selling & critically acclaimed'}</span>
+        <div style={{ display: 'flex', alignItems: 'baseline' }}>
+          <div className="top300-title">Top 500 Shows</div>
+          <span className="top300-sub">Bayesian weighted · 2.5K+ TMDB votes minimum</span>
         </div>
       </div>
 
-      <div className="album-genre-tabs">
-        {ALBUM_GENRES.map(g=>{
-          const count = g==='All' ? GREATEST_ALBUMS.length : (genreCounts[g]||0);
-          if (g!=='All' && !count) return null;
-          return (
-            <button key={g} className={`album-genre-tab ${genreFilter===g?'active':''}`} onClick={()=>setGenreFilter(g)}>
-              {g}<span className="album-genre-count">{count}</span>
-            </button>
-          );
-        })}
+      <div className="top300-progress">
+        <div className="top300-progress-bar">
+          <div className="top300-progress-fill" style={{ width: `${(inLibCount / Math.max(shows.length, 1)) * 100}%` }} />
+        </div>
+        <div className="top300-progress-text">
+          <span>{inLibCount} of {shows.length} in library</span>
+          <span>{Math.round((inLibCount / Math.max(shows.length, 1)) * 100)}%</span>
+        </div>
       </div>
 
-      <div className="top300-grid" style={{gridTemplateColumns:'repeat(auto-fill,minmax(148px,1fr))'}}>
-        {visibleAlbums.map((album,i)=>{
-          const inLib = existingTitles.has(album.title);
-          const coverUrl = covers[album.rank] || albumCoverCache[album.rank] || '';
-          return (
-            <div key={album.rank} className="top300-item" style={{animationDelay:`${(i%20)*0.03}s`}}>
-              <div className="top300-rank">#{album.rank}</div>
-              {inLib
-                ? <div className="top300-added" title="In your library">✓</div>
-                : <button className="top300-add-btn" title="Add to library" onClick={(e)=>{
-                    e.stopPropagation();
-                    onAddToLibrary({ext_id:'album-'+album.rank,title:album.title,subtitle:album.artist,cover_url:coverUrl,metadata:{year:album.year}});
-                  }}>+</button>
-              }
-              <div className="top300-poster" style={{aspectRatio:'1'}}>
-                {coverUrl
-                  ? <img src={coverUrl} alt={album.title} loading="lazy" onError={e=>{e.target.style.display='none';e.target.nextSibling&&(e.target.nextSibling.style.display='flex');}}/>
-                  : null}
-                <div style={{display:coverUrl?'none':'flex',width:'100%',height:'100%',alignItems:'center',justifyContent:'center',background:'var(--bg3)',flexDirection:'column',gap:4,padding:8}}>
-                  <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:28,color:'var(--gold-dim)',opacity:.4}}>♫</span>
-                  <span style={{fontSize:9,color:'var(--text4)',textAlign:'center',lineHeight:1.2}}>{album.title.slice(0,20)}</span>
+      {loading ? (
+        <div className="loading-dots" style={{ padding: 60 }}><span /><span /><span /></div>
+      ) : (
+        <>
+          <div className="top300-grid">
+            {shows.map((show, i) => {
+              const inLib = existingIds.has(show.ext_id);
+              return (
+                <div key={show.ext_id + '-' + i} className="top300-item" style={{ animationDelay: `${(i % 20) * 0.03}s` }}>
+                  <div className="top300-rank">#{show.rank}</div>
+                  {inLib
+                    ? <div className="top300-added" title="In your library">✓</div>
+                    : <button className="top300-add-btn" title="Add to library" onClick={(e) => { e.stopPropagation(); onAddToLibrary(show); }}>+</button>}
+                  <div className="top300-poster">
+                    <img src={show.cover_url} alt={show.title} loading="lazy" onError={e => { e.target.style.visibility = 'hidden'; }} />
+                  </div>
+                  <div className="top300-info">
+                    <div className="top300-name">{show.title}</div>
+                    <div className="top300-meta">
+                      <span>{show.subtitle}</span>
+                      {show.metadata?.vote_average && (
+                        <span className="top300-rating">
+                          <svg viewBox="0 0 12 12" fill="none"><path d="M6 1l1.5 3 3.5.5-2.5 2.4.6 3.5L6 8.8 2.9 10.4l.6-3.5L1 4.5 4.5 4z" fill="#c9a55a" /></svg>
+                          {show.metadata.vote_average.toFixed?.(1) || show.metadata.vote_average}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="top300-info">
-                <div className="top300-name">{album.title}</div>
-                <div className="top300-meta">
-                  <span>{album.artist}</span>
-                  <span style={{color:'var(--text4)'}}>{album.year}</span>
-                  {genreFilter==='All' && <span style={{color:'var(--gold-dim)',fontSize:10}}>{album.genre}</span>}
-                </div>
-              </div>
+              );
+            })}
+          </div>
+
+          {page < maxPages && (
+            <div className="top300-load-more">
+              <button className="top300-load-btn" onClick={loadMore} disabled={loadingMore}>
+                {loadingMore ? 'Loading…' : `Load more (${shows.length}/500)`}
+              </button>
             </div>
-          );
-        })}
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ─── Top 500 Games — Steam cache (owners) ────────────────────────────────── */
+function Top500GamesPage({ onAddToLibrary, libraryItems }) {
+  const [games, setGames] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState('');
+  const existingIds = useMemo(() => new Set((libraryItems || []).map(i => i.ext_id)), [libraryItems]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setErr('');
+      try {
+        const r = await fetch(`${API_BASE}/api/games/browse?genre=all&page=1&limit=500&sort=owners`);
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(d.error || 'Request failed');
+        if (!cancelled) setGames(d.games || []);
+      } catch (e) {
+        if (!cancelled) { setErr(e.message || 'Failed to load'); setGames([]); }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  return (
+    <div className="top300-page">
+      <div className="top300-header">
+        <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: '4px 0' }}>
+          <div className="top300-title">Top 500 Games</div>
+          <span className="top300-sub">
+            {games.length} games · ranked by estimated Steam owners
+          </span>
+        </div>
       </div>
 
-      {loadingCovers && <div style={{textAlign:'center',padding:'16px 0',fontSize:11,color:'var(--text4)',letterSpacing:'.1em'}}>Loading covers from MusicBrainz…</div>}
-
-      {page < maxPages && (
-        <div className="top300-load-more">
-          <button className="top300-load-btn" onClick={loadMore}>
-            Load more ({visibleAlbums.length}/{filteredAlbums.length})
-          </button>
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '60px 0' }}>
+          <div className="loading-dots"><span /><span /><span /></div>
+          <div style={{ fontSize: 12, color: 'var(--text4)', marginTop: 14, letterSpacing: '.08em' }}>Loading from cache…</div>
+        </div>
+      ) : err ? (
+        <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text3)', fontSize: 14 }}>{err}</div>
+      ) : games.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text3)', fontSize: 14, lineHeight: 1.8 }}>
+          No games in cache yet.<br />
+          <code style={{ fontSize: 11, color: 'var(--text4)', background: 'var(--bg3)', padding: '4px 8px', borderRadius: 3 }}>POST /api/games/seed</code>
+        </div>
+      ) : (
+        <div className="top300-grid" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(148px,1fr))' }}>
+          {games.map((g, i) => {
+            const inLib = existingIds.has(g.id);
+            const rank = i + 1;
+            return (
+              <div key={g.id || g.appid} className="top300-item" style={{ animationDelay: ((i % 50) * 0.02) + 's' }}>
+                <div className="top300-rank">#{rank}</div>
+                {inLib ? <div className="top300-added" title="In library">{'\u2713'}</div>
+                  : <button className="top300-add-btn" title="Add to library" onClick={e => {
+                    e.stopPropagation();
+                    onAddToLibrary && onAddToLibrary({
+                      ext_id: g.id,
+                      title: g.title,
+                      subtitle: (g.genres && g.genres.slice(0, 2).join(', ')) || 'Game',
+                      cover_url: g.cover_url,
+                      metadata: { platform: 'Steam', appid: g.appid, genres: g.genres }
+                    });
+                  }}>+</button>}
+                <div className="top300-poster" style={{ aspectRatio: '2/3' }}>
+                  <img src={g.cover_url} alt={g.title} loading="lazy"
+                    onError={e => { if (g.header_url && e.target.src !== g.header_url) e.target.src = g.header_url; else e.target.style.visibility = 'hidden'; }} />
+                </div>
+                <div className="top300-info">
+                  <div className="top300-name">{g.title}</div>
+                  <div className="top300-meta">
+                    <span>{formatOwners(g.owners)} owners</span>
+                    {g.positive_ratio > 0 && <span style={{ color: g.positive_ratio >= 80 ? 'var(--success)' : g.positive_ratio >= 50 ? 'var(--gold-dim)' : 'var(--danger)' }}>{g.positive_ratio}%</span>}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
@@ -2485,227 +2439,6 @@ function BrowseMoviesPage({ onAddToLibrary, libraryItems }) {
     </div>
   );
 }
-
-/* ─── Browse Albums — Spotify (server cache) + iTunes (fallback) ────────────
- *
- * PRODUCTION ARCHITECTURE:
- * 1. Frontend calls YOUR server: /api/albums/browse?genre=rock
- * 2. Server checks Supabase cached_albums table
- * 3. Cache hit → instant response (0 Spotify calls)
- * 4. Cache miss → server fetches from Spotify → caches → responds
- * 5. 50 users, 10,000 users → same ~0 Spotify API calls
- *
- * FALLBACK (no server running):
- * Uses iTunes Search API directly from client (free, no auth)
- *
- * DATA STORAGE:
- * cached_albums table stores only CDN URLs (not images)
- * 1 million albums × ~500 bytes/row = ~500MB in Supabase
- * Images live on Spotify/Apple CDN forever — you never download them
- * ──────────────────────────────────────────────────────────────────────── */
-
-const ALBUM_BROWSE_GENRES = [
-  {id:'all',label:'All'},
-  {id:'rock',label:'Rock'},
-  {id:'hip-hop',label:'Hip Hop'},
-  {id:'pop',label:'Pop'},
-  {id:'rnb',label:'R&B'},
-  {id:'electronic',label:'Electronic'},
-  {id:'metal',label:'Metal'},
-  {id:'jazz',label:'Jazz'},
-  {id:'country',label:'Country'},
-];
-
-// Years from 2026 down to 1950
-const BROWSE_YEARS = [null, ...Array.from({length:2026-1950+1}, (_,i) => 2026-i)];
-
-// Fetch from your server (Supabase cache — Last.fm for all-time, MusicBrainz for year-specific)
-async function fetchAlbumsFromServer(genreId, page, year) {
-  try {
-    let url = `${API_BASE}/api/albums/browse?genre=${genreId}&page=${page}&limit=100`;
-    if (year) url += `&year=${year}`;
-    const r = await fetch(url);
-    if (!r.ok) return null;
-    const d = await r.json();
-    if (d.albums && d.albums.length > 0) {
-      return {
-        albums: d.albums.map(a => ({
-          ext_id: a.id, title: a.title, artist: a.artist, year: String(a.year||''),
-          cover: a.cover_url, genre: a.genre, popularity: a.popularity,
-        })),
-        source: d.source || 'cache',
-        total: d.total || d.albums.length,
-      };
-    }
-    return { albums: [], source: d.source || 'empty', total: 0 };
-  } catch { return null; }
-}
-
-// Fallback: iTunes API — strictly albums only, no singles
-async function fetchAlbumsFromItunes(term, year, limit=200) {
-  try {
-    let searchTerm = term + ' album';
-    if (year) searchTerm += ' ' + year;
-    const url = `https://itunes.apple.com/search?term=${encodeURIComponent(searchTerm)}&entity=album&limit=${limit}&country=US`;
-    const r = await fetch(url);
-    const d = await r.json();
-    return (d.results||[])
-      .filter(a => {
-        const name = (a.collectionName||'').toLowerCase();
-        if (name.includes('- single') || name.includes('- ep') || name.endsWith(' ep')) return false;
-        if (a.trackCount && a.trackCount < 5) return false;
-        if (a.collectionType && a.collectionType !== 'Album') return false;
-        if (year) {
-          const ry = a.releaseDate ? parseInt(a.releaseDate.slice(0,4)) : 0;
-          if (ry !== year) return false;
-        }
-        return true;
-      })
-      .map(a => ({
-        ext_id: String(a.collectionId), title: a.collectionName||'', artist: a.artistName||'',
-        year: a.releaseDate ? a.releaseDate.slice(0,4) : '',
-        cover: (a.artworkUrl100||'').replace('100x100', '300x300'),
-        genre: a.primaryGenreName||'', popularity: 0,
-      }));
-  } catch { return []; }
-}
-
-function BrowseAlbumsPage({ onAddToLibrary, libraryItems }) {
-  const [genre, setGenre] = useState(ALBUM_BROWSE_GENRES[0]);
-  const [yearFilter, setYearFilter] = useState(null);
-  const [albums, setAlbums] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [source, setSource] = useState('');
-  const existingTitles = useMemo(()=>new Set((libraryItems||[]).map(i=>i.title)),[libraryItems]);
-
-  const fetchPage = async (g, year, p, append) => {
-    if (!append) setLoading(true); else setLoadingMore(true);
-
-    // 1. Try server (Last.fm cache for all-time, MusicBrainz for year-specific)
-    const serverResult = await fetchAlbumsFromServer(g.id, p, year);
-    let data = serverResult?.albums || [];
-    let src = serverResult?.source || 'none';
-
-    // 2. Fallback to iTunes ONLY if server returned nothing
-    if (data.length === 0) {
-      data = await fetchAlbumsFromItunes(g.label, year);
-      src = 'itunes';
-    }
-
-    // Deduplicate
-    const seen = append ? new Set(albums.map(a=>(a.title+a.artist).toLowerCase())) : new Set();
-    const unique = (data||[]).filter(a => {
-      const k = (a.title+a.artist).toLowerCase();
-      if (seen.has(k) || !a.title) return false;
-      seen.add(k);
-      return true;
-    });
-
-    if (append) setAlbums(prev => [...prev, ...unique]);
-    else setAlbums(unique);
-    setSource(src);
-    setHasMore(unique.length >= 30);
-    setLoading(false); setLoadingMore(false);
-  };
-
-  useEffect(()=>{ setPage(1); fetchPage(genre, yearFilter, 1, false); },[genre, yearFilter]);
-
-  const loadMore = ()=>{ const np=page+1; setPage(np); fetchPage(genre, yearFilter, np, true); };
-
-  return (
-    <div className="top300-page">
-      <div className="top300-header">
-        <div style={{display:'flex',alignItems:'baseline',flexWrap:'wrap',gap:'4px 0'}}>
-          <div className="top300-title">Browse Albums</div>
-          <span className="top300-sub">
-            {albums.length} albums
-            {genre.id!=='all'?' · '+genre.label:''}
-            {yearFilter?' · '+yearFilter:''}
-            {' · '}{source==='cache'?'Last.fm listeners':'iTunes fallback'}
-          </span>
-        </div>
-      </div>
-
-      {/* Genre tabs */}
-      <div className="tmdb-genre-tabs">
-        {ALBUM_BROWSE_GENRES.map(g=>(
-          <button key={g.id} className={'tmdb-genre-tab '+(genre.id===g.id?'active':'')} onClick={()=>setGenre(g)}>{g.label}</button>
-        ))}
-      </div>
-
-      {/* Year dropdown */}
-      <div className="browse-filters">
-        <span className="browse-filter-label">Year</span>
-        <select
-          className="browse-year-select"
-          value={yearFilter || ''}
-          onChange={e => setYearFilter(e.target.value ? parseInt(e.target.value) : null)}
-        >
-          <option value="">All Time</option>
-          {BROWSE_YEARS.filter(Boolean).map(y => (
-            <option key={y} value={y}>{y}</option>
-          ))}
-        </select>
-      </div>
-
-      {loading ? (
-        <div style={{textAlign:'center',padding:'60px 0'}}>
-          <div className="loading-dots"><span/><span/><span/></div>
-          <div style={{fontSize:12,color:'var(--text4)',marginTop:14,letterSpacing:'.08em'}}>
-            {yearFilter
-              ? `Searching ${genre.label.toLowerCase()} albums from ${yearFilter}...`
-              : `Loading top ${genre.label.toLowerCase()} albums...`}
-          </div>
-        </div>
-      ) : albums.length === 0 ? (
-        <div style={{textAlign:'center',padding:'60px 0',color:'var(--text3)',fontSize:14,lineHeight:1.8}}>
-          No albums found{yearFilter?' for '+yearFilter:''}{genre.id!=='all'?' in '+genre.label:''}.<br/>
-          <span style={{fontSize:12,color:'var(--text4)'}}>
-            {yearFilter ? 'Run: POST /api/albums/seed-years to populate year data.' : 'Run: POST /api/albums/seed-all to populate genre data.'}
-          </span>
-        </div>
-      ) : (
-        <>
-          <div className="top300-grid" style={{gridTemplateColumns:'repeat(auto-fill,minmax(148px,1fr))'}}>
-            {albums.map((a,i)=>{
-              const inLib = existingTitles.has(a.title);
-              return (
-                <div key={a.ext_id+'-'+i} className="top300-item" style={{animationDelay:((i%30)*0.02)+'s'}}>
-                  {inLib ? <div className="top300-added" title="In library">{'\u2713'}</div>
-                    : <button className="top300-add-btn" title="Add to library" onClick={e=>{
-                        e.stopPropagation();
-                        onAddToLibrary({ext_id:a.ext_id,title:a.title,subtitle:a.artist,cover_url:a.cover,metadata:{year:a.year,genre:a.genre}});
-                      }}>+</button>}
-                  <div className="top300-poster" style={{aspectRatio:'1'}}>
-                    <img src={a.cover} alt={a.title} loading="lazy" onError={e=>{e.target.style.visibility='hidden'}}/>
-                  </div>
-                  <div className="top300-info">
-                    <div className="top300-name">{a.title}</div>
-                    <div className="top300-meta">
-                      <span>{a.artist}</span>
-                      <span style={{color:'var(--text4)'}}>{a.year}</span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          {hasMore && (
-            <div className="top300-load-more">
-              <button className="top300-load-btn" onClick={loadMore} disabled={loadingMore}>
-                {loadingMore ? 'Loading...' : 'Load more albums'}
-              </button>
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
 
 /* ─── Browse Artists Page — Top 2000 Worldwide ────────────────────────────── */
 const ARTIST_GENRES = ['all','rock','hip-hop','pop','rnb','electronic','metal','indie','country','latin','k-pop','jazz'];
@@ -3344,8 +3077,18 @@ function InsightsSidebar({ library, libraries }) {
                 <div className="ins-type-label">{library.type==='films'?'Movies':library.type==='games'?'Games':library.type==='books'?'Books':'Albums'}</div>
               </div>
               <div className="ins-type-cell">
-                <div className="ins-type-value">{library.type==='films'? insights.showCount : library.type==='music'? insights.artistCount : insights.watchlist}</div>
-                <div className="ins-type-label">{library.type==='films'?'Shows':library.type==='music'?'Artists':'Watchlist'}</div>
+                <div className="ins-type-value">
+                  {library.type==='films' ? insights.showCount
+                    : library.type==='music' ? insights.artistCount
+                    : library.type==='games' ? (insights.avgRating > 0 ? insights.avgRating.toFixed(1) : '—')
+                    : insights.watchlist}
+                </div>
+                <div className="ins-type-label">
+                  {library.type==='films' ? 'Shows'
+                    : library.type==='music' ? 'Artists'
+                    : library.type==='games' ? 'Avg rating'
+                    : 'Watchlist'}
+                </div>
               </div>
             </div>
 
@@ -3584,9 +3327,9 @@ function App() {
   const [currentPage,setCurrentPage] = useState(null); // null = home, or library type
   const [activeIcon,setActiveIcon] = useState(null);
   const [showTop300,setShowTop300] = useState(false);
-  const [showTopAlbums,setShowTopAlbums] = useState(false);
+  const [topShows,setTopShows] = useState(false);
+  const [topGames,setTopGames] = useState(false);
   const [browseMovies,setBrowseMovies] = useState(false);
-  const [browseAlbums,setBrowseAlbums] = useState(false);
   const [browseArtists,setBrowseArtists] = useState(false);
   const [browseGames,setBrowseGames] = useState(false);
   const [showSteamImport,setShowSteamImport] = useState(false);
@@ -3704,9 +3447,9 @@ function App() {
     setCurrentPage(null);
     setActiveIcon(null);
     setShowTop300(false);
-    setShowTopAlbums(false);
+    setTopShows(false);
+    setTopGames(false);
     setBrowseMovies(false);
-    setBrowseAlbums(false);
     setBrowseArtists(false);
     setBrowseGames(false);
   };
@@ -3715,11 +3458,35 @@ function App() {
 
   const handleOpenTop300 = () => {
     setBrowseMovies(false);
-    setBrowseAlbums(false);
     setBrowseArtists(false);
     setBrowseGames(false);
     setShowTop300(true);
-    setShowTopAlbums(false);
+    setTopShows(false);
+    setTopGames(false);
+    setCurrentPage(null);
+    setActiveIcon(null);
+    setNavOpen(false);
+  };
+
+  const handleOpenTopShows = () => {
+    setBrowseMovies(false);
+    setBrowseArtists(false);
+    setBrowseGames(false);
+    setShowTop300(false);
+    setTopShows(true);
+    setTopGames(false);
+    setCurrentPage(null);
+    setActiveIcon(null);
+    setNavOpen(false);
+  };
+
+  const handleOpenTopGames500 = () => {
+    setBrowseMovies(false);
+    setBrowseArtists(false);
+    setBrowseGames(false);
+    setShowTop300(false);
+    setTopShows(false);
+    setTopGames(true);
     setCurrentPage(null);
     setActiveIcon(null);
     setNavOpen(false);
@@ -3744,59 +3511,44 @@ function App() {
 
   const filmsLibItems = libraries.find(l=>l.type==='films')?.items || [];
 
-  const handleOpenTopAlbums = () => {
-    setBrowseMovies(false);
-    setBrowseAlbums(false);
-    setBrowseArtists(false);
-    setBrowseGames(false);
-    setShowTopAlbums(true);
-    setShowTop300(false);
-    setCurrentPage(null);
-    setActiveIcon(null);
-    setNavOpen(false);
-  };
-
-  const handleAddFromTopAlbums = (album) => {
+  const handleAddFromTopArtists = (payload) => {
     let musicLib = libraries.find(l=>l.type==='music');
     if (!musicLib) {
       musicLib = { id:'lib-'+Date.now(), type:'music', items:[] };
       setLibraries(prev=>[...prev,musicLib]);
     }
-    if ((musicLib.items||[]).some(i=>i.ext_id===album.ext_id || i.title===album.title)) {
-      showT(`"${album.title}" is already in your library`);
+    if (payload?.metadata?.kind === 'album') {
+      const title = payload.title || 'Album';
+      const extId = payload.ext_id;
+      if ((musicLib.items||[]).some(i => i.ext_id === extId)) {
+        showT(`"${title}" is already in your library`);
+        return;
+      }
+      const item = { ...payload, status: 'collected' };
+      setLibraries(prev=>prev.map(l=>l.type==='music'?{...l,items:[item,...(l.items||[])]}:l));
+      showT(`"${title}" added to Music`);
       return;
     }
-    const item = { ...album, status:'collected' };
-    setLibraries(prev=>prev.map(l=>l.type==='music'?{...l,items:[item,...(l.items||[])]}:l));
-    showT(`"${album.title}" added to Music`);
-  };
-
-  const handleAddFromTopArtists = (artist) => {
-    let musicLib = libraries.find(l=>l.type==='music');
-    if (!musicLib) {
-      musicLib = { id:'lib-'+Date.now(), type:'music', items:[] };
-      setLibraries(prev=>[...prev,musicLib]);
-    }
-    const extId = artist?.ext_id || `artist-${artist?.id || ''}`;
-    const title = artist?.title || artist?.name || 'Unknown Artist';
+    const extId = payload?.ext_id || `artist-${payload?.id || ''}`;
+    const title = payload?.title || payload?.name || 'Unknown Artist';
     if ((musicLib.items||[]).some(i => i.ext_id === extId || i.title === title)) {
       showT(`"${title}" is already in your library`);
       return;
     }
-    const item = artist?.metadata?.kind === 'artist'
-      ? { ...artist, ext_id: extId, title, status:'collected' }
+    const item = payload?.metadata?.kind === 'artist'
+      ? { ...payload, ext_id: extId, title, status:'collected' }
       : {
           ext_id: extId,
           title,
           subtitle: 'Artist',
-          cover_url: artist?.cover_url || artist?.image_url || '',
+          cover_url: payload?.cover_url || payload?.image_url || '',
           metadata: {
             kind: 'artist',
-            spotify_artist_id: artist?.metadata?.spotify_artist_id || artist?.id || '',
-            followers: artist?.metadata?.followers ?? artist?.followers ?? 0,
-            popularity: artist?.metadata?.popularity ?? artist?.popularity ?? 0,
-            genres: artist?.metadata?.genres || artist?.genres || [],
-            spotify_url: artist?.metadata?.spotify_url || artist?.spotify_url || '',
+            spotify_artist_id: payload?.metadata?.spotify_artist_id || payload?.id || '',
+            followers: payload?.metadata?.followers ?? payload?.followers ?? 0,
+            popularity: payload?.metadata?.popularity ?? payload?.popularity ?? 0,
+            genres: payload?.metadata?.genres || payload?.genres || [],
+            spotify_url: payload?.metadata?.spotify_url || payload?.spotify_url || '',
           },
           status: 'collected'
         };
@@ -3822,10 +3574,9 @@ function App() {
     showT(`"${game.title}" added to Games`);
   };
 
-  const handleBrowseMovies = ()=>{ setBrowseMovies(true);setBrowseAlbums(false);setBrowseArtists(false);setBrowseGames(false);setShowTop300(false);setShowTopAlbums(false);setCurrentPage(null);setActiveIcon(null);setNavOpen(false); };
-  const handleBrowseAlbums = ()=>{ setBrowseAlbums(true);setBrowseMovies(false);setBrowseArtists(false);setBrowseGames(false);setShowTop300(false);setShowTopAlbums(false);setCurrentPage(null);setActiveIcon(null);setNavOpen(false); };
-  const handleBrowseArtists = ()=>{ setBrowseArtists(true);setBrowseMovies(false);setBrowseAlbums(false);setBrowseGames(false);setShowTop300(false);setShowTopAlbums(false);setCurrentPage(null);setActiveIcon(null);setNavOpen(false); };
-  const handleBrowseGames = ()=>{ setBrowseGames(true);setBrowseMovies(false);setBrowseAlbums(false);setBrowseArtists(false);setShowTop300(false);setShowTopAlbums(false);setCurrentPage(null);setActiveIcon(null);setNavOpen(false); };
+  const handleBrowseMovies = ()=>{ setBrowseMovies(true);setBrowseArtists(false);setBrowseGames(false);setShowTop300(false);setTopShows(false);setTopGames(false);setCurrentPage(null);setActiveIcon(null);setNavOpen(false); };
+  const handleBrowseArtists = ()=>{ setBrowseArtists(true);setBrowseMovies(false);setBrowseGames(false);setShowTop300(false);setTopShows(false);setTopGames(false);setCurrentPage(null);setActiveIcon(null);setNavOpen(false); };
+  const handleBrowseGames = ()=>{ setBrowseGames(true);setBrowseMovies(false);setBrowseArtists(false);setShowTop300(false);setTopShows(false);setTopGames(false);setCurrentPage(null);setActiveIcon(null);setNavOpen(false); };
 
   const [navOpen, setNavOpen] = useState(false);
 
@@ -3845,10 +3596,6 @@ function App() {
             <div className="nav-drawer-icon">🎬</div>
             <span>Movies</span>
           </div>
-          <div className={`nav-drawer-item ${browseAlbums?'active':''}`} onClick={handleBrowseAlbums}>
-            <div className="nav-drawer-icon">🎵</div>
-            <span>Albums</span>
-          </div>
           <div className={`nav-drawer-item ${browseArtists?'active':''}`} onClick={handleBrowseArtists}>
             <div className="nav-drawer-icon">🎤</div>
             <span>Top Artists</span>
@@ -3860,14 +3607,18 @@ function App() {
         </div>
         <div className="nav-drawer-divider"/>
         <div className="nav-drawer-section">
-          <div className="nav-drawer-label">Curated</div>
+          <div className="nav-drawer-label">Top</div>
           <div className={`nav-drawer-item ${showTop300?'active':''}`} onClick={()=>{handleOpenTop300();setNavOpen(false);}}>
             <div className="nav-drawer-icon">🏆</div>
-            <span>Top 300 Movies</span>
+            <span>Top 500 Movies</span>
           </div>
-          <div className={`nav-drawer-item ${showTopAlbums?'active':''}`} onClick={()=>{handleOpenTopAlbums();setNavOpen(false);}}>
-            <div className="nav-drawer-icon">💿</div>
-            <span>Greatest Albums</span>
+          <div className={`nav-drawer-item ${topShows?'active':''}`} onClick={()=>{handleOpenTopShows();setNavOpen(false);}}>
+            <div className="nav-drawer-icon">📺</div>
+            <span>Top 500 Shows</span>
+          </div>
+          <div className={`nav-drawer-item ${topGames?'active':''}`} onClick={()=>{handleOpenTopGames500();setNavOpen(false);}}>
+            <div className="nav-drawer-icon">🎯</div>
+            <span>Top 500 Games</span>
           </div>
         </div>
         <div className="nav-drawer-divider"/>
@@ -3894,7 +3645,7 @@ function App() {
             <button className="hamburger-btn" onClick={()=>setNavOpen(!navOpen)} title="Menu">
               <span/><span/><span/>
             </button>
-            {(currentPage || showTop300 || showTopAlbums || browseMovies || browseAlbums || browseArtists || browseGames) && <button onClick={goHome} style={{background:'none',border:'none',color:'var(--gold)',cursor:'pointer',padding:'4px 8px 4px 0',fontSize:'18px',lineHeight:1,opacity:.6,transition:'opacity .2s'}} onMouseEnter={e=>e.target.style.opacity=1} onMouseLeave={e=>e.target.style.opacity=.6}>‹</button>}
+            {(currentPage || showTop300 || topShows || topGames || browseMovies || browseArtists || browseGames) && <button onClick={goHome} style={{background:'none',border:'none',color:'var(--gold)',cursor:'pointer',padding:'4px 8px 4px 0',fontSize:'18px',lineHeight:1,opacity:.6,transition:'opacity .2s'}} onMouseEnter={e=>e.target.style.opacity=1} onMouseLeave={e=>e.target.style.opacity=.6}>‹</button>}
             <div className="brand" onClick={goHome}>Shelf</div>
           </div>
           <div className="topbar-right">
@@ -3916,7 +3667,7 @@ function App() {
           </div>
         </div>
 
-        {demoMode && !currentPage && !showTop300 && !showTopAlbums && !browseMovies && !browseAlbums && !browseArtists && !browseGames && (
+        {demoMode && !currentPage && !showTop300 && !topShows && !topGames && !browseMovies && !browseArtists && !browseGames && (
           <div className="api-notice">
             <strong>{fileMode ? 'Local file mode' : 'Demo mode'}</strong>&nbsp;
             {fileMode
@@ -3933,20 +3684,12 @@ function App() {
           <BrowseArtistsPage onAddToLibrary={handleAddFromTopArtists} libraryItems={musicLibItems}/>
         ) : browseMovies ? (
           <BrowseMoviesPage onAddToLibrary={handleAddFromTop300} libraryItems={filmsLibItems}/>
-        ) : browseAlbums ? (
-          <BrowseAlbumsPage onAddToLibrary={handleAddFromTopAlbums} libraryItems={musicLibItems}/>
-        ) : showTopAlbums ? (
-          <TopAlbumsPage
-            onBack={goHome}
-            onAddToLibrary={handleAddFromTopAlbums}
-            libraryItems={musicLibItems}
-          />
+        ) : topGames ? (
+          <Top500GamesPage onAddToLibrary={handleAddFromGames} libraryItems={gamesLibItems}/>
+        ) : topShows ? (
+          <Top500ShowsPage onAddToLibrary={handleAddFromTop300} libraryItems={filmsLibItems}/>
         ) : showTop300 ? (
-          <Top300Page
-            onBack={goHome}
-            onAddToLibrary={handleAddFromTop300}
-            libraryItems={filmsLibItems}
-          />
+          <Top300Page libraryItems={filmsLibItems} onAddToLibrary={handleAddFromTop300}/>
         ) : currentPage && currentLib ? (
           <LibraryPage
             library={currentLib}

@@ -23,25 +23,8 @@ create table if not exists public.users (
 create index if not exists idx_users_username on public.users(username);
 create index if not exists idx_users_email    on public.users(email);
 
--- ─── Cached Albums (Last.fm data cache) ─────────────────────────────────────
--- Server fetches from Last.fm once → stores here → all users read from DB
--- One row per album, ~500 bytes each. 10K albums ≈ 5MB. 1M albums ≈ 500MB.
-create table if not exists public.cached_albums (
-  id            text primary key,                    -- Last.fm stable ID (base64 of artist|title)
-  title         text not null,
-  artist        text not null,
-  year          smallint,
-  cover_url     text,                                -- Last.fm/Apple CDN URL (~120 bytes)
-  genre         text not null default 'unknown',     -- genre tag for filtering
-  popularity    integer default 0,                   -- Last.fm listener count (can be millions)
-  track_count   smallint default 0,
-  spotify_url   text,                                -- optional external link
-  fetched_at    timestamptz default now()            -- for cache expiry
-);
-
-create index if not exists idx_cached_albums_genre on public.cached_albums(genre);
-create index if not exists idx_cached_albums_pop   on public.cached_albums(popularity desc);
-create index if not exists idx_cached_genre_pop    on public.cached_albums(genre, popularity desc);
+-- Legacy cached_albums (Last.fm) removed — use Spotify artist discography only.
+-- drop table if exists public.cached_albums cascade;
 
 -- ─── Cached Artists (Spotify data — top 2000 worldwide) ─────────────────────
 -- Seeded from Spotify API: 100 seed artists → "Related Artists" expansion → 2000+
