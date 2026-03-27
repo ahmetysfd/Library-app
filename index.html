@@ -2957,6 +2957,129 @@ function BrowseArtistsPage({ onAddToLibrary, libraryItems }) {
   );
 }
 
+/* ─── Browse Games Page — Top Steam Games ────────────────────────────────── */
+const GAME_GENRES = ['all','action','adventure','rpg','strategy','simulation','indie','fps','horror','sports','racing','survival','puzzle'];
+
+function formatOwners(n) {
+  if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+  if (n >= 1000) return (n/1000).toFixed(0) + 'K';
+  return String(n);
+}
+
+function BrowseGamesPage({ onAddToLibrary, libraryItems }) {
+  const [games, setGames] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [genre, setGenre] = useState('all');
+  const [sortBy, setSortBy] = useState('owners');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const existingIds = useMemo(() => new Set((libraryItems||[]).map(i=>i.ext_id)), [libraryItems]);
+
+  const fetchPage = async (g, s, p, append) => {
+    if (!append) setLoading(true); else setLoadingMore(true);
+    try {
+      const genreParam = g === 'all' ? 'all' : GAME_GENRES.find(x=>x===g) || 'all';
+      const url = `${API_BASE}/api/games/browse?genre=${encodeURIComponent(
+        g === 'all' ? 'all' : g.charAt(0).toUpperCase() + g.slice(1)
+      )}&page=${p}&limit=50&sort=${s}`;
+      const r = await fetch(url);
+      const d = await r.json();
+      if (append) setGames(prev => [...prev, ...(d.games||[])]);
+      else setGames(d.games || []);
+      setTotal(d.total || 0);
+    } catch {}
+    setLoading(false); setLoadingMore(false);
+  };
+
+  useEffect(() => { setPage(1); fetchPage(genre, sortBy, 1, false); }, [genre, sortBy]);
+  const loadMore = () => { const np = page + 1; setPage(np); fetchPage(genre, sortBy, np, true); };
+
+  return (
+    <div className="top300-page">
+      <div className="top300-header">
+        <div style={{display:'flex',alignItems:'baseline',flexWrap:'wrap',gap:'4px 0'}}>
+          <div className="top300-title">Browse Games</div>
+          <span className="top300-sub">
+            {total > 0 ? total.toLocaleString() : games.length} games
+            {genre !== 'all' ? ' · ' + genre.charAt(0).toUpperCase() + genre.slice(1) : ''}
+            {' · sorted by '}{sortBy === 'owners' ? 'popularity' : 'rating'}
+          </span>
+        </div>
+      </div>
+
+      <div className="tmdb-genre-tabs">
+        {GAME_GENRES.map(g => (
+          <button key={g} className={'tmdb-genre-tab ' + (genre === g ? 'active' : '')} onClick={() => setGenre(g)}>
+            {g === 'all' ? 'All' : g === 'rpg' ? 'RPG' : g === 'fps' ? 'FPS' : g.charAt(0).toUpperCase() + g.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      <div className="artist-sort-bar">
+        <span className="artist-sort-label">Sort by</span>
+        <select className="browse-year-select" value={sortBy} onChange={e => setSortBy(e.target.value)}>
+          <option value="owners">Most Popular</option>
+          <option value="rating">Highest Rated</option>
+        </select>
+      </div>
+
+      {loading ? (
+        <div style={{textAlign:'center',padding:'60px 0'}}>
+          <div className="loading-dots"><span/><span/><span/></div>
+          <div style={{fontSize:12,color:'var(--text4)',marginTop:14,letterSpacing:'.08em'}}>Loading top games...</div>
+        </div>
+      ) : games.length === 0 ? (
+        <div style={{textAlign:'center',padding:'60px 0',color:'var(--text3)',fontSize:14,lineHeight:1.8}}>
+          No games found. Seed your database first:<br/>
+          <code style={{fontSize:11,color:'var(--text4)',background:'var(--bg3)',padding:'4px 8px',borderRadius:3}}>POST /api/games/seed</code>
+        </div>
+      ) : (
+        <>
+          <div className="top300-grid" style={{gridTemplateColumns:'repeat(auto-fill,minmax(148px,1fr))'}}>
+            {games.map((g, i) => {
+              const inLib = existingIds.has(g.id);
+              return (
+                <div key={g.id} className="top300-item" style={{animationDelay:((i%50)*0.02)+'s'}}>
+                  {inLib ? <div className="top300-added" title="In library">{'\u2713'}</div>
+                    : <button className="top300-add-btn" title="Add to library" onClick={e => {
+                        e.stopPropagation();
+                        onAddToLibrary && onAddToLibrary({
+                          ext_id: g.id,
+                          title: g.title,
+                          subtitle: g.genres?.slice(0,2).join(', ') || 'Game',
+                          cover_url: g.cover_url,
+                          metadata: { platform: 'Steam', appid: g.appid, genres: g.genres }
+                        });
+                      }}>+</button>}
+                  <div className="top300-poster" style={{aspectRatio:'2/3'}}>
+                    <img src={g.cover_url} alt={g.title} loading="lazy"
+                      onError={e => { if (g.header_url && e.target.src !== g.header_url) e.target.src = g.header_url; else e.target.style.visibility='hidden'; }}/>
+                  </div>
+                  <div className="top300-info">
+                    <div className="top300-name">{g.title}</div>
+                    <div className="top300-meta">
+                      <span>{formatOwners(g.owners)} owners</span>
+                      {g.positive_ratio > 0 && <span style={{color: g.positive_ratio >= 80 ? 'var(--success)' : g.positive_ratio >= 50 ? 'var(--gold-dim)' : 'var(--danger)'}}>{g.positive_ratio}%</span>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {games.length < total && (
+            <div className="top300-load-more">
+              <button className="top300-load-btn" onClick={loadMore} disabled={loadingMore}>
+                {loadingMore ? 'Loading...' : `Load more (${games.length}/${total})`}
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 /* ─── Insights Sidebar ────────────────────────────────────────────────────── */
 
 // Demo genre/director/actor data keyed by ext_id — in production this comes from TMDB detail endpoint
@@ -3465,6 +3588,7 @@ function App() {
   const [browseMovies,setBrowseMovies] = useState(false);
   const [browseAlbums,setBrowseAlbums] = useState(false);
   const [browseArtists,setBrowseArtists] = useState(false);
+  const [browseGames,setBrowseGames] = useState(false);
   const [showSteamImport,setShowSteamImport] = useState(false);
 
   // Load persisted state
@@ -3584,6 +3708,7 @@ function App() {
     setBrowseMovies(false);
     setBrowseAlbums(false);
     setBrowseArtists(false);
+    setBrowseGames(false);
   };
 
   const currentLib = currentPage ? libraries.find(l=>l.type===currentPage) : null;
@@ -3592,6 +3717,7 @@ function App() {
     setBrowseMovies(false);
     setBrowseAlbums(false);
     setBrowseArtists(false);
+    setBrowseGames(false);
     setShowTop300(true);
     setShowTopAlbums(false);
     setCurrentPage(null);
@@ -3622,6 +3748,7 @@ function App() {
     setBrowseMovies(false);
     setBrowseAlbums(false);
     setBrowseArtists(false);
+    setBrowseGames(false);
     setShowTopAlbums(true);
     setShowTop300(false);
     setCurrentPage(null);
@@ -3678,10 +3805,27 @@ function App() {
   };
 
   const musicLibItems = libraries.find(l=>l.type==='music')?.items || [];
+  const gamesLibItems = libraries.find(l=>l.type==='games')?.items || [];
 
-  const handleBrowseMovies = ()=>{ setBrowseMovies(true);setBrowseAlbums(false);setBrowseArtists(false);setShowTop300(false);setShowTopAlbums(false);setCurrentPage(null);setActiveIcon(null);setNavOpen(false); };
-  const handleBrowseAlbums = ()=>{ setBrowseAlbums(true);setBrowseMovies(false);setBrowseArtists(false);setShowTop300(false);setShowTopAlbums(false);setCurrentPage(null);setActiveIcon(null);setNavOpen(false); };
-  const handleBrowseArtists = ()=>{ setBrowseArtists(true);setBrowseMovies(false);setBrowseAlbums(false);setShowTop300(false);setShowTopAlbums(false);setCurrentPage(null);setActiveIcon(null);setNavOpen(false); };
+  const handleAddFromGames = (game) => {
+    let gamesLib = libraries.find(l=>l.type==='games');
+    if (!gamesLib) {
+      gamesLib = { id:'lib-games-'+Date.now(), type:'games', items:[] };
+      setLibraries(prev=>[...prev,gamesLib]);
+      DB.createLibrary('games');
+    }
+    if ((gamesLib.items||[]).some(i=>i.ext_id===game.ext_id || i.title===game.title)) {
+      showT(`"${game.title}" is already in your library`);
+      return;
+    }
+    setLibraries(prev=>prev.map(l=>l.type==='games'?{...l,items:[game,...(l.items||[])]}:l));
+    showT(`"${game.title}" added to Games`);
+  };
+
+  const handleBrowseMovies = ()=>{ setBrowseMovies(true);setBrowseAlbums(false);setBrowseArtists(false);setBrowseGames(false);setShowTop300(false);setShowTopAlbums(false);setCurrentPage(null);setActiveIcon(null);setNavOpen(false); };
+  const handleBrowseAlbums = ()=>{ setBrowseAlbums(true);setBrowseMovies(false);setBrowseArtists(false);setBrowseGames(false);setShowTop300(false);setShowTopAlbums(false);setCurrentPage(null);setActiveIcon(null);setNavOpen(false); };
+  const handleBrowseArtists = ()=>{ setBrowseArtists(true);setBrowseMovies(false);setBrowseAlbums(false);setBrowseGames(false);setShowTop300(false);setShowTopAlbums(false);setCurrentPage(null);setActiveIcon(null);setNavOpen(false); };
+  const handleBrowseGames = ()=>{ setBrowseGames(true);setBrowseMovies(false);setBrowseAlbums(false);setBrowseArtists(false);setShowTop300(false);setShowTopAlbums(false);setCurrentPage(null);setActiveIcon(null);setNavOpen(false); };
 
   const [navOpen, setNavOpen] = useState(false);
 
@@ -3708,6 +3852,10 @@ function App() {
           <div className={`nav-drawer-item ${browseArtists?'active':''}`} onClick={handleBrowseArtists}>
             <div className="nav-drawer-icon">🎤</div>
             <span>Top Artists</span>
+          </div>
+          <div className={`nav-drawer-item ${browseGames?'active':''}`} onClick={handleBrowseGames}>
+            <div className="nav-drawer-icon">🎮</div>
+            <span>Games</span>
           </div>
         </div>
         <div className="nav-drawer-divider"/>
@@ -3746,7 +3894,7 @@ function App() {
             <button className="hamburger-btn" onClick={()=>setNavOpen(!navOpen)} title="Menu">
               <span/><span/><span/>
             </button>
-            {(currentPage || showTop300 || showTopAlbums || browseMovies || browseAlbums || browseArtists) && <button onClick={goHome} style={{background:'none',border:'none',color:'var(--gold)',cursor:'pointer',padding:'4px 8px 4px 0',fontSize:'18px',lineHeight:1,opacity:.6,transition:'opacity .2s'}} onMouseEnter={e=>e.target.style.opacity=1} onMouseLeave={e=>e.target.style.opacity=.6}>‹</button>}
+            {(currentPage || showTop300 || showTopAlbums || browseMovies || browseAlbums || browseArtists || browseGames) && <button onClick={goHome} style={{background:'none',border:'none',color:'var(--gold)',cursor:'pointer',padding:'4px 8px 4px 0',fontSize:'18px',lineHeight:1,opacity:.6,transition:'opacity .2s'}} onMouseEnter={e=>e.target.style.opacity=1} onMouseLeave={e=>e.target.style.opacity=.6}>‹</button>}
             <div className="brand" onClick={goHome}>Shelf</div>
           </div>
           <div className="topbar-right">
@@ -3768,7 +3916,7 @@ function App() {
           </div>
         </div>
 
-        {demoMode && !currentPage && !showTop300 && !showTopAlbums && !browseMovies && !browseAlbums && !browseArtists && (
+        {demoMode && !currentPage && !showTop300 && !showTopAlbums && !browseMovies && !browseAlbums && !browseArtists && !browseGames && (
           <div className="api-notice">
             <strong>{fileMode ? 'Local file mode' : 'Demo mode'}</strong>&nbsp;
             {fileMode
@@ -3779,7 +3927,9 @@ function App() {
           </div>
         )}
 
-        {browseArtists ? (
+        {browseGames ? (
+          <BrowseGamesPage onAddToLibrary={handleAddFromGames} libraryItems={gamesLibItems}/>
+        ) : browseArtists ? (
           <BrowseArtistsPage onAddToLibrary={handleAddFromTopArtists} libraryItems={musicLibItems}/>
         ) : browseMovies ? (
           <BrowseMoviesPage onAddToLibrary={handleAddFromTop300} libraryItems={filmsLibItems}/>

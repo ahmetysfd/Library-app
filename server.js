@@ -1475,6 +1475,244 @@ app.get('/api/steam/library/:steamId', async (req, res) => {
 });
 
 
+// ════════════════════════════════════════════════════════════════════════════
+// BROWSE GAMES — SteamSpy API (free, no auth, real player data)
+// ════════════════════════════════════════════════════════════════════════════
+/*
+ * SteamSpy provides:
+ * - top100in2weeks: trending games (most played last 2 weeks)
+ * - top100forever: all-time most owned games
+ * - genre endpoint: top games per genre
+ * - All with: appid, name, owners, players_forever, positive/negative reviews
+ * - Covers from Steam CDN: no extra API call needed
+ *
+ * Strategy: seed once into cached_games → users browse from DB
+ */
+
+const STEAMSPY_BASE = 'https://steamspy.com/api.php';
+
+function steamSpyOwnerLowEstimate(owners) {
+  if (owners == null) return 0;
+  if (typeof owners === 'number') return owners;
+  const m = String(owners).replace(/,/g, '').match(/(\d+)\s*\.\.\s*(\d+)/);
+  if (m) return Math.round((Number(m[1]) + Number(m[2])) / 2);
+  const one = String(owners).replace(/,/g, '').match(/(\d+)/);
+  return one ? parseInt(one[1], 10) : 0;
+}
+
+const STEAM_GENRE_MAP = {
+  'all':       null,
+  'action':    'Action',
+  'adventure': 'Adventure',
+  'rpg':       'RPG',
+  'strategy':  'Strategy',
+  'simulation':'Simulation',
+  'sports':    'Sports',
+  'racing':    'Racing',
+  'indie':     'Indie',
+  'fps':       'FPS',
+  'horror':    'Horror',
+  'puzzle':    'Puzzle',
+  'survival':  'Survival',
+  'openworld': 'Open World',
+};
+
+// Browse games from cache
+app.get('/api/games/browse', async (req, res) => {
+  try {
+    const genre = req.query.genre || 'all';
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(200, parseInt(req.query.limit) || 50);
+    const offset = (page - 1) * limit;
+    const wantsRating = req.query.sort === 'rating';
+    let sortCol = wantsRating ? 'positive_ratio' : 'owners';
+
+    let query = supabase
+      .from('cached_games')
+      .select('*')
+      .order(sortCol, { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (genre !== 'all') query = query.contains('genres', [genre]);
+
+    // Total count
+    let countQ = supabase.from('cached_games').select('*', { count: 'exact', head: true });
+    if (genre !== 'all') countQ = countQ.contains('genres', [genre]);
+    const { count: totalCount } = await countQ;
+
+    let { data, error } = await query;
+    if (error && wantsRating && /positive_ratio/i.test(error.message || '')) {
+      sortCol = 'score';
+      query = supabase
+        .from('cached_games')
+        .select('*')
+        .order(sortCol, { ascending: false })
+        .range(offset, offset + limit - 1);
+      if (genre !== 'all') query = query.contains('genres', [genre]);
+      ({ data, error } = await query);
+    }
+    if (error) return res.status(500).json({ error: 'Database error' });
+
+    res.json({ games: data || [], total: totalCount || 0, page, limit });
+  } catch (e) {
+    console.error('Browse games error:', e);
+    res.status(500).json({ error: 'Failed to fetch games' });
+  }
+});
+
+// Seed games from SteamSpy
+app.post('/api/games/seed', async (req, res) => {
+  console.log('[Game Seed] Starting...');
+  res.json({ message: 'Seeding top games from SteamSpy in background. Check server logs.' });
+
+  (async () => {
+    try {
+      const allGames = new Map();
+
+      // 1. Fetch top 100 most played (last 2 weeks)
+      console.log('[Game Seed] Fetching top100in2weeks...');
+      const trendRes = await fetch(`${STEAMSPY_BASE}?request=top100in2weeks`);
+      const trendData = await trendRes.json();
+      for (const [appid, g] of Object.entries(trendData || {})) {
+        allGames.set(appid, { ...g, appid: parseInt(appid) });
+      }
+      console.log(`[Game Seed] Got ${allGames.size} from trending`);
+      await new Promise(r => setTimeout(r, 1200));
+
+      // 2. Fetch top 100 most owned (all time)
+      console.log('[Game Seed] Fetching top100forever...');
+      const foreverRes = await fetch(`${STEAMSPY_BASE}?request=top100forever`);
+      const foreverData = await foreverRes.json();
+      for (const [appid, g] of Object.entries(foreverData || {})) {
+        if (!allGames.has(appid)) allGames.set(appid, { ...g, appid: parseInt(appid) });
+      }
+      console.log(`[Game Seed] Got ${allGames.size} total after all-time`);
+      await new Promise(r => setTimeout(r, 1200));
+
+      // 3. Fetch by genre for better coverage
+      const genres = ['Action', 'RPG', 'Strategy', 'Adventure', 'Simulation', 'Indie', 'Sports', 'Racing'];
+      for (const genre of genres) {
+        console.log(`[Game Seed] Fetching genre: ${genre}...`);
+        try {
+          const gRes = await fetch(`${STEAMSPY_BASE}?request=genre&genre=${encodeURIComponent(genre)}`);
+          const gData = await gRes.json();
+          let added = 0;
+          const maxNewPerGenre = 350;
+          for (const [appid, g] of Object.entries(gData || {})) {
+            if (added >= maxNewPerGenre) break;
+            if (!allGames.has(appid)) {
+              allGames.set(appid, { ...g, appid: parseInt(appid) });
+              added++;
+            }
+          }
+          console.log(`[Game Seed] ${genre}: +${added} new (${allGames.size} total)`);
+        } catch {}
+        await new Promise(r => setTimeout(r, 1500)); // SteamSpy rate limit
+      }
+
+      const maxGames = 3500;
+      if (allGames.size > maxGames) {
+        const ranked = [...allGames.entries()].sort(
+          (a, b) => steamSpyOwnerLowEstimate(b[1].owners) - steamSpyOwnerLowEstimate(a[1].owners)
+        );
+        allGames.clear();
+        ranked.slice(0, maxGames).forEach(([k, v]) => allGames.set(k, v));
+        console.log(`[Game Seed] Trimmed to top ${maxGames} by estimated owners`);
+      }
+
+      // 4. Enrich each game with details (tags/genres) — batch by appid
+      console.log(`[Game Seed] Enriching ${allGames.size} games with details...`);
+      const rows = [];
+      let enriched = 0;
+      for (const [appid, g] of allGames) {
+        // Parse owners string like "10,000,000 .. 20,000,000"
+        let ownerCount = 0;
+        if (typeof g.owners === 'string') {
+          const match = g.owners.replace(/,/g, '').match(/(\d+)/);
+          if (match) ownerCount = parseInt(match[1]);
+        } else if (typeof g.owners === 'number') {
+          ownerCount = g.owners;
+        }
+
+        const positive = g.positive || 0;
+        const negative = g.negative || 0;
+        const totalReviews = positive + negative;
+        const positiveRatio = totalReviews > 0 ? Math.round(positive / totalReviews * 100) : 0;
+
+        // Parse genre tags from SteamSpy
+        let genres = [];
+        if (g.genre) {
+          genres = g.genre.split(',').map(s => s.trim()).filter(Boolean);
+        } else if (g.tags && typeof g.tags === 'object') {
+          genres = Object.keys(g.tags).slice(0, 5);
+        }
+
+        rows.push({
+          id: `steam-${appid}`,
+          appid: parseInt(appid),
+          title: g.name || `App ${appid}`,
+          cover_url: `https://steamcdn-a.akamaihd.net/steam/apps/${appid}/library_600x900_2x.jpg`,
+          header_url: `https://steamcdn-a.akamaihd.net/steam/apps/${appid}/header.jpg`,
+          genres: genres,
+          owners: ownerCount,
+          positive_ratio: positiveRatio,
+          total_reviews: totalReviews,
+          price: g.price ? (g.price / 100) : 0,
+          fetched_at: new Date().toISOString(),
+        });
+      }
+
+      // 5. Upsert in batches
+      console.log(`[Game Seed] Saving ${rows.length} games to database...`);
+      let saved = 0;
+      for (let i = 0; i < rows.length; i += 100) {
+        let batch = rows.slice(i, i + 100);
+        let attempt = 0;
+        while (attempt < 12) {
+          attempt++;
+          const { error } = await supabase.from('cached_games').upsert(batch, { onConflict: 'id' });
+          if (!error) {
+            saved += batch.length;
+            break;
+          }
+          const msg = error.message || '';
+          if (/positive_ratio/i.test(msg) && batch[0] && 'positive_ratio' in batch[0]) {
+            batch = batch.map(({ positive_ratio, total_reviews, price, ...rest }) => ({
+              ...rest,
+              score: positive_ratio,
+            }));
+            continue;
+          }
+          const colM = msg.match(/'(\w+)' column/);
+          if (colM && batch[0]) {
+            const bad = colM[1];
+            batch = batch.map((row) => {
+              const n = { ...row };
+              delete n[bad];
+              return n;
+            });
+            continue;
+          }
+          console.error('[Game Seed] Upsert error:', msg);
+          break;
+        }
+      }
+
+      console.log(`[Game Seed] ══════ COMPLETE: ${saved} games saved ══════`);
+    } catch (e) {
+      console.error('[Game Seed] Error:', e.message);
+    }
+  })();
+});
+
+app.get('/api/games/stats', async (req, res) => {
+  try {
+    const { count } = await supabase.from('cached_games').select('*', { count: 'exact', head: true });
+    res.json({ total: count || 0 });
+  } catch { res.json({ total: 0 }); }
+});
+
+
 // HEALTH CHECK
 // ════════════════════════════════════════════════════════════════════════════
 app.get('/api/health', (req, res) => {

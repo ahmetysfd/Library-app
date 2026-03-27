@@ -67,39 +67,35 @@ create table if not exists public.cached_artists (
   fetched_at    timestamptz default now()
 );
 
--- If cached_artists already existed from an older run, add any missing columns
--- (CREATE TABLE IF NOT EXISTS does NOT evolve existing tables.)
-alter table public.cached_artists
-  add column if not exists primary_genre text default 'other',
-  add column if not exists country text,
-  add column if not exists spotify_url text;
-
--- Align followers type with current backend expectations (Spotify followers can exceed 2^31)
-DO $$
-BEGIN
-  IF EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_schema='public'
-      AND table_name='cached_artists'
-      AND column_name='followers'
-      AND data_type IN ('integer','smallint')
-  ) THEN
-    ALTER TABLE public.cached_artists ALTER COLUMN followers TYPE bigint USING followers::bigint;
-    RAISE NOTICE 'Fixed: cached_artists.followers upgraded to bigint';
-  END IF;
-END $$;
-
 create index if not exists idx_artists_pop on public.cached_artists(popularity desc);
 create index if not exists idx_artists_followers on public.cached_artists(followers desc);
 create index if not exists idx_artists_genre on public.cached_artists(primary_genre);
 create index if not exists idx_artists_genre_pop on public.cached_artists(primary_genre, followers desc);
 
--- Grants (required for PostgREST / Supabase API roles)
-grant usage on schema public to service_role;
-grant all on table public.cached_albums to service_role;
-grant all on table public.cached_artists to service_role;
-grant select on table public.cached_albums to anon, authenticated;
-grant select on table public.cached_artists to anon, authenticated;
+-- ─── 2c. Cached Games (SteamSpy data — top games worldwide) ─────────────────
+create table if not exists public.cached_games (
+  id              text primary key,
+  appid           integer not null,
+  title           text not null,
+  cover_url       text,
+  header_url      text,
+  genres          text[] default '{}',
+  owners          integer default 0,
+  positive_ratio  smallint default 0,
+  total_reviews   integer default 0,
+  price           numeric(6,2) default 0,
+  fetched_at      timestamptz default now()
+);
+
+create index if not exists idx_games_owners on public.cached_games(owners desc);
+create index if not exists idx_games_rating on public.cached_games(positive_ratio desc);
+create index if not exists idx_games_genres on public.cached_games using gin(genres);
+
+-- Older projects may have cached_games without columns the current server seed sends
+alter table public.cached_games add column if not exists header_url text;
+alter table public.cached_games add column if not exists positive_ratio smallint default 0;
+alter table public.cached_games add column if not exists total_reviews integer default 0;
+alter table public.cached_games add column if not exists price numeric(6,2) default 0;
 
 -- ─── 3. Libraries ────────────────────────────────────────────────────────────
 create table if not exists public.libraries (
