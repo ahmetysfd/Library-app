@@ -588,7 +588,447 @@ app.get('/api/search/games', async (req, res) => {
 });
 
 
-// Album discovery is Spotify-only in the app (artist discography). No Last.fm / album cache.
+// ════════════════════════════════════════════════════════════════════════════
+// ALBUM CACHE — Last.fm API (real popularity data, sorted by listener count)
+// ════════════════════════════════════════════════════════════════════════════
+/*
+ * WHY LAST.FM:
+ * - tag.getTopAlbums returns albums sorted by ACTUAL listener count
+ * - "hip-hop" tag → Illmatic, Ready to Die, MBDTF first (not "DJ Eezy Instrumentals Vol.8")
+ * - Free API key, 5 req/sec, no user auth needed
+ * - Returns cover art URLs from Last.fm CDN
+ *
+ * HOW IT WORKS:
+ * 1. POST /api/albums/seed → fetches 1000 top albums per genre from Last.fm
+ * 2. For each album, gets year from Last.fm album.getInfo
+ * 3. Stores in cached_albums: title, artist, year, cover URL, listeners, genre
+ * 4. GET /api/albums/browse → reads from Supabase, filters by genre + year
+ * 5. All users read from YOUR DB — Last.fm is never called per-user
+ *
+ * STORAGE: ~500 bytes/album. 10 genres × 1000 albums = 5MB total. Tiny.
+ *
+ * SETUP: Add to .env:
+ *   LASTFM_API_KEY=your-lastfm-api-key
+ *   (Get free at https://www.last.fm/api/account/create)
+ */
+
+const LASTFM_KEY = process.env.LASTFM_API_KEY || '';
+const LASTFM_BASE = 'https://ws.audioscrobbler.com/2.0/';
+
+const LASTFM_GENRE_TAGS = {
+  'rock': 'rock',
+  'hip-hop': 'hip-hop',
+  'pop': 'pop',
+  'rnb': 'rnb',
+  'electronic': 'electronic',
+  'metal': 'metal',
+  'jazz': 'jazz',
+  'country': 'country',
+  'indie': 'indie',
+  'folk': 'folk',
+  'punk': 'punk',
+  'classical': 'classical',
+  'blues': 'blues',
+  'soul': 'soul',
+  'reggae': 'reggae',
+  'latin': 'latin',
+};
+
+// Fetch top albums for a genre tag from Last.fm (sorted by listeners)
+async function fetchLastfmTopAlbums(tag, page = 1, limit = 200) {
+  if (!LASTFM_KEY) return [];
+  try {
+    const url = `${LASTFM_BASE}?method=tag.getTopAlbums&tag=${encodeURIComponent(tag)}&api_key=${LASTFM_KEY}&format=json&page=${page}&limit=${limit}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    return (data?.albums?.album || []).map(a => ({
+      title: a.name,
+      artist: a.artist?.name || '',
+      listeners: parseInt(a.playcount || a.tagcount || '0'),
+      // Last.fm images: [0]=small, [1]=medium, [2]=large, [3]=extralarge
+      cover: a.image?.[3]?.['#text'] || a.image?.[2]?.['#text'] || '',
+      mbid: a.mbid || '',
+    })).filter(a => a.title && a.artist && a.cover);
+  } catch (e) {
+    console.error(`Last.fm tag.getTopAlbums error (${tag}):`, e.message);
+    return [];
+  }
+}
+
+// Get album info (year) from Last.fm
+async function getAlbumYear(artist, album) {
+  if (!LASTFM_KEY) return null;
+  try {
+    const url = `${LASTFM_BASE}?method=album.getInfo&artist=${encodeURIComponent(artist)}&album=${encodeURIComponent(album)}&api_key=${LASTFM_KEY}&format=json`;
+    const res = await fetch(url);
+    const data = await res.json();
+    // Last.fm wiki may contain release date, or tags with year
+    const wiki = data?.album?.wiki?.published || '';
+    const match = wiki.match(/(\d{4})/);
+    if (match) return parseInt(match[1]);
+    // Try release date from tags
+    const tags = (data?.album?.tags?.tag || []).map(t => t.name);
+    for (const t of tags) {
+      const ym = t.match(/^(\d{4})$/);
+      if (ym) return parseInt(ym[1]);
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// ── Browse endpoint — reads from Supabase cache ──────────────────────────
+// GET /api/albums/browse?genre=rock&year=2017&page=1&limit=100
+app.get('/api/albums/browse', async (req, res) => {
+  try {
+    const genre = req.query.genre || 'all';
+    const year = req.query.year ? parseInt(req.query.year) : null;
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(200, parseInt(req.query.limit) || 100);
+    const offset = (page - 1) * limit;
+
+    // ── CASE 1: No year filter → serve from Last.fm tag cache (fast) ──
+    if (!year) {
+      let query = supabase
+        .from('cached_albums')
+        .select('*')
+        .order('popularity', { ascending: false })
+        .range(offset, offset + limit - 1);
+      if (genre !== 'all') query = query.eq('genre', genre);
+      const { data, error } = await query;
+      if (error) return res.status(500).json({ error: 'Database error' });
+      return res.json({ albums: data || [], source: 'cache', total: (data||[]).length, page, limit });
+    }
+
+    // ── CASE 2: Year filter → read from cache (populated by seed-years) ────
+    // The cached_albums table is pre-filled by POST /api/albums/seed-years
+    // which uses Last.fm year tags (tag.getTopAlbums&tag=2017) — already
+    // sorted by real play count. No runtime API calls needed.
+    let cacheQuery = supabase
+      .from('cached_albums')
+      .select('*')
+      .eq('year', year)
+      .order('popularity', { ascending: false })
+      .range(offset, offset + limit - 1);
+    if (genre !== 'all') cacheQuery = cacheQuery.eq('genre', genre);
+    const { data: cached } = await cacheQuery;
+
+    return res.json({
+      albums: cached || [],
+      source: 'cache',
+      total: (cached || []).length,
+      page, limit
+    });
+  } catch (e) {
+    console.error('Browse albums error:', e);
+    res.status(500).json({ error: 'Failed to fetch albums' });
+  }
+});
+
+// ── Seed endpoint — fetches from Last.fm and populates Supabase ──────────
+// POST /api/albums/seed   body: { genre: "rock", pages: 5 }
+// Each page = 200 albums. 5 pages = 1000 albums per genre.
+app.post('/api/albums/seed', async (req, res) => {
+  if (!LASTFM_KEY) {
+    return res.status(400).json({ error: 'LASTFM_API_KEY not set in .env' });
+  }
+
+  const genre = req.body.genre;
+  const pages = Math.min(req.body.pages || 5, 10); // max 10 pages = 2000 albums
+  const tag = LASTFM_GENRE_TAGS[genre];
+
+  if (!tag) {
+    return res.status(400).json({
+      error: `Invalid genre: ${genre}`,
+      valid: Object.keys(LASTFM_GENRE_TAGS)
+    });
+  }
+
+  console.log(`[Seed] Starting: ${genre} (${pages} pages × 200 = ${pages*200} albums)`);
+  let totalSeeded = 0;
+  let totalWithYear = 0;
+
+  for (let p = 1; p <= pages; p++) {
+    console.log(`[Seed] ${genre} page ${p}/${pages}...`);
+    const albums = await fetchLastfmTopAlbums(tag, p, 200);
+
+    if (albums.length === 0) {
+      console.log(`[Seed] No more albums for ${genre} at page ${p}`);
+      break;
+    }
+
+    // Get years for each album (with rate limiting)
+    const rows = [];
+    let idx = 0;
+    for (const album of albums) {
+      // Create a stable ID from artist+title
+      const id = `lfm-${Buffer.from(album.artist + '|' + album.title).toString('base64').slice(0, 40)}`;
+
+      let year = null;
+      // Try to get year (rate limited — 5 req/sec, so 200ms delay)
+      try {
+        year = await getAlbumYear(album.artist, album.title);
+        await new Promise(r => setTimeout(r, 210));
+      } catch {}
+
+      if (year) totalWithYear++;
+
+      rows.push({
+        id,
+        title: album.title,
+        artist: album.artist,
+        year: year,
+        cover_url: album.cover,
+        genre: genre,
+        // Position-based: page 1 idx 0 = highest score
+        popularity: ((pages + 1 - p) * 200 + (200 - idx)) * 100,
+        track_count: 0,
+        spotify_url: '',
+        fetched_at: new Date().toISOString(),
+      });
+      idx++;
+    }
+
+    // Upsert batch into Supabase
+    if (rows.length > 0) {
+      const { error } = await supabase
+        .from('cached_albums')
+        .upsert(rows, { onConflict: 'id' });
+
+      if (error) {
+        console.error(`[Seed] Supabase upsert error:`, error.message);
+      } else {
+        totalSeeded += rows.length;
+        console.log(`[Seed] ${genre} page ${p}: ${rows.length} albums cached (${totalWithYear} with year)`);
+      }
+    }
+  }
+
+  console.log(`[Seed] Done: ${genre} → ${totalSeeded} albums total`);
+  res.json({
+    message: `Seeded ${totalSeeded} albums for genre: ${genre}`,
+    total: totalSeeded,
+    withYear: totalWithYear,
+    genre
+  });
+});
+
+// ── Seed ALL genres at once ──────────────────────────────────────────────
+// POST /api/albums/seed-all   body: { pages: 3 }
+app.post('/api/albums/seed-all', async (req, res) => {
+  if (!LASTFM_KEY) {
+    return res.status(400).json({ error: 'LASTFM_API_KEY not set in .env' });
+  }
+
+  const pages = Math.min(req.body.pages || 3, 5);
+  const genres = Object.keys(LASTFM_GENRE_TAGS);
+  const results = {};
+
+  res.json({ message: `Seeding ${genres.length} genres × ${pages} pages in background. Check server logs.` });
+
+  // Run in background (don't block response)
+  (async () => {
+    for (const genre of genres) {
+      const tag = LASTFM_GENRE_TAGS[genre];
+      let genreTotal = 0;
+      for (let p = 1; p <= pages; p++) {
+        console.log(`[Seed-All] ${genre} page ${p}/${pages}...`);
+        const albums = await fetchLastfmTopAlbums(tag, p, 200);
+        if (albums.length === 0) break;
+
+        const rows = albums.map((album, idx) => ({
+          id: `lfm-${Buffer.from(album.artist + '|' + album.title).toString('base64').slice(0, 40)}`,
+          title: album.title, artist: album.artist, year: null,
+          cover_url: album.cover, genre: genre,
+          // Position-based: page 1 idx 0 = highest, page 5 idx 199 = lowest
+          popularity: ((6 - p) * 200 + (200 - idx)) * 100,
+          track_count: 0,
+          spotify_url: '', fetched_at: new Date().toISOString(),
+        }));
+
+        await supabase.from('cached_albums').upsert(rows, { onConflict: 'id' });
+        genreTotal += rows.length;
+        await new Promise(r => setTimeout(r, 250)); // rate limit
+      }
+      console.log(`[Seed-All] ${genre}: ${genreTotal} albums cached`);
+      results[genre] = genreTotal;
+    }
+    console.log('[Seed-All] COMPLETE:', results);
+  })();
+});
+
+// ── Seed by YEAR — the key endpoint for year-based browsing ──────────────
+// POST /api/albums/seed-years   body: { from: 1980, to: 2025 }
+//
+// HOW IT WORKS:
+// Last.fm users tag albums with their release year: "1994", "2017", etc.
+// tag.getTopAlbums&tag=2017 → returns albums tagged "2017" sorted by PLAY COUNT
+// = the most-listened albums of 2017, ranked by real usage data.
+//
+// One call per year × 100 albums = 4,500 albums for 45 years.
+// Each album already has: title, artist, play count, cover art.
+// After seeding, every browse request is instant from Supabase.
+//
+// We also enrich each album with genre from album.getTopTags so users
+// can filter by year AND genre (e.g. "hip-hop albums of 2014").
+app.post('/api/albums/seed-years', async (req, res) => {
+  if (!LASTFM_KEY) {
+    return res.status(400).json({ error: 'LASTFM_API_KEY not set in .env' });
+  }
+
+  const fromYear = parseInt(req.body.from) || 1980;
+  const toYear = parseInt(req.body.to) || 2025;
+  const perYear = Math.min(parseInt(req.body.limit) || 100, 200);
+
+  console.log(`[Seed-Years] Starting: ${fromYear}–${toYear}, ${perYear} albums per year`);
+  res.json({ message: `Seeding years ${fromYear}–${toYear} (${perYear}/year) in background. Check server logs.` });
+
+  // Run in background
+  (async () => {
+    let grandTotal = 0;
+
+    for (let year = toYear; year >= fromYear; year--) {
+      console.log(`[Seed-Years] Fetching ${year}...`);
+
+      try {
+        // 1. Get top albums for this year tag, sorted by play count
+        const url = `${LASTFM_BASE}?method=tag.getTopAlbums&tag=${year}&api_key=${LASTFM_KEY}&format=json&page=1&limit=${perYear}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        const albums = data?.albums?.album || [];
+
+        if (albums.length === 0) {
+          console.log(`[Seed-Years] ${year}: no results, skipping`);
+          continue;
+        }
+
+        // 2. Build rows — Last.fm ALREADY returns these sorted by real popularity.
+        //    Position 0 = most popular album for this year tag.
+        //    We store position as the popularity score so ORDER BY popularity DESC
+        //    preserves Last.fm's real ranking. The playcount field from tag.getTopAlbums
+        //    is a TAG count (how many users applied this tag), NOT album plays — useless for sorting.
+        const rows = [];
+        for (let idx = 0; idx < albums.length; idx++) {
+          const a = albums[idx];
+          const title = a.name;
+          const artist = a.artist?.name || '';
+          if (!title || !artist) continue;
+
+          // Position-based score: #1 most popular = highest number
+          const popularity = (perYear - idx) * 1000;
+
+          // Cover from Last.fm
+          const cover = a.image?.[3]?.['#text'] || a.image?.[2]?.['#text'] || '';
+
+          // Stable ID
+          const id = `yr-${year}-${Buffer.from(artist + '|' + title).toString('base64').replace(/[/+=]/g, '').slice(0, 30)}`;
+
+          rows.push({
+            id,
+            title,
+            artist,
+            year: year,
+            cover_url: cover,
+            genre: 'all', // will be enriched below
+            popularity,
+            track_count: 0,
+            spotify_url: '',
+            fetched_at: new Date().toISOString(),
+          });
+        }
+
+        // 3. Enrich with genre tags (batch 5 at a time, rate-limited)
+        //    Last.fm album.getTopTags tells us the genre
+        const BATCH = 5;
+        for (let i = 0; i < Math.min(rows.length, 100); i += BATCH) {
+          const batch = rows.slice(i, i + BATCH);
+          const promises = batch.map(async (row) => {
+            try {
+              const tagUrl = `${LASTFM_BASE}?method=album.getTopTags&artist=${encodeURIComponent(row.artist)}&album=${encodeURIComponent(row.title)}&api_key=${LASTFM_KEY}&format=json`;
+              const tagRes = await fetch(tagUrl);
+              const tagData = await tagRes.json();
+              const tags = (tagData?.toptags?.tag || []).map(t => t.name.toLowerCase());
+
+              // Map Last.fm tags to our genre categories
+              const genreMap = {
+                'hip-hop': ['hip-hop','hip hop','rap','trap','hiphop'],
+                'rock': ['rock','classic rock','hard rock','alternative rock','punk rock','grunge'],
+                'pop': ['pop','synth pop','synthpop','dance pop','electropop','k-pop'],
+                'rnb': ['rnb','r&b','rhythm and blues','neo-soul','neo soul'],
+                'electronic': ['electronic','edm','house','techno','ambient','trance','dubstep'],
+                'metal': ['metal','heavy metal','death metal','black metal','thrash metal','progressive metal'],
+                'jazz': ['jazz','smooth jazz','bebop','fusion'],
+                'country': ['country','americana','bluegrass'],
+                'indie': ['indie','indie rock','indie pop','shoegaze','dream pop','post-punk'],
+                'folk': ['folk','singer-songwriter','acoustic','folk rock'],
+                'punk': ['punk','punk rock','post-punk','hardcore','emo'],
+                'soul': ['soul','motown','funk','disco'],
+                'classical': ['classical','orchestra','symphony','baroque'],
+                'blues': ['blues','delta blues','chicago blues'],
+                'reggae': ['reggae','ska','dub'],
+                'latin': ['latin','reggaeton','salsa','bossa nova'],
+              };
+
+              for (const [genre, keywords] of Object.entries(genreMap)) {
+                if (tags.some(t => keywords.some(k => t.includes(k)))) {
+                  row.genre = genre;
+                  break;
+                }
+              }
+            } catch {}
+          });
+          await Promise.all(promises);
+          await new Promise(r => setTimeout(r, 220)); // rate limit
+        }
+
+        // 4. Upsert into Supabase
+        if (rows.length > 0) {
+          const { error } = await supabase
+            .from('cached_albums')
+            .upsert(rows, { onConflict: 'id' });
+
+          if (error) {
+            console.error(`[Seed-Years] ${year}: upsert error:`, error.message);
+          } else {
+            const genreCounts = {};
+            rows.forEach(r => { genreCounts[r.genre] = (genreCounts[r.genre]||0)+1; });
+            console.log(`[Seed-Years] ${year}: ${rows.length} albums cached. Genres:`, genreCounts);
+            grandTotal += rows.length;
+          }
+        }
+
+        // Rate limit between years
+        await new Promise(r => setTimeout(r, 300));
+
+      } catch (e) {
+        console.error(`[Seed-Years] ${year}: error:`, e.message);
+      }
+    }
+
+    console.log(`[Seed-Years] ══════ COMPLETE: ${grandTotal} total albums from ${fromYear}–${toYear} ══════`);
+  })();
+});
+
+// ── Stats endpoint ──────────────────────────────────────────────────────
+app.get('/api/albums/stats', async (req, res) => {
+  try {
+    // Count albums per genre
+    const { data } = await supabase
+      .from('cached_albums')
+      .select('genre');
+
+    const counts = {};
+    (data || []).forEach(r => { counts[r.genre] = (counts[r.genre] || 0) + 1; });
+
+    const total = Object.values(counts).reduce((s, n) => s + n, 0);
+    res.json({ total, genres: counts });
+  } catch (e) {
+    res.json({ total: 0, genres: {} });
+  }
+});
+
+
 
 // ════════════════════════════════════════════════════════════════════════════
 
@@ -955,173 +1395,6 @@ app.get('/api/artists/stats', async (req, res) => {
   } catch { res.json({ total: 0, genres: {} }); }
 });
 
-// ════════════════════════════════════════════════════════════════════════════
-// TOP ALBUMS — Spotify Client Credentials (table: cached_spotify_albums)
-// ════════════════════════════════════════════════════════════════════════════
-// Albums have no popularity on Spotify. We compute:
-//   popularity_score = min(100, round(0.65 * avgTop5TrackPopularity + 0.35 * artistPopularity))
-// Genres come from the artist (primary_genre for filtering).
-
-async function fetchTrackPopularitiesBatch(token, trackIds) {
-  const pops = [];
-  for (let i = 0; i < trackIds.length; i += 50) {
-    const batch = trackIds.slice(i, i + 50);
-    const url = `https://api.spotify.com/v1/tracks?ids=${batch.join(',')}&market=US`;
-    const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    const d = await r.json();
-    for (const t of d.tracks || []) {
-      if (t && t.popularity != null) pops.push(t.popularity);
-    }
-    await new Promise(t => setTimeout(t, 45));
-  }
-  return pops;
-}
-
-async function albumTrackPopularityStats(token, albumId) {
-  const trackIds = [];
-  let next = `https://api.spotify.com/v1/albums/${encodeURIComponent(albumId)}/tracks?limit=50&market=US`;
-  while (next) {
-    const r = await fetch(next, { headers: { Authorization: `Bearer ${token}` } });
-    const d = await r.json();
-    if (!r.ok) break;
-    for (const item of d.items || []) {
-      if (item.id) trackIds.push(item.id);
-    }
-    next = d.next || null;
-    await new Promise(t => setTimeout(t, 35));
-  }
-  if (trackIds.length === 0) return { avgTop5: 0, n: 0 };
-  const pops = await fetchTrackPopularitiesBatch(token, trackIds);
-  pops.sort((a, b) => b - a);
-  const top = pops.slice(0, 5);
-  const avgTop5 = top.length ? Math.round(top.reduce((a, b) => a + b, 0) / top.length) : 0;
-  return { avgTop5, n: pops.length };
-}
-
-function blendAlbumScore(avgTop5, artistPop) {
-  return Math.min(100, Math.round(0.65 * avgTop5 + 0.35 * (artistPop || 0)));
-}
-
-// POST /api/albums/top/seed — requires cached_artists (run POST /api/artists/seed first)
-app.post('/api/albums/top/seed', async (req, res) => {
-  const token = await getSpotifyToken();
-  if (!token) {
-    return res.status(400).json({ error: 'Spotify credentials not set. Add SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET to .env' });
-  }
-
-  console.log('[Top Albums Seed] Starting...');
-  res.json({ message: 'Seeding top albums from Spotify. Requires cached_artists. Check server logs (several minutes).' });
-
-  (async () => {
-    try {
-      const { data: artists, error: arErr } = await supabase
-        .from('cached_artists')
-        .select('id,name,popularity,genres,primary_genre,followers')
-        .order('followers', { ascending: false })
-        .limit(500);
-
-      if (arErr || !artists?.length) {
-        console.error('[Top Albums Seed] No cached_artists. Run POST /api/artists/seed first.');
-        return;
-      }
-
-      const candidates = [];
-      const seenAlbums = new Set();
-
-      outer: for (const ar of artists) {
-        if (candidates.length >= 750) break;
-        let nextUrl = `https://api.spotify.com/v1/artists/${encodeURIComponent(ar.id)}/albums?include_groups=album&market=US&limit=50`;
-        const pairs = [];
-        while (nextUrl) {
-          const r = await fetch(nextUrl, { headers: { Authorization: `Bearer ${token}` } });
-          const d = await r.json();
-          if (!r.ok) break;
-          for (const al of d.items || []) {
-            if (al?.id && !seenAlbums.has(al.id)) {
-              seenAlbums.add(al.id);
-              pairs.push({ album: al, artist: ar });
-            }
-          }
-          nextUrl = d.next || null;
-          await new Promise(t => setTimeout(t, 55));
-        }
-        const sorted = pairs.sort((a, b) => String(b.album.release_date || '').localeCompare(String(a.album.release_date || '')));
-        for (const { album: al, artist: ar } of sorted.slice(0, 3)) {
-          if (candidates.length >= 750) break outer;
-          const { avgTop5, n } = await albumTrackPopularityStats(token, al.id);
-          const score = blendAlbumScore(avgTop5, ar.popularity);
-          const cover = al.images?.[1]?.url || al.images?.[0]?.url || '';
-          candidates.push({
-            id: al.id,
-            title: al.name,
-            artist_id: ar.id,
-            artist_name: ar.name,
-            artist_popularity: ar.popularity || 0,
-            release_date: al.release_date || '',
-            cover_url: cover,
-            genres: ar.genres || [],
-            primary_genre: ar.primary_genre || mapSpotifyGenre(ar.genres),
-            popularity_score: score,
-            track_pop_avg: avgTop5,
-            track_sample_n: n,
-            spotify_url: al.external_urls?.spotify || '',
-            fetched_at: new Date().toISOString(),
-          });
-          await new Promise(t => setTimeout(t, 65));
-        }
-      }
-
-      candidates.sort((a, b) => b.popularity_score - a.popularity_score);
-      const top500 = candidates.slice(0, 500);
-
-      const { error: delErr } = await supabase.from('cached_spotify_albums').delete().gte('popularity_score', -1);
-      if (delErr) console.error('[Top Albums Seed] clear table:', delErr.message);
-
-      for (let i = 0; i < top500.length; i += 50) {
-        const batch = top500.slice(i, i + 50);
-        const { error } = await supabase.from('cached_spotify_albums').upsert(batch, { onConflict: 'id' });
-        if (error) console.error('[Top Albums Seed] upsert:', error.message);
-      }
-
-      console.log(`[Top Albums Seed] Done. Stored ${top500.length} albums.`);
-    } catch (e) {
-      console.error('[Top Albums Seed] error:', e.message);
-    }
-  })();
-});
-
-// GET /api/albums/top/browse?genre=all|rock&sort=popularity|year&page=1&limit=50
-app.get('/api/albums/top/browse', async (req, res) => {
-  try {
-    const genre = (req.query.genre || 'all').toLowerCase();
-    const sort = req.query.sort === 'year' ? 'year' : 'popularity';
-    const page = Math.max(1, parseInt(req.query.page) || 1);
-    const limit = Math.min(100, parseInt(req.query.limit) || 50);
-    const offset = (page - 1) * limit;
-
-    let countQ = supabase.from('cached_spotify_albums').select('*', { count: 'exact', head: true });
-    if (genre !== 'all') countQ = countQ.eq('primary_genre', genre);
-    const { count: totalCount, error: countErr } = await countQ;
-    if (countErr) return res.status(500).json({ error: countErr.message });
-
-    let q = supabase.from('cached_spotify_albums').select('*');
-    if (genre !== 'all') q = q.eq('primary_genre', genre);
-    if (sort === 'year') {
-      q = q.order('release_date', { ascending: false });
-    } else {
-      q = q.order('popularity_score', { ascending: false });
-    }
-
-    const { data, error } = await q.range(offset, offset + limit - 1);
-    if (error) return res.status(500).json({ error: error.message });
-
-    res.json({ albums: data || [], total: totalCount ?? (data || []).length, page, limit, sort, genre });
-  } catch (e) {
-    console.error('Browse top albums error:', e);
-    res.status(500).json({ error: 'Failed to fetch albums' });
-  }
-});
-
 
 // ════════════════════════════════════════════════════════════════════════════
 // STEAM INTEGRATION — Import user's game library with playtime
@@ -1218,15 +1491,6 @@ app.get('/api/steam/library/:steamId', async (req, res) => {
 
 const STEAMSPY_BASE = 'https://steamspy.com/api.php';
 
-function steamSpyOwnerLowEstimate(owners) {
-  if (owners == null) return 0;
-  if (typeof owners === 'number') return owners;
-  const m = String(owners).replace(/,/g, '').match(/(\d+)\s*\.\.\s*(\d+)/);
-  if (m) return Math.round((Number(m[1]) + Number(m[2])) / 2);
-  const one = String(owners).replace(/,/g, '').match(/(\d+)/);
-  return one ? parseInt(one[1], 10) : 0;
-}
-
 const STEAM_GENRE_MAP = {
   'all':       null,
   'action':    'Action',
@@ -1249,15 +1513,14 @@ app.get('/api/games/browse', async (req, res) => {
   try {
     const genre = req.query.genre || 'all';
     const page = Math.max(1, parseInt(req.query.page) || 1);
-    const limit = Math.min(500, parseInt(req.query.limit) || 50);
+    const limit = Math.min(200, parseInt(req.query.limit) || 50);
     const offset = (page - 1) * limit;
-    const wantsRating = req.query.sort === 'rating';
-    let sortCol = wantsRating ? 'positive_ratio' : 'owners';
+    const sort = req.query.sort === 'rating' ? 'positive_ratio' : 'owners';
 
     let query = supabase
       .from('cached_games')
       .select('*')
-      .order(sortCol, { ascending: false })
+      .order(sort, { ascending: false })
       .range(offset, offset + limit - 1);
 
     if (genre !== 'all') query = query.contains('genres', [genre]);
@@ -1267,17 +1530,7 @@ app.get('/api/games/browse', async (req, res) => {
     if (genre !== 'all') countQ = countQ.contains('genres', [genre]);
     const { count: totalCount } = await countQ;
 
-    let { data, error } = await query;
-    if (error && wantsRating && /positive_ratio/i.test(error.message || '')) {
-      sortCol = 'score';
-      query = supabase
-        .from('cached_games')
-        .select('*')
-        .order(sortCol, { ascending: false })
-        .range(offset, offset + limit - 1);
-      if (genre !== 'all') query = query.contains('genres', [genre]);
-      ({ data, error } = await query);
-    }
+    const { data, error } = await query;
     if (error) return res.status(500).json({ error: 'Database error' });
 
     res.json({ games: data || [], total: totalCount || 0, page, limit });
@@ -1324,9 +1577,7 @@ app.post('/api/games/seed', async (req, res) => {
           const gRes = await fetch(`${STEAMSPY_BASE}?request=genre&genre=${encodeURIComponent(genre)}`);
           const gData = await gRes.json();
           let added = 0;
-          const maxNewPerGenre = 350;
           for (const [appid, g] of Object.entries(gData || {})) {
-            if (added >= maxNewPerGenre) break;
             if (!allGames.has(appid)) {
               allGames.set(appid, { ...g, appid: parseInt(appid) });
               added++;
@@ -1335,16 +1586,6 @@ app.post('/api/games/seed', async (req, res) => {
           console.log(`[Game Seed] ${genre}: +${added} new (${allGames.size} total)`);
         } catch {}
         await new Promise(r => setTimeout(r, 1500)); // SteamSpy rate limit
-      }
-
-      const maxGames = 3500;
-      if (allGames.size > maxGames) {
-        const ranked = [...allGames.entries()].sort(
-          (a, b) => steamSpyOwnerLowEstimate(b[1].owners) - steamSpyOwnerLowEstimate(a[1].owners)
-        );
-        allGames.clear();
-        ranked.slice(0, maxGames).forEach(([k, v]) => allGames.set(k, v));
-        console.log(`[Game Seed] Trimmed to top ${maxGames} by estimated owners`);
       }
 
       // 4. Enrich each game with details (tags/genres) — batch by appid
@@ -1393,36 +1634,10 @@ app.post('/api/games/seed', async (req, res) => {
       console.log(`[Game Seed] Saving ${rows.length} games to database...`);
       let saved = 0;
       for (let i = 0; i < rows.length; i += 100) {
-        let batch = rows.slice(i, i + 100);
-        let attempt = 0;
-        while (attempt < 12) {
-          attempt++;
-          const { error } = await supabase.from('cached_games').upsert(batch, { onConflict: 'id' });
-          if (!error) {
-            saved += batch.length;
-            break;
-          }
-          const msg = error.message || '';
-          if (/positive_ratio/i.test(msg) && batch[0] && 'positive_ratio' in batch[0]) {
-            batch = batch.map(({ positive_ratio, total_reviews, price, ...rest }) => ({
-              ...rest,
-              score: positive_ratio,
-            }));
-            continue;
-          }
-          const colM = msg.match(/'(\w+)' column/);
-          if (colM && batch[0]) {
-            const bad = colM[1];
-            batch = batch.map((row) => {
-              const n = { ...row };
-              delete n[bad];
-              return n;
-            });
-            continue;
-          }
-          console.error('[Game Seed] Upsert error:', msg);
-          break;
-        }
+        const batch = rows.slice(i, i + 100);
+        const { error } = await supabase.from('cached_games').upsert(batch, { onConflict: 'id' });
+        if (error) console.error('[Game Seed] Upsert error:', error.message);
+        else saved += batch.length;
       }
 
       console.log(`[Game Seed] ══════ COMPLETE: ${saved} games saved ══════`);
@@ -1437,6 +1652,188 @@ app.get('/api/games/stats', async (req, res) => {
     const { count } = await supabase.from('cached_games').select('*', { count: 'exact', head: true });
     res.json({ total: count || 0 });
   } catch { res.json({ total: 0 }); }
+});
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// TOP 500 ALBUMS — Spotify-derived popularity scoring
+// ════════════════════════════════════════════════════════════════════════════
+/*
+ * STRATEGY:
+ * 1. Search Spotify for top albums across 15+ genre keywords
+ * 2. Each album has: album.popularity (0-100) + we fetch artist.popularity
+ * 3. Score = 0.6 * album_popularity + 0.4 * artist_popularity
+ * 4. Deduplicate, sort by score, store top 500 in cached_top_albums
+ * 5. Users browse from your DB — zero Spotify calls per user
+ *
+ * Accuracy: Good for current popularity. Not historical sales charts.
+ * Storage: 500 albums × ~600 bytes = ~300KB. Tiny.
+ */
+
+const TOP_ALBUM_SEARCHES = [
+  'year:2024', 'year:2023', 'year:2022', 'year:2021', 'year:2020',
+  'year:2019', 'year:2018', 'year:2017', 'year:2015', 'year:2010',
+  'year:2005', 'year:2000', 'year:1995', 'year:1990', 'year:1985',
+  'genre:rock', 'genre:pop', 'genre:hip-hop', 'genre:r&b',
+  'genre:electronic', 'genre:metal', 'genre:indie', 'genre:country',
+  'genre:jazz', 'genre:latin', 'genre:k-pop', 'genre:classical',
+];
+
+// Browse top albums from cache
+app.get('/api/albums/top/browse', async (req, res) => {
+  try {
+    const genre = req.query.genre || 'all';
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(200, parseInt(req.query.limit) || 50);
+    const offset = (page - 1) * limit;
+    const sort = req.query.sort === 'release' ? 'release_year' : 'score';
+
+    let query = supabase
+      .from('cached_top_albums')
+      .select('*')
+      .order(sort, { ascending: sort === 'release_year' ? false : false })
+      .range(offset, offset + limit - 1);
+
+    if (genre !== 'all') query = query.eq('primary_genre', genre);
+
+    let countQ = supabase.from('cached_top_albums').select('*', { count: 'exact', head: true });
+    if (genre !== 'all') countQ = countQ.eq('primary_genre', genre);
+    const { count: totalCount } = await countQ;
+
+    const { data, error } = await query;
+    if (error) return res.status(500).json({ error: 'Database error' });
+
+    res.json({ albums: data || [], total: totalCount || 0, page, limit });
+  } catch (e) {
+    console.error('Top albums browse error:', e);
+    res.status(500).json({ error: 'Failed to fetch top albums' });
+  }
+});
+
+// Seed top albums from Spotify
+app.post('/api/albums/top/seed', async (req, res) => {
+  const token = await getSpotifyToken();
+  if (!token) return res.status(400).json({ error: 'Spotify credentials not set' });
+
+  console.log('[Top Albums] Starting seed...');
+  res.json({ message: 'Seeding top albums from Spotify in background. Check server logs.' });
+
+  (async () => {
+    try {
+      const albumMap = new Map(); // spotify_id → album data
+
+      // Phase 1: Search albums across genres and years
+      console.log('[Top Albums] Phase 1: Searching Spotify...');
+      for (const query of TOP_ALBUM_SEARCHES) {
+        try {
+          // Spotify search returns max 50 per call, sorted by relevance (popularity)
+          const url = `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=album&limit=50&market=US`;
+          const r = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+          const data = await r.json();
+          const albums = data?.albums?.items || [];
+
+          for (const a of albums) {
+            if (albumMap.has(a.id)) continue;
+            if (a.album_type !== 'album' || (a.total_tracks || 0) < 5) continue;
+
+            albumMap.set(a.id, {
+              id: a.id,
+              title: a.name,
+              artist: (a.artists || []).map(ar => ar.name).join(', '),
+              artist_id: a.artists?.[0]?.id || '',
+              album_popularity: a.popularity || 0,
+              release_year: a.release_date ? parseInt(a.release_date.slice(0, 4)) : null,
+              cover_url: a.images?.[1]?.url || a.images?.[0]?.url || '',
+              spotify_url: a.external_urls?.spotify || '',
+              track_count: a.total_tracks || 0,
+            });
+          }
+          console.log(`[Top Albums] Searched "${query}": ${albums.length} results (${albumMap.size} unique total)`);
+        } catch (e) {
+          console.error(`[Top Albums] Search error for "${query}":`, e.message);
+        }
+        await new Promise(r => setTimeout(r, 150));
+      }
+
+      console.log(`[Top Albums] Phase 1 complete: ${albumMap.size} unique albums`);
+
+      // Phase 2: Batch-fetch artist popularities (50 artists per call)
+      console.log('[Top Albums] Phase 2: Fetching artist popularities...');
+      const artistIds = [...new Set([...albumMap.values()].map(a => a.artist_id).filter(Boolean))];
+      const artistPop = {};
+
+      for (let i = 0; i < artistIds.length; i += 50) {
+        const batch = artistIds.slice(i, i + 50);
+        try {
+          const url = `https://api.spotify.com/v1/artists?ids=${batch.join(',')}`;
+          const r = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+          const data = await r.json();
+          for (const ar of (data?.artists || [])) {
+            if (ar) {
+              artistPop[ar.id] = {
+                popularity: ar.popularity || 0,
+                genres: ar.genres || [],
+              };
+            }
+          }
+        } catch {}
+        await new Promise(r => setTimeout(r, 100));
+      }
+      console.log(`[Top Albums] Phase 2 complete: ${Object.keys(artistPop).length} artist popularities fetched`);
+
+      // Phase 3: Compute scores and assign genres
+      console.log('[Top Albums] Phase 3: Computing scores...');
+      const rows = [];
+      for (const a of albumMap.values()) {
+        const ap = artistPop[a.artist_id] || { popularity: 0, genres: [] };
+        const score = Math.round(a.album_popularity * 0.6 + ap.popularity * 0.4);
+
+        // Map artist genres to our categories
+        const genre = mapSpotifyGenre(ap.genres);
+
+        rows.push({
+          id: `sp-${a.id}`,
+          spotify_id: a.id,
+          title: a.title,
+          artist: a.artist,
+          release_year: a.release_year,
+          cover_url: a.cover_url,
+          spotify_url: a.spotify_url,
+          track_count: a.track_count,
+          album_popularity: a.album_popularity,
+          artist_popularity: ap.popularity,
+          score,
+          primary_genre: genre,
+          genres: ap.genres.slice(0, 5),
+          fetched_at: new Date().toISOString(),
+        });
+      }
+
+      // Sort by score, keep top 500
+      rows.sort((a, b) => b.score - a.score);
+      const top500 = rows.slice(0, 500);
+
+      // Phase 4: Upsert into Supabase
+      console.log(`[Top Albums] Phase 4: Saving top ${top500.length} albums...`);
+      let saved = 0;
+      for (let i = 0; i < top500.length; i += 100) {
+        const batch = top500.slice(i, i + 100);
+        const { error } = await supabase.from('cached_top_albums').upsert(batch, { onConflict: 'id' });
+        if (error) console.error('[Top Albums] Upsert error:', error.message);
+        else saved += batch.length;
+      }
+
+      // Genre breakdown
+      const genreCounts = {};
+      top500.forEach(r => { genreCounts[r.primary_genre] = (genreCounts[r.primary_genre] || 0) + 1; });
+
+      console.log(`[Top Albums] ══════ COMPLETE: ${saved} albums saved ══════`);
+      console.log(`[Top Albums] Score range: ${top500[0]?.score}–${top500[top500.length-1]?.score}`);
+      console.log(`[Top Albums] Genres:`, genreCounts);
+    } catch (e) {
+      console.error('[Top Albums] Fatal error:', e.message);
+    }
+  })();
 });
 
 

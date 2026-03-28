@@ -68,6 +68,7 @@ create index if not exists idx_spotify_albums_date on public.cached_spotify_albu
 
 grant select on table public.cached_spotify_albums to anon, authenticated, service_role;
 grant insert, update, delete on table public.cached_spotify_albums to service_role;
+grant all privileges on table public.cached_spotify_albums to service_role;
 alter table public.cached_spotify_albums disable row level security;
 
 -- ─── Libraries ────────────────────────────────────────────────────────────────
