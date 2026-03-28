@@ -2361,6 +2361,144 @@ function Top500GamesPage({ onAddToLibrary, libraryItems }) {
   );
 }
 
+/* ─── Top 500 Albums — Spotify cache (track popularity + artist blend) ──── */
+const ALBUM_TOP_GENRES = ['all','rock','hip-hop','pop','rnb','electronic','metal','indie','country','latin','k-pop','jazz'];
+const albumTopGenreLabel = (g) => g === 'all' ? 'All' : g === 'rnb' ? 'R&B' : g === 'k-pop' ? 'K-Pop' : g.charAt(0).toUpperCase() + g.slice(1).replace('-', ' ');
+
+function Top500AlbumsPage({ onAddAlbum, libraryItems }) {
+  const [albums, setAlbums] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [genre, setGenre] = useState('all');
+  const [sortBy, setSortBy] = useState('popularity');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [err, setErr] = useState('');
+
+  const existingIds = useMemo(() => new Set((libraryItems || []).map(i => String(i.ext_id || ''))), [libraryItems]);
+
+  const fetchPage = async (g, s, p, append) => {
+    if (!append) { setLoading(true); setErr(''); } else setLoadingMore(true);
+    try {
+      const r = await fetch(`${API_BASE}/api/albums/top/browse?genre=${encodeURIComponent(g)}&sort=${encodeURIComponent(s)}&page=${p}&limit=50`);
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error || 'Failed to load albums');
+      const rows = d.albums || [];
+      if (append) setAlbums(prev => [...prev, ...rows]);
+      else setAlbums(rows);
+      setTotal(typeof d.total === 'number' ? d.total : rows.length);
+    } catch (e) {
+      if (!append) { setErr(e.message || 'Error'); setAlbums([]); }
+    }
+    setLoading(false);
+    setLoadingMore(false);
+  };
+
+  useEffect(() => { setPage(1); fetchPage(genre, sortBy, 1, false); }, [genre, sortBy]);
+
+  const loadMore = () => {
+    const np = page + 1;
+    setPage(np);
+    fetchPage(genre, sortBy, np, true);
+  };
+
+  const addAlbum = (a) => {
+    onAddAlbum && onAddAlbum({
+      ext_id: `spotify-album-${a.id}`,
+      title: a.title,
+      subtitle: a.artist_name,
+      cover_url: a.cover_url || '',
+      metadata: {
+        kind: 'album',
+        spotify_album_id: a.id,
+        spotify_url: a.spotify_url || '',
+        release_date: a.release_date || '',
+        genres: a.genres || [],
+        primary_genre: a.primary_genre || '',
+        popularity_score: a.popularity_score,
+        track_pop_avg: a.track_pop_avg
+      }
+    });
+  };
+
+  return (
+    <div className="top300-page">
+      <div className="top300-header">
+        <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: '4px 0' }}>
+          <div className="top300-title">Top 500 Albums</div>
+          <span className="top300-sub">
+            {total > 0 ? total.toLocaleString() : albums.length} albums · Spotify-derived score (tracks + artist)
+          </span>
+        </div>
+      </div>
+
+      <div className="artist-sort-bar">
+        <span className="artist-sort-label">Genre</span>
+        <select className="browse-year-select" value={genre} onChange={e => setGenre(e.target.value)}>
+          {ALBUM_TOP_GENRES.map(g => <option key={g} value={g}>{albumTopGenreLabel(g)}</option>)}
+        </select>
+        <span className="artist-sort-label">Sort</span>
+        <select className="browse-year-select" value={sortBy} onChange={e => setSortBy(e.target.value)}>
+          <option value="popularity">Popularity score</option>
+          <option value="year">Release date</option>
+        </select>
+      </div>
+
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '60px 0' }}>
+          <div className="loading-dots"><span /><span /><span /></div>
+          <div style={{ fontSize: 12, color: 'var(--text4)', marginTop: 14, letterSpacing: '.08em' }}>Loading albums…</div>
+        </div>
+      ) : err ? (
+        <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text3)', fontSize: 14, lineHeight: 1.8 }}>
+          {err}<br />
+          <span style={{ fontSize: 12, color: 'var(--text4)' }}>Run <code style={{ background: 'var(--bg3)', padding: '2px 6px', borderRadius: 3 }}>POST /api/artists/seed</code> then <code style={{ background: 'var(--bg3)', padding: '2px 6px', borderRadius: 3 }}>POST /api/albums/top/seed</code></span>
+        </div>
+      ) : albums.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text3)', fontSize: 14, lineHeight: 1.8 }}>
+          No albums in cache yet.<br />
+          <code style={{ fontSize: 11, color: 'var(--text4)', background: 'var(--bg3)', padding: '4px 8px', borderRadius: 3 }}>POST /api/albums/top/seed</code>
+        </div>
+      ) : (
+        <>
+          <div className="top300-grid" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(148px,1fr))' }}>
+            {albums.map((a, i) => {
+              const ext = `spotify-album-${a.id}`;
+              const inLib = existingIds.has(ext);
+              const rank = i + 1;
+              return (
+                <div key={a.id + '-' + i} className="top300-item" style={{ animationDelay: ((i % 50) * 0.02) + 's' }}>
+                  <div className="top300-rank">#{rank}</div>
+                  {inLib ? <div className="top300-added" title="In library">{'\u2713'}</div>
+                    : <button className="top300-add-btn" title="Add to library" onClick={e => { e.stopPropagation(); addAlbum(a); }}>+</button>}
+                  <div className="top300-poster" style={{ aspectRatio: '1' }}>
+                    <img src={a.cover_url} alt={a.title} loading="lazy" onError={e => { e.target.style.visibility = 'hidden'; }} />
+                  </div>
+                  <div className="top300-info">
+                    <div className="top300-name">{a.title}</div>
+                    <div className="top300-meta">
+                      <span>{a.artist_name}</span>
+                      <span style={{ color: 'var(--gold-dim)', fontSize: 10 }}>★ {a.popularity_score}</span>
+                    </div>
+                    <div className="top300-meta" style={{ fontSize: 10, color: 'var(--text4)' }}>{(a.release_date || '').slice(0, 4)} · {a.primary_genre || '—'}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {albums.length < total && (
+            <div className="top300-load-more">
+              <button className="top300-load-btn" onClick={loadMore} disabled={loadingMore}>
+                {loadingMore ? 'Loading…' : `Load more (${albums.length}/${total})`}
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 /* ─── Browse Movies Page — TMDB Discover ──────────────────────────────────── */
 const TMDB_GENRES = [
   {id:0,name:'All'},{id:28,name:'Action'},{id:12,name:'Adventure'},{id:16,name:'Animation'},
@@ -3329,6 +3467,7 @@ function App() {
   const [showTop300,setShowTop300] = useState(false);
   const [topShows,setTopShows] = useState(false);
   const [topGames,setTopGames] = useState(false);
+  const [topAlbums,setTopAlbums] = useState(false);
   const [browseMovies,setBrowseMovies] = useState(false);
   const [browseArtists,setBrowseArtists] = useState(false);
   const [browseGames,setBrowseGames] = useState(false);
@@ -3449,6 +3588,7 @@ function App() {
     setShowTop300(false);
     setTopShows(false);
     setTopGames(false);
+    setTopAlbums(false);
     setBrowseMovies(false);
     setBrowseArtists(false);
     setBrowseGames(false);
@@ -3463,6 +3603,7 @@ function App() {
     setShowTop300(true);
     setTopShows(false);
     setTopGames(false);
+    setTopAlbums(false);
     setCurrentPage(null);
     setActiveIcon(null);
     setNavOpen(false);
@@ -3475,6 +3616,7 @@ function App() {
     setShowTop300(false);
     setTopShows(true);
     setTopGames(false);
+    setTopAlbums(false);
     setCurrentPage(null);
     setActiveIcon(null);
     setNavOpen(false);
@@ -3487,6 +3629,20 @@ function App() {
     setShowTop300(false);
     setTopShows(false);
     setTopGames(true);
+    setTopAlbums(false);
+    setCurrentPage(null);
+    setActiveIcon(null);
+    setNavOpen(false);
+  };
+
+  const handleOpenTopAlbums500 = () => {
+    setBrowseMovies(false);
+    setBrowseArtists(false);
+    setBrowseGames(false);
+    setShowTop300(false);
+    setTopShows(false);
+    setTopGames(false);
+    setTopAlbums(true);
     setCurrentPage(null);
     setActiveIcon(null);
     setNavOpen(false);
@@ -3574,9 +3730,9 @@ function App() {
     showT(`"${game.title}" added to Games`);
   };
 
-  const handleBrowseMovies = ()=>{ setBrowseMovies(true);setBrowseArtists(false);setBrowseGames(false);setShowTop300(false);setTopShows(false);setTopGames(false);setCurrentPage(null);setActiveIcon(null);setNavOpen(false); };
-  const handleBrowseArtists = ()=>{ setBrowseArtists(true);setBrowseMovies(false);setBrowseGames(false);setShowTop300(false);setTopShows(false);setTopGames(false);setCurrentPage(null);setActiveIcon(null);setNavOpen(false); };
-  const handleBrowseGames = ()=>{ setBrowseGames(true);setBrowseMovies(false);setBrowseArtists(false);setShowTop300(false);setTopShows(false);setTopGames(false);setCurrentPage(null);setActiveIcon(null);setNavOpen(false); };
+  const handleBrowseMovies = ()=>{ setBrowseMovies(true);setBrowseArtists(false);setBrowseGames(false);setShowTop300(false);setTopShows(false);setTopGames(false);setTopAlbums(false);setCurrentPage(null);setActiveIcon(null);setNavOpen(false); };
+  const handleBrowseArtists = ()=>{ setBrowseArtists(true);setBrowseMovies(false);setBrowseGames(false);setShowTop300(false);setTopShows(false);setTopGames(false);setTopAlbums(false);setCurrentPage(null);setActiveIcon(null);setNavOpen(false); };
+  const handleBrowseGames = ()=>{ setBrowseGames(true);setBrowseMovies(false);setBrowseArtists(false);setShowTop300(false);setTopShows(false);setTopGames(false);setTopAlbums(false);setCurrentPage(null);setActiveIcon(null);setNavOpen(false); };
 
   const [navOpen, setNavOpen] = useState(false);
 
@@ -3620,6 +3776,10 @@ function App() {
             <div className="nav-drawer-icon">🎯</div>
             <span>Top 500 Games</span>
           </div>
+          <div className={`nav-drawer-item ${topAlbums?'active':''}`} onClick={()=>{handleOpenTopAlbums500();setNavOpen(false);}}>
+            <div className="nav-drawer-icon">💿</div>
+            <span>Top 500 Albums</span>
+          </div>
         </div>
         <div className="nav-drawer-divider"/>
         <div className="nav-drawer-section">
@@ -3645,7 +3805,7 @@ function App() {
             <button className="hamburger-btn" onClick={()=>setNavOpen(!navOpen)} title="Menu">
               <span/><span/><span/>
             </button>
-            {(currentPage || showTop300 || topShows || topGames || browseMovies || browseArtists || browseGames) && <button onClick={goHome} style={{background:'none',border:'none',color:'var(--gold)',cursor:'pointer',padding:'4px 8px 4px 0',fontSize:'18px',lineHeight:1,opacity:.6,transition:'opacity .2s'}} onMouseEnter={e=>e.target.style.opacity=1} onMouseLeave={e=>e.target.style.opacity=.6}>‹</button>}
+            {(currentPage || showTop300 || topShows || topGames || topAlbums || browseMovies || browseArtists || browseGames) && <button onClick={goHome} style={{background:'none',border:'none',color:'var(--gold)',cursor:'pointer',padding:'4px 8px 4px 0',fontSize:'18px',lineHeight:1,opacity:.6,transition:'opacity .2s'}} onMouseEnter={e=>e.target.style.opacity=1} onMouseLeave={e=>e.target.style.opacity=.6}>‹</button>}
             <div className="brand" onClick={goHome}>Shelf</div>
           </div>
           <div className="topbar-right">
@@ -3667,7 +3827,7 @@ function App() {
           </div>
         </div>
 
-        {demoMode && !currentPage && !showTop300 && !topShows && !topGames && !browseMovies && !browseArtists && !browseGames && (
+        {demoMode && !currentPage && !showTop300 && !topShows && !topGames && !topAlbums && !browseMovies && !browseArtists && !browseGames && (
           <div className="api-notice">
             <strong>{fileMode ? 'Local file mode' : 'Demo mode'}</strong>&nbsp;
             {fileMode
@@ -3688,6 +3848,8 @@ function App() {
           <Top500GamesPage onAddToLibrary={handleAddFromGames} libraryItems={gamesLibItems}/>
         ) : topShows ? (
           <Top500ShowsPage onAddToLibrary={handleAddFromTop300} libraryItems={filmsLibItems}/>
+        ) : topAlbums ? (
+          <Top500AlbumsPage onAddAlbum={handleAddFromTopArtists} libraryItems={musicLibItems}/>
         ) : showTop300 ? (
           <Top300Page libraryItems={filmsLibItems} onAddToLibrary={handleAddFromTop300}/>
         ) : currentPage && currentLib ? (

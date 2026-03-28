@@ -955,6 +955,173 @@ app.get('/api/artists/stats', async (req, res) => {
   } catch { res.json({ total: 0, genres: {} }); }
 });
 
+// ════════════════════════════════════════════════════════════════════════════
+// TOP ALBUMS — Spotify Client Credentials (table: cached_spotify_albums)
+// ════════════════════════════════════════════════════════════════════════════
+// Albums have no popularity on Spotify. We compute:
+//   popularity_score = min(100, round(0.65 * avgTop5TrackPopularity + 0.35 * artistPopularity))
+// Genres come from the artist (primary_genre for filtering).
+
+async function fetchTrackPopularitiesBatch(token, trackIds) {
+  const pops = [];
+  for (let i = 0; i < trackIds.length; i += 50) {
+    const batch = trackIds.slice(i, i + 50);
+    const url = `https://api.spotify.com/v1/tracks?ids=${batch.join(',')}&market=US`;
+    const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    const d = await r.json();
+    for (const t of d.tracks || []) {
+      if (t && t.popularity != null) pops.push(t.popularity);
+    }
+    await new Promise(t => setTimeout(t, 45));
+  }
+  return pops;
+}
+
+async function albumTrackPopularityStats(token, albumId) {
+  const trackIds = [];
+  let next = `https://api.spotify.com/v1/albums/${encodeURIComponent(albumId)}/tracks?limit=50&market=US`;
+  while (next) {
+    const r = await fetch(next, { headers: { Authorization: `Bearer ${token}` } });
+    const d = await r.json();
+    if (!r.ok) break;
+    for (const item of d.items || []) {
+      if (item.id) trackIds.push(item.id);
+    }
+    next = d.next || null;
+    await new Promise(t => setTimeout(t, 35));
+  }
+  if (trackIds.length === 0) return { avgTop5: 0, n: 0 };
+  const pops = await fetchTrackPopularitiesBatch(token, trackIds);
+  pops.sort((a, b) => b - a);
+  const top = pops.slice(0, 5);
+  const avgTop5 = top.length ? Math.round(top.reduce((a, b) => a + b, 0) / top.length) : 0;
+  return { avgTop5, n: pops.length };
+}
+
+function blendAlbumScore(avgTop5, artistPop) {
+  return Math.min(100, Math.round(0.65 * avgTop5 + 0.35 * (artistPop || 0)));
+}
+
+// POST /api/albums/top/seed — requires cached_artists (run POST /api/artists/seed first)
+app.post('/api/albums/top/seed', async (req, res) => {
+  const token = await getSpotifyToken();
+  if (!token) {
+    return res.status(400).json({ error: 'Spotify credentials not set. Add SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET to .env' });
+  }
+
+  console.log('[Top Albums Seed] Starting...');
+  res.json({ message: 'Seeding top albums from Spotify. Requires cached_artists. Check server logs (several minutes).' });
+
+  (async () => {
+    try {
+      const { data: artists, error: arErr } = await supabase
+        .from('cached_artists')
+        .select('id,name,popularity,genres,primary_genre,followers')
+        .order('followers', { ascending: false })
+        .limit(500);
+
+      if (arErr || !artists?.length) {
+        console.error('[Top Albums Seed] No cached_artists. Run POST /api/artists/seed first.');
+        return;
+      }
+
+      const candidates = [];
+      const seenAlbums = new Set();
+
+      outer: for (const ar of artists) {
+        if (candidates.length >= 750) break;
+        let nextUrl = `https://api.spotify.com/v1/artists/${encodeURIComponent(ar.id)}/albums?include_groups=album&market=US&limit=50`;
+        const pairs = [];
+        while (nextUrl) {
+          const r = await fetch(nextUrl, { headers: { Authorization: `Bearer ${token}` } });
+          const d = await r.json();
+          if (!r.ok) break;
+          for (const al of d.items || []) {
+            if (al?.id && !seenAlbums.has(al.id)) {
+              seenAlbums.add(al.id);
+              pairs.push({ album: al, artist: ar });
+            }
+          }
+          nextUrl = d.next || null;
+          await new Promise(t => setTimeout(t, 55));
+        }
+        const sorted = pairs.sort((a, b) => String(b.album.release_date || '').localeCompare(String(a.album.release_date || '')));
+        for (const { album: al, artist: ar } of sorted.slice(0, 3)) {
+          if (candidates.length >= 750) break outer;
+          const { avgTop5, n } = await albumTrackPopularityStats(token, al.id);
+          const score = blendAlbumScore(avgTop5, ar.popularity);
+          const cover = al.images?.[1]?.url || al.images?.[0]?.url || '';
+          candidates.push({
+            id: al.id,
+            title: al.name,
+            artist_id: ar.id,
+            artist_name: ar.name,
+            artist_popularity: ar.popularity || 0,
+            release_date: al.release_date || '',
+            cover_url: cover,
+            genres: ar.genres || [],
+            primary_genre: ar.primary_genre || mapSpotifyGenre(ar.genres),
+            popularity_score: score,
+            track_pop_avg: avgTop5,
+            track_sample_n: n,
+            spotify_url: al.external_urls?.spotify || '',
+            fetched_at: new Date().toISOString(),
+          });
+          await new Promise(t => setTimeout(t, 65));
+        }
+      }
+
+      candidates.sort((a, b) => b.popularity_score - a.popularity_score);
+      const top500 = candidates.slice(0, 500);
+
+      const { error: delErr } = await supabase.from('cached_spotify_albums').delete().gte('popularity_score', -1);
+      if (delErr) console.error('[Top Albums Seed] clear table:', delErr.message);
+
+      for (let i = 0; i < top500.length; i += 50) {
+        const batch = top500.slice(i, i + 50);
+        const { error } = await supabase.from('cached_spotify_albums').upsert(batch, { onConflict: 'id' });
+        if (error) console.error('[Top Albums Seed] upsert:', error.message);
+      }
+
+      console.log(`[Top Albums Seed] Done. Stored ${top500.length} albums.`);
+    } catch (e) {
+      console.error('[Top Albums Seed] error:', e.message);
+    }
+  })();
+});
+
+// GET /api/albums/top/browse?genre=all|rock&sort=popularity|year&page=1&limit=50
+app.get('/api/albums/top/browse', async (req, res) => {
+  try {
+    const genre = (req.query.genre || 'all').toLowerCase();
+    const sort = req.query.sort === 'year' ? 'year' : 'popularity';
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, parseInt(req.query.limit) || 50);
+    const offset = (page - 1) * limit;
+
+    let countQ = supabase.from('cached_spotify_albums').select('*', { count: 'exact', head: true });
+    if (genre !== 'all') countQ = countQ.eq('primary_genre', genre);
+    const { count: totalCount, error: countErr } = await countQ;
+    if (countErr) return res.status(500).json({ error: countErr.message });
+
+    let q = supabase.from('cached_spotify_albums').select('*');
+    if (genre !== 'all') q = q.eq('primary_genre', genre);
+    if (sort === 'year') {
+      q = q.order('release_date', { ascending: false });
+    } else {
+      q = q.order('popularity_score', { ascending: false });
+    }
+
+    const { data, error } = await q.range(offset, offset + limit - 1);
+    if (error) return res.status(500).json({ error: error.message });
+
+    res.json({ albums: data || [], total: totalCount ?? (data || []).length, page, limit, sort, genre });
+  } catch (e) {
+    console.error('Browse top albums error:', e);
+    res.status(500).json({ error: 'Failed to fetch albums' });
+  }
+});
+
 
 // ════════════════════════════════════════════════════════════════════════════
 // STEAM INTEGRATION — Import user's game library with playtime

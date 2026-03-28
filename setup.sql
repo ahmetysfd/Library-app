@@ -86,6 +86,33 @@ create index if not exists idx_games_owners on public.cached_games(owners desc);
 create index if not exists idx_games_rating on public.cached_games(positive_ratio desc);
 create index if not exists idx_games_genres on public.cached_games using gin(genres);
 
+-- ─── 2d. Cached Spotify albums (Top 500 — scored from track popularity + artist) ─
+create table if not exists public.cached_spotify_albums (
+  id                text primary key,
+  title             text not null,
+  artist_id         text not null,
+  artist_name       text not null,
+  artist_popularity smallint default 0,
+  release_date      text,
+  cover_url         text,
+  genres            text[] default '{}',
+  primary_genre     text default 'other',
+  popularity_score  smallint default 0,
+  track_pop_avg     smallint default 0,
+  track_sample_n    integer default 0,
+  spotify_url       text,
+  fetched_at        timestamptz default now()
+);
+
+create index if not exists idx_spotify_albums_score on public.cached_spotify_albums(popularity_score desc);
+create index if not exists idx_spotify_albums_genre on public.cached_spotify_albums(primary_genre);
+create index if not exists idx_spotify_albums_date on public.cached_spotify_albums(release_date desc);
+
+-- PostgREST / service_role must be able to read-write this cache (avoid 42501 permission denied)
+grant select on table public.cached_spotify_albums to anon, authenticated, service_role;
+grant insert, update, delete on table public.cached_spotify_albums to service_role;
+alter table public.cached_spotify_albums disable row level security;
+
 -- ─── 3. Libraries ────────────────────────────────────────────────────────────
 create table if not exists public.libraries (
   id         uuid primary key default uuid_generate_v4(),
@@ -316,5 +343,6 @@ drop table if exists public.cached_albums cascade;
 -- Views: user_friends, activity_feed, user_stats
 --
 -- Next: add TMDB + Spotify + Supabase keys to .env, run node server.js,
---       seed games POST /api/games/seed if you use Browse / Top Games.
+--       seed artists POST /api/artists/seed, then albums POST /api/albums/top/seed,
+--       seed games POST /api/games/seed for Browse / Top Games.
 -- ============================================================
