@@ -23,39 +23,7 @@ create table if not exists public.users (
 create index if not exists idx_users_username on public.users(username);
 create index if not exists idx_users_email    on public.users(email);
 
--- ─── 2. Cached Albums (Last.fm → your DB → users read from here) ─────────────
--- This is the album browse cache. Server seeds it once from Last.fm API.
--- ~500 bytes per row. 16,000 albums = ~8MB. Tiny.
-create table if not exists public.cached_albums (
-  id            text primary key,
-  title         text not null,
-  artist        text not null,
-  year          smallint,
-  cover_url     text,
-  genre         text not null default 'unknown',
-  popularity    integer default 0,
-  track_count   smallint default 0,
-  spotify_url   text,
-  fetched_at    timestamptz default now()
-);
-
--- If table already exists but popularity is smallint, fix it:
-DO $$ 
-BEGIN
-  IF EXISTS (
-    SELECT 1 FROM information_schema.columns 
-    WHERE table_name = 'cached_albums' AND column_name = 'popularity' AND data_type = 'smallint'
-  ) THEN
-    ALTER TABLE public.cached_albums ALTER COLUMN popularity TYPE integer USING popularity::integer;
-    RAISE NOTICE 'Fixed: popularity column upgraded to integer';
-  END IF;
-END $$;
-
-create index if not exists idx_cached_albums_genre on public.cached_albums(genre);
-create index if not exists idx_cached_albums_pop   on public.cached_albums(popularity desc);
-create index if not exists idx_cached_genre_pop    on public.cached_albums(genre, popularity desc);
-
--- ─── 2b. Cached Artists (Spotify data — top 2000 worldwide) ──────────────────
+-- ─── 2. Cached Artists (Spotify data — top 2000 worldwide) ──────────────────
 create table if not exists public.cached_artists (
   id            text primary key,
   name          text not null,
@@ -91,30 +59,6 @@ create index if not exists idx_games_owners on public.cached_games(owners desc);
 create index if not exists idx_games_rating on public.cached_games(positive_ratio desc);
 create index if not exists idx_games_genres on public.cached_games using gin(genres);
 
--- ─── 2d. Cached Top Albums (Spotify-scored top 500) ──────────────────────────
-create table if not exists public.cached_top_albums (
-  id                text primary key,
-  spotify_id        text,
-  title             text not null,
-  artist            text not null,
-  release_year      smallint,
-  cover_url         text,
-  spotify_url       text,
-  track_count       smallint default 0,
-  album_popularity  smallint default 0,
-  artist_popularity smallint default 0,
-  score             smallint default 0,
-  primary_genre     text default 'other',
-  genres            text[] default '{}',
-  fetched_at        timestamptz default now()
-);
-
-create index if not exists idx_top_albums_score on public.cached_top_albums(score desc);
-create index if not exists idx_top_albums_genre on public.cached_top_albums(primary_genre, score desc);
-create index if not exists idx_top_albums_year on public.cached_top_albums(release_year desc);
-
-grant all on table public.cached_top_albums to service_role;
-grant select on table public.cached_top_albums to anon, authenticated;
 grant all on table public.cached_games to service_role;
 grant select on table public.cached_games to anon, authenticated;
 
@@ -271,8 +215,6 @@ alter table public.library_items   enable row level security;
 alter table public.follows         enable row level security;
 alter table public.item_likes      enable row level security;
 alter table public.friend_requests enable row level security;
--- cached_albums: NO RLS — public read for all users, server writes with service key
-
 -- Drop existing policies first (safe if they don't exist)
 drop policy if exists "users_select" on public.users;
 drop policy if exists "users_update" on public.users;
@@ -342,14 +284,17 @@ create policy "fr_delete" on public.friend_requests
 -- DONE! You should see "Success. No rows returned."
 -- 
 -- Tables created:
---   users, cached_albums, libraries, library_items,
+--   users, cached_artists, cached_games, libraries, library_items,
 --   friend_requests, follows, item_likes
 --
 -- Views created:
 --   user_friends, activity_feed, user_stats
 --
 -- Next steps:
---   1. Add LASTFM_API_KEY to your .env
+--   1. Add SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET for artist browse & discography
 --   2. Run: npm run dev
---   3. Seed albums: POST http://localhost:3001/api/albums/seed-all
+--   3. Seed artists: POST http://localhost:3001/api/artists/seed
+--
+-- If your project still has the old Last.fm browse table from a previous setup.sql:
+--   drop table if exists public.cached_albums cascade;
 -- ============================================================

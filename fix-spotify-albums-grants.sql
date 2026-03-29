@@ -1,4 +1,4 @@
--- Run once in Supabase SQL Editor if /api/albums/top/browse returns 403/500/503 or
+-- Run once in Supabase SQL Editor if browse-album routes return 403/500/503 or
 -- "permission denied for table cached_spotify_albums" (Postgres 42501).
 
 grant select on table public.cached_spotify_albums to anon, authenticated, service_role;
