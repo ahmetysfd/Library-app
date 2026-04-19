@@ -785,7 +785,17 @@ app.get('/api/artists/browse', async (req, res) => {
         .order(sort, { ascending: false })
         .range(offset, offset + limit - 1);
       const { data, error } = await query;
-      if (error) return res.status(500).json({ error: 'Database error' });
+      if (error) {
+        console.error('[artists/browse] cached_artists query failed:', error.message || error);
+        return res.json({
+          artists: [],
+          total: 0,
+          page,
+          limit,
+          sort,
+          warning: 'Artists cache is temporarily unavailable. Try seeding after DB connectivity is restored.',
+        });
+      }
       const { count: totalCount } = await supabase.from('cached_artists').select('*', { count: 'exact', head: true });
       return res.json({
         artists: data || [],
@@ -806,7 +816,17 @@ app.get('/api/artists/browse', async (req, res) => {
         .select('*')
         .order(sort, { ascending: false })
         .range(from, from + pageSize - 1);
-      if (error) return res.status(500).json({ error: 'Database error' });
+      if (error) {
+        console.error('[artists/browse] paged cached_artists query failed:', error.message || error);
+        return res.json({
+          artists: [],
+          total: 0,
+          page,
+          limit,
+          sort,
+          warning: 'Artists cache is temporarily unavailable. Try seeding after DB connectivity is restored.',
+        });
+      }
       if (!data || data.length === 0) break;
       allRows.push(...data);
       if (data.length < pageSize) break;
@@ -848,7 +868,14 @@ app.get('/api/artists/browse', async (req, res) => {
     });
   } catch (e) {
     console.error('Browse artists error:', e);
-    res.status(500).json({ error: 'Failed to fetch artists' });
+    res.json({
+      artists: [],
+      total: 0,
+      page: Math.max(1, parseInt(req.query.page) || 1),
+      limit: Math.min(200, parseInt(req.query.limit) || 50),
+      sort: req.query.sort === 'popularity' ? 'popularity' : 'followers',
+      warning: 'Artists endpoint temporarily unavailable.',
+    });
   }
 });
 
@@ -1118,12 +1145,27 @@ app.get('/api/games/browse', async (req, res) => {
     const { count: totalCount } = await countQ;
 
     const { data, error } = await query;
-    if (error) return res.status(500).json({ error: 'Database error' });
+    if (error) {
+      console.error('[games/browse] cached_games query failed:', error.message || error);
+      return res.json({
+        games: [],
+        total: 0,
+        page,
+        limit,
+        warning: 'Games cache is temporarily unavailable. Try seeding after DB connectivity is restored.',
+      });
+    }
 
     res.json({ games: data || [], total: totalCount || 0, page, limit });
   } catch (e) {
     console.error('Browse games error:', e);
-    res.status(500).json({ error: 'Failed to fetch games' });
+    res.json({
+      games: [],
+      total: 0,
+      page: Math.max(1, parseInt(req.query.page) || 1),
+      limit: Math.min(200, parseInt(req.query.limit) || 50),
+      warning: 'Games endpoint temporarily unavailable.',
+    });
   }
 });
 

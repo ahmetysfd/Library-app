@@ -271,6 +271,7 @@ body{background:var(--bg);color:var(--text);font-family:'Geist',sans-serif;font-
 
 /* ─── Insights Panel ──────────────────────────────────────────────────────── */
 .insights-panel{position:fixed;top:0;right:0;width:680px;height:100vh;background:#0d0b08;border-left:1px solid rgba(180,83,9,.12);display:flex;flex-direction:column;z-index:50;overflow:hidden;transition:transform .3s ease}
+.insights-panel.music-mode{width:680px}
 .ins-profile{display:flex;align-items:center;gap:14px;padding:20px 20px;border-bottom:1px solid rgba(180,83,9,.12);cursor:pointer;transition:background .2s}
 .ins-profile:hover{background:rgba(255,255,255,.025)}
 .ins-profile-avatar{width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:400;color:var(--gold);flex-shrink:0}
@@ -470,7 +471,7 @@ body{background:var(--bg);color:var(--text);font-family:'Geist',sans-serif;font-
 
 /* Top Artists (music sidebar) */
 .ins-artists{padding:0}
-.ins-artists-title{font-size:11px;font-weight:300;letter-spacing:.15em;text-transform:uppercase;color:rgba(217,119,6,.7);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.ins-artists-title{font-size:13px;font-weight:300;letter-spacing:.12em;text-transform:uppercase;color:rgba(245,158,11,.8);margin-bottom:20px;display:flex;align-items:center;gap:10px}
 .ins-artists-title::after{display:none}
 .ins-artist-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);animation:fadeUp .3s ease both}
 .ins-artist-item:last-child{border-bottom:none}
@@ -479,6 +480,16 @@ body{background:var(--bg);color:var(--text);font-family:'Geist',sans-serif;font-
 .ins-artist-info{flex:1;min-width:0}
 .ins-artist-name{font-size:14px;font-weight:400;color:rgba(255,255,255,.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ins-artist-count{font-size:11px;font-weight:300;color:rgba(255,255,255,.25);margin-top:1px}
+.music-artists-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.music-artist-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:7px;transition:border-color .2s;cursor:pointer}
+.music-artist-card:hover{border-color:rgba(217,119,6,.2)}
+.music-artist-photo{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;margin-bottom:6px;background:rgba(255,255,255,.03)}
+.music-artist-photo img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s}
+.music-artist-card:hover .music-artist-photo img{transform:scale(1.05)}
+.music-artist-photo::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.6),transparent 60%)}
+.music-artist-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:26px;color:var(--gold-dim);opacity:.45}
+.music-artist-name{font-size:11px;color:rgba(255,255,255,.9);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.music-artist-albums{font-size:10px;color:rgba(245,158,11,.5);margin-top:1px}
 
 /* Genre donut chart */
 .ins-genre-donut{padding:0}
@@ -514,9 +525,16 @@ body{background:var(--bg);color:var(--text);font-family:'Geist',sans-serif;font-
 .ins-fav-decade-poster:hover .ins-fav-decade-film-info{opacity:1}
 .ins-fav-decade-film-title{font-size:9px;font-weight:500;color:#eee;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ins-fav-decade-film-year{font-size:8px;color:rgba(255,255,255,.3);margin-top:1px}
+.music-fav-decade-row{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px}
+.music-fav-decade-item{display:flex;flex-direction:column;align-items:center;flex-shrink:0}
+.music-fav-decade-cover{width:58px;height:58px;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.03);box-shadow:0 8px 18px rgba(0,0,0,.18);transition:border-color .2s}
+.music-fav-decade-cover:hover{border-color:rgba(245,158,11,.3)}
+.music-fav-decade-cover img{width:100%;height:100%;object-fit:cover;display:block}
+.music-fav-decade-label{font-size:10px;color:rgba(255,255,255,.3);margin-top:6px;max-width:58px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* ─── Layout ──────────────────────────────────────────────────────────────── */
 .main-content{padding-right:680px;min-height:100vh;display:flex;flex-direction:column}
+.main-content.music-sidebar-mode{padding-right:680px}
 .main-content.sidebar-hidden{padding-right:0}
 .footer{padding:16px 48px 32px;display:flex;align-items:center;justify-content:space-between;margin-top:auto}
 .footer-label{font-size:12px;font-weight:300;letter-spacing:.15em;text-transform:uppercase;color:var(--text4)}
@@ -552,6 +570,14 @@ body{background:var(--bg);color:var(--text);font-family:'Geist',sans-serif;font-
   width:28px;height:28px;border-radius:8px;border:1px solid rgba(255,255,255,.06);
   background:rgba(255,255,255,.02);color:rgba(255,255,255,.3);cursor:pointer
 }
+.music-header-actions{display:flex;align-items:center;gap:12px}
+.music-search-shell{display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02);width:192px;transition:all .2s}
+.music-search-shell.focused{width:256px;border-color:rgba(249,115,22,.3);background:rgba(255,255,255,.04)}
+.music-search-shell svg{flex-shrink:0;color:rgba(255,255,255,.3)}
+.music-search-input{background:transparent;border:none;outline:none;color:#fff;font-family:'Geist',sans-serif;font-size:12px;width:100%}
+.music-search-input::placeholder{color:rgba(255,255,255,.25)}
+.music-save-btn{padding:8px 14px;border-radius:12px;background:#ea580c;border:none;color:#fff;font-family:'Geist',sans-serif;font-size:12px;font-weight:400;cursor:pointer;transition:background .2s}
+.music-save-btn:hover{background:#f97316}
 
 .lib-page-tabs{display:flex;gap:0;margin-bottom:0;border-bottom:none;background:rgba(255,255,255,.03);border-radius:12px;padding:4px;border:1px solid rgba(255,255,255,.04);width:fit-content}
 .lib-tab{padding:6px 16px;font-size:12px;font-weight:400;letter-spacing:.02em;text-transform:none;color:rgba(255,255,255,.35);cursor:pointer;background:none;border:none;font-family:inherit;position:relative;transition:all .2s;border-radius:8px}
@@ -571,6 +597,20 @@ body{background:var(--bg);color:var(--text);font-family:'Geist',sans-serif;font-
 .lib-grid-card-title{font-size:12px;font-weight:400;color:rgba(255,255,255,.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .2s}
 .lib-grid-card:hover .lib-grid-card-title{color:white}
 .lib-grid-card-sub{font-size:11px;font-weight:300;color:rgba(255,255,255,.25);margin-top:2px;display:flex;align-items:center;gap:6px}
+/* Music page match to latest Figma /music */
+.lib-page.music-mode{padding:0 24px 48px}
+.lib-page.music-mode .lib-page-header{margin-bottom:0;padding-top:0;padding-bottom:0;height:64px;display:flex;align-items:center}
+.lib-page.music-mode .lib-page-title{font-size:18px;font-weight:400;color:#fff;letter-spacing:-.02em}
+.lib-page.music-mode .lib-page-sortbar{margin-bottom:0;padding:16px 0;border-bottom:1px solid rgba(249,115,22,.06)}
+.lib-page.music-mode .lib-grid{padding-top:20px;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:16px}
+.lib-page.music-mode .lib-grid-card{transition:transform .3s}
+.lib-page.music-mode .lib-grid-card:hover{transform:scale(1.02)}
+.lib-page.music-mode .lib-grid-card .cover-wrap{aspect-ratio:1;border-radius:12px;border:1px solid rgba(255,255,255,.04);background:rgba(255,255,255,.03);transition:border-color .3s,box-shadow .3s}
+.lib-page.music-mode .lib-grid-card:hover .cover-wrap{border-color:rgba(249,115,22,.2);box-shadow:0 8px 24px rgba(124,45,18,.2)}
+.lib-page.music-mode .lib-grid-card-info-row{margin-top:10px;padding:0 2px}
+.lib-page.music-mode .lib-grid-card-title{font-size:12px;font-weight:400;color:rgba(255,255,255,.8)}
+.lib-page.music-mode .lib-grid-card:hover .lib-grid-card-title{color:#fff}
+.lib-page.music-mode .lib-grid-card-sub{font-size:11px;font-weight:300;color:rgba(255,255,255,.25);margin-top:2px}
 /* Rating badge — overlaid on top-right of cover */
 .lib-grid-card-rating{
   position:absolute;top:10px;right:10px;
@@ -1705,6 +1745,7 @@ function LibraryPage({ library, onBack, onAddClick, onRemoveItem, onRateItem, on
   const [watchlistFilter,setWatchlistFilter] = useState('all'); // 'all' | 'movies' | 'shows'
   const [libSearch,setLibSearch] = useState('');
   const [showSearch,setShowSearch] = useState(false);
+  const [musicSearchFocused,setMusicSearchFocused] = useState(false);
   const searchInputRef = useRef(null);
   /* Films: header search opens Add panel (TMDB) — not local library filter */
   const sortStorageKey = `shelf_sortby_${library.type}`;
@@ -1798,13 +1839,31 @@ function LibraryPage({ library, onBack, onAddClick, onRemoveItem, onRateItem, on
   const statusLabel = {collected:'Watched',in_progress:({films:'Watching',books:'Reading',music:'Listening',games:'Playing'})[library.type]||'In progress',wishlist:'Watchlist'};
 
   return (
-    <div className="lib-page">
+    <div className={`lib-page ${isMusic ? 'music-mode' : ''}`}>
       <div className="lib-page-header">
         <div className="lib-page-header-left">
           <div className="lib-page-title">{def.label}</div>
         </div>
         <div className="lib-page-header-center">
-          {isFilms ? (
+          {isMusic ? (
+            <div className="music-header-actions">
+              <div className={`music-search-shell ${musicSearchFocused ? 'focused' : ''}`}>
+                <svg viewBox="0 0 16 16" width="14" height="14" fill="none" aria-hidden="true">
+                  <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.1"/>
+                  <path d="M10.5 10.5L14 14" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
+                </svg>
+                <input
+                  className="music-search-input"
+                  value={libSearch}
+                  onChange={e=>setLibSearch(e.target.value)}
+                  onFocus={()=>setMusicSearchFocused(true)}
+                  onBlur={()=>setMusicSearchFocused(false)}
+                  placeholder="Search library..."
+                />
+              </div>
+              <button type="button" className="music-save-btn">Save</button>
+            </div>
+          ) : isFilms ? (
             <button className="lib-page-search-trigger" type="button" title="Search movies & TV to add" onClick={onAddClick}>
               <svg viewBox="0 0 16 16" width="14" height="14" fill="none" aria-hidden="true">
                 <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.1"/>
@@ -1913,7 +1972,7 @@ function LibraryPage({ library, onBack, onAddClick, onRemoveItem, onRateItem, on
             <div key={item.ext_id||item.id||i} className="lib-grid-card" style={{animationDelay:`${i*0.03}s`,animation:'fadeUp .3s ease both'}}>
               <div style={{cursor:'pointer',position:'relative'}} onClick={()=>setRatingItem(item)}>
                 <Cover src={item.cover_url} alt={item.title} w="100%" h={null} cls={library.type==='books'?'book-wrap':'film-wrap'} style={{aspectRatio:library.type==='music'?'1':'2/3',height:'auto'}}/>
-                {(()=>{
+                {!isMusic && (()=> {
                   const rating = getDisplayRating(item);
                   return (
                     <span className="lib-grid-card-rating">
@@ -1934,12 +1993,14 @@ function LibraryPage({ library, onBack, onAddClick, onRemoveItem, onRateItem, on
                     </span>
                   </div>
                 </div>
-                <CardMenu
-                  item={item}
-                  onRemove={(it)=>onRemoveItem(library,it)}
-                  onMoveToWatchlist={(it)=>onMoveStatus(library,it,it.status==='wishlist'?'collected':'wishlist')}
-                  onMarkWatching={isFilms && tab==='shows' ? (it)=>onMoveStatus(library,it,'in_progress') : undefined}
-                />
+                {!isMusic && (
+                  <CardMenu
+                    item={item}
+                    onRemove={(it)=>onRemoveItem(library,it)}
+                    onMoveToWatchlist={(it)=>onMoveStatus(library,it,it.status==='wishlist'?'collected':'wishlist')}
+                    onMarkWatching={isFilms && tab==='shows' ? (it)=>onMoveStatus(library,it,'in_progress') : undefined}
+                  />
+                )}
               </div>
             </div>
           ))}
@@ -2989,6 +3050,12 @@ const GAME_META = {
 };
 
 function normalizeNameList(arr) {
+  if (typeof arr === 'string') {
+    return arr
+      .split(',')
+      .map(entry => entry.trim())
+      .filter(Boolean);
+  }
   if (!Array.isArray(arr) || !arr.length) return [];
   return arr.map(entry => {
     if (typeof entry === 'string') return entry.trim();
@@ -3012,7 +3079,14 @@ function getItemMeta(item, libType) {
   }
   if (libType==='games') return GAME_META[item.ext_id] || {genres:['Action'],studios:['Unknown']};
   if (libType==='books') return {genres:['Fiction'],authors:[item.subtitle||'Unknown']};
-  if (libType==='music') return {genres:['Rock'],artists:[item.subtitle||'Unknown']};
+  if (libType==='music') {
+    const md = item.metadata || {};
+    const genres = normalizeNameList(md.genres || md.genre);
+    const artists = item.metadata?.kind === 'artist'
+      ? normalizeNameList(item.title)
+      : normalizeNameList(item.subtitle);
+    return { genres, artists: artists.length ? artists : ['Unknown'] };
+  }
   return {};
 }
 
@@ -3030,12 +3104,23 @@ function computeInsights(library) {
   let movieCount = 0;
   let showCount = 0;
 
+  const musicArtistGenres = {};
+  if (type === 'music') {
+    items.forEach(item => {
+      if (item.metadata?.kind !== 'artist') return;
+      const name = String(item.title || '').trim().toLowerCase();
+      const genres = normalizeNameList(item.metadata?.genres || item.metadata?.genre);
+      if (name && genres.length) musicArtistGenres[name] = genres;
+    });
+  }
+
   items.forEach(item => {
     const meta = getItemMeta(item, type);
-    (meta.genres||[]).forEach(g => { genreMap[g] = (genreMap[g]||0)+1; });
+    let itemGenres = meta.genres || [];
 
     // Count movies vs shows
     if (type==='films') {
+      itemGenres.forEach(g => { genreMap[g] = (genreMap[g]||0)+1; });
       if (item.metadata?.media_type==='tv') showCount++;
       else movieCount++;
       (meta.directors||[]).forEach(d => {
@@ -3045,10 +3130,20 @@ function computeInsights(library) {
       });
       (meta.actors||[]).forEach(a => { actorMap[a] = (actorMap[a]||0)+1; });
     } else if (type==='games') {
+      itemGenres.forEach(g => { genreMap[g] = (genreMap[g]||0)+1; });
       (meta.studios||[]).forEach(s => { personMap[s] = (personMap[s]||0)+1; });
     } else if (type==='books') {
+      itemGenres.forEach(g => { genreMap[g] = (genreMap[g]||0)+1; });
       (meta.authors||[]).forEach(a => { personMap[a] = (personMap[a]||0)+1; });
     } else if (type==='music') {
+      if (!itemGenres.length) {
+        const inferred = new Set();
+        (meta.artists || []).forEach(name => {
+          (musicArtistGenres[String(name || '').trim().toLowerCase()] || []).forEach(g => inferred.add(g));
+        });
+        itemGenres = [...inferred];
+      }
+      itemGenres.forEach(g => { genreMap[g] = (genreMap[g]||0)+1; });
       (meta.artists||[]).forEach(a => { personMap[a] = (personMap[a]||0)+1; });
     }
 
@@ -3058,7 +3153,7 @@ function computeInsights(library) {
 
   const sortDesc = obj => Object.entries(obj).sort((a,b)=>b[1]-a[1]);
   const genres = sortDesc(genreMap).slice(0,6);
-  const topPeople = sortDesc(personMap).slice(0,5);
+  const topPeople = sortDesc(personMap).slice(0, type === 'music' ? 9 : 5);
   const topActors = sortDesc(actorMap).slice(0,5);
   const avgRating = ratings.length ? (ratings.reduce((a,b)=>a+b,0)/ratings.length) : 0;
   const watched = items.filter(i=>i.status!=='wishlist').length;
@@ -3101,7 +3196,38 @@ function computeInsights(library) {
     });
   }
 
-  return { genres, topPeople, topActors, avgRating, watched, watchlist, total:items.length, histogram, ratings, directorFilms, movieCount, showCount, artistCount, favouriteDecade };
+  let musicFavouriteDecade = null;
+  if (type === 'music') {
+    const decadeMap = {};
+    items.forEach(item => {
+      if (item.metadata?.kind === 'artist') return;
+      const rawYear = String(item.metadata?.release_date || item.metadata?.year || '').slice(0, 4);
+      const year = parseInt(rawYear, 10);
+      if (!year || isNaN(year)) return;
+      const decade = Math.floor(year / 10) * 10;
+      if (!decadeMap[decade]) decadeMap[decade] = { ratings: [], items: [] };
+      const r = item.user_rating || item.metadata?.rating || 0;
+      if (r) decadeMap[decade].ratings.push(r);
+      decadeMap[decade].items.push(item);
+    });
+    let bestScore = -1;
+    Object.entries(decadeMap).forEach(([dec, data]) => {
+      if (data.items.length === 0) return;
+      const avg = data.ratings.length ? (data.ratings.reduce((a, b) => a + b, 0) / data.ratings.length) : 0;
+      const score = (avg || 1) * Math.log(data.items.length + 1);
+      if (score > bestScore) {
+        bestScore = score;
+        const topAlbums = [...data.items].sort((a, b) => {
+          const ra = a.user_rating || a.metadata?.rating || 0;
+          const rb = b.user_rating || b.metadata?.rating || 0;
+          return rb - ra;
+        }).slice(0, 6);
+        musicFavouriteDecade = { decade: dec, count: data.items.length, avgRating: avg || 0, score: bestScore, albums: topAlbums };
+      }
+    });
+  }
+
+  return { genres, topPeople, topActors, avgRating, watched, watchlist, total:items.length, histogram, ratings, directorFilms, movieCount, showCount, artistCount, favouriteDecade, musicFavouriteDecade };
 }
 
 // Get top 3 directors with their best film
@@ -3266,6 +3392,39 @@ function FavouriteDecadeSection({ data }) {
   );
 }
 
+function MusicFavouriteDecadeSection({ data }) {
+  if (!data) return null;
+  const decadeLabel = data.decade + 's';
+  return (
+    <div className="ins-fav-decade">
+      <div className="ins-fav-decade-title">
+        <svg viewBox="0 0 16 16" width="12" height="12" fill="none"><path d="M3 3.5a1 1 0 0 1 1-1h6.4a1 1 0 0 1 .8.4l1.3 1.7a1 1 0 0 1 .2.6V12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V3.5Z" stroke="#d97706" strokeWidth="1.2"/><path d="M6 6.2v3.6l3-1.8-3-1.8Z" fill="#d97706"/></svg>
+        Favourite Decade
+      </div>
+      <div className="ins-fav-decade-header">
+        <div className="ins-fav-decade-label">{decadeLabel}</div>
+        <div className="ins-fav-decade-stats">
+          <span>{data.count} {data.count===1?'album':'albums'}</span>
+          <span>·</span>
+          <span>avg {data.avgRating.toFixed(1)}</span>
+        </div>
+      </div>
+      <div className="music-fav-decade-row">
+        {data.albums.map((album, i) => (
+          <div key={album.ext_id||i} className="music-fav-decade-item" style={{animationDelay:`${i*0.06}s`}}>
+            <div className="music-fav-decade-cover">
+              {album.cover_url
+                ? <img src={album.cover_url} alt={album.title} onError={e=>{e.target.style.visibility='hidden';}}/>
+                : <span className="ins-fav-decade-no-poster">{album.title?.slice(0,2)}</span>}
+            </div>
+            <div className="music-fav-decade-label">{album.title}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function InsightsSidebar({ library, libraries, user, onLogout, onSignIn }) {
   const insights = library ? computeInsights(library) : null;
   const topDirs = (library && library.type==='films' && insights) ? getTopDirectors(library, insights) : [];
@@ -3286,6 +3445,29 @@ function InsightsSidebar({ library, libraries, user, onLogout, onSignIn }) {
       .map(([name, count]) => ({ name, count }));
   },[library, insights]);
 
+  const musicArtistCards = useMemo(()=>{
+    if (!library || library.type !== 'music' || !insights) return [];
+    const artistItems = (library.items || []).filter(i => i.metadata?.kind === 'artist');
+    const albumItems = (library.items || []).filter(i => i.metadata?.kind !== 'artist');
+    return insights.topPeople
+      .filter(([name]) => name !== 'Unknown' && name.trim())
+      .slice(0, 9)
+      .map(([name, count]) => {
+        const artistItem = artistItems.find(i => (i.title || '').toLowerCase() === name.toLowerCase());
+        const albumItem = albumItems.find(i =>
+          String(i.subtitle || '')
+            .split(',')
+            .map(x => x.trim().toLowerCase())
+            .includes(name.toLowerCase())
+        );
+        return {
+          name,
+          count,
+          photo: artistItem?.cover_url || albumItem?.cover_url || '',
+        };
+      });
+  }, [library, insights]);
+
   // Home overview stats
   const totalItems = libraries.reduce((s,l)=>s+(l.items||[]).length, 0);
   const totalLibs = libraries.length;
@@ -3294,7 +3476,7 @@ function InsightsSidebar({ library, libraries, user, onLogout, onSignIn }) {
   const genreData = insights ? insights.genres.slice(0,6) : [];
 
   return (
-    <div className="insights-panel">
+    <div className={`insights-panel ${library?.type==='music' ? 'music-mode' : ''}`}>
       {user ? (
         <div className="ins-profile" onClick={onLogout} title="Sign out">
           <div className="ins-profile-avatar">{(user.username||user.display_name||'U').slice(0,2).toUpperCase()}</div>
@@ -3386,21 +3568,28 @@ function InsightsSidebar({ library, libraries, user, onLogout, onSignIn }) {
             )}
 
             {/* ── Top Artists (music only) ── */}
-            {library.type==='music' && topArtists.length > 0 && (
+            {library.type==='music' && musicArtistCards.length > 0 && (
               <div className="ins-artists">
                 <div className="ins-artists-title">
+                  <svg viewBox="0 0 16 16" width="12" height="12" fill="none"><path d="M8 1l2 4 4.5.7-3.3 3.2.8 4.5L8 11.2 3.9 13.4l.8-4.5L1.5 5.7 6 5z" fill="#d97706"/></svg>
                   Top Artists
                 </div>
-                {topArtists.map((a, i) => (
-                  <div key={a.name} className="ins-artist-item" style={{animationDelay:`${i*0.05}s`}}>
-                    <div className="ins-artist-rank">{i+1}</div>
-                    <div className="ins-artist-avatar">{a.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
-                    <div className="ins-artist-info">
-                      <div className="ins-artist-name">{a.name}</div>
-                      <div className="ins-artist-count">{a.count} {a.count===1?'album':'albums'}</div>
+                <div className="music-artists-grid">
+                  {musicArtistCards.map((a, i) => (
+                    <div key={a.name} className="music-artist-card" style={{animationDelay:`${i*0.05}s`}}>
+                      <div className="music-artist-photo">
+                        {a.photo
+                          ? <img src={a.photo} alt={a.name} onError={e=>{e.target.style.display='none'; if (e.target.nextSibling) e.target.nextSibling.style.display='flex';}}/>
+                          : null}
+                        <div className="music-artist-placeholder" style={{display:a.photo?'none':'flex'}}>
+                          {a.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}
+                        </div>
+                      </div>
+                      <div className="music-artist-name">{a.name}</div>
+                      <div className="music-artist-albums">{a.count} {a.count===1?'album':'albums'}</div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             )}
 
@@ -3409,6 +3598,7 @@ function InsightsSidebar({ library, libraries, user, onLogout, onSignIn }) {
 
             {/* ── Favourite Decade ── */}
             {library.type==='films' && insights.favouriteDecade && <FavouriteDecadeSection data={insights.favouriteDecade}/>}
+            {library.type==='music' && insights.musicFavouriteDecade && <MusicFavouriteDecadeSection data={insights.musicFavouriteDecade}/>}
           </div>
         )}
       </div>
@@ -4006,7 +4196,7 @@ function App() {
         </div>
       </div>
 
-      <div className="main-content">
+      <div className={`main-content ${currentPage && currentLib?.type==='music' ? 'music-sidebar-mode' : ''}`}>
         <div className="topbar">
           <div style={{display:'flex',alignItems:'center',gap:0}}>
             <button className="hamburger-btn" onClick={()=>setNavOpen(!navOpen)} title="Menu">
