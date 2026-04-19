@@ -1735,13 +1735,14 @@ function RatingModal({ item, onRate, onClose, onDelete }) {
 }
 
 /* ─── Library Detail Page ─────────────────────────────────────────────────── */
-function LibraryPage({ library, onBack, onAddClick, onRemoveItem, onRateItem, onMoveStatus }) {
+function LibraryPage({ library, onBack, onAddClick, onRemoveItem, onRateItem, onMoveStatus, onAddToLibrary }) {
   const def = LIBRARY_TYPES.find(t=>t.key===library.type);
   const isFilms = library.type === 'films';
   const [tab,setTab] = useState(isFilms ? 'movies' : 'all');
   const [viewMode,setViewMode] = useState('grid');
   const [sortBy,setSortBy] = useState('user_rating');
   const [ratingItem,setRatingItem] = useState(null);
+  const [selectedArtist,setSelectedArtist] = useState(null);
   const [watchlistFilter,setWatchlistFilter] = useState('all'); // 'all' | 'movies' | 'shows'
   const [libSearch,setLibSearch] = useState('');
   const [showSearch,setShowSearch] = useState(false);
@@ -1837,6 +1838,19 @@ function LibraryPage({ library, onBack, onAddClick, onRemoveItem, onRateItem, on
   },[library.items,tab,sortBy,watchlistFilter,libSearch,isFilms,isMusic]);
 
   const statusLabel = {collected:'Watched',in_progress:({films:'Watching',books:'Reading',music:'Listening',games:'Playing'})[library.type]||'In progress',wishlist:'Watchlist'};
+
+  const openArtistAlbums = (item) => {
+    if (!isMusicArtistItem(item)) return;
+    const ext = String(item.ext_id || '');
+    const inferredId = ext.startsWith('artist-') ? ext.slice('artist-'.length) : '';
+    const spotifyArtistId = item.metadata?.spotify_artist_id || inferredId;
+    setSelectedArtist({
+      id: spotifyArtistId || undefined,
+      spotify_id: spotifyArtistId || undefined,
+      name: item.title || item.subtitle || 'Unknown',
+      image_url: item.cover_url || '',
+    });
+  };
 
   return (
     <div className={`lib-page ${isMusic ? 'music-mode' : ''}`}>
@@ -1970,7 +1984,16 @@ function LibraryPage({ library, onBack, onAddClick, onRemoveItem, onRateItem, on
         <div className="lib-grid">
           {items.map((item,i)=>(
             <div key={item.ext_id||item.id||i} className="lib-grid-card" style={{animationDelay:`${i*0.03}s`,animation:'fadeUp .3s ease both'}}>
-              <div style={{cursor:'pointer',position:'relative'}} onClick={()=>setRatingItem(item)}>
+              <div
+                style={{cursor:'pointer',position:'relative'}}
+                onClick={()=>{
+                  if (isMusic && tab==='artists' && isMusicArtistItem(item)) {
+                    openArtistAlbums(item);
+                    return;
+                  }
+                  setRatingItem(item);
+                }}
+              >
                 <Cover src={item.cover_url} alt={item.title} w="100%" h={null} cls={library.type==='books'?'book-wrap':'film-wrap'} style={{aspectRatio:library.type==='music'?'1':'2/3',height:'auto'}}/>
                 {!isMusic && (()=> {
                   const rating = getDisplayRating(item);
@@ -2009,7 +2032,16 @@ function LibraryPage({ library, onBack, onAddClick, onRemoveItem, onRateItem, on
         <div className="lib-list">
           {items.map((item,i)=>(
             <div key={item.ext_id||item.id||i} className="lib-list-item" style={{animationDelay:`${i*0.02}s`,animation:'fadeUp .3s ease both'}} onClick={()=>setRatingItem(item)}>
-              <div className="lib-list-thumb">
+              <div
+                className="lib-list-thumb"
+                onClick={(e)=>{
+                  if (isMusic && tab==='artists' && isMusicArtistItem(item)) {
+                    e.stopPropagation();
+                    openArtistAlbums(item);
+                  }
+                }}
+                style={{cursor:isMusic && tab==='artists' && isMusicArtistItem(item)?'pointer':'default'}}
+              >
                 <img src={item.cover_url} alt={item.title} onError={e=>{e.target.style.visibility='hidden'}}/>
               </div>
               <div className="lib-list-info">
@@ -2092,6 +2124,15 @@ function LibraryPage({ library, onBack, onAddClick, onRemoveItem, onRateItem, on
           onRate={(item, val)=>onRateItem(library, item, val)}
           onDelete={(item)=>{ onRemoveItem(library, item); }}
           onClose={()=>setRatingItem(null)}
+        />
+      )}
+      {selectedArtist && (
+        <ArtistAlbumsModal
+          key={(selectedArtist.id || selectedArtist.spotify_id || '') + '-' + (selectedArtist.name || '')}
+          artist={selectedArtist}
+          onClose={() => setSelectedArtist(null)}
+          onAddToLibrary={onAddToLibrary}
+          libraryItems={library.items || []}
         />
       )}
     </div>
@@ -3425,8 +3466,9 @@ function MusicFavouriteDecadeSection({ data }) {
   );
 }
 
-function InsightsSidebar({ library, libraries, user, onLogout, onSignIn }) {
+function InsightsSidebar({ library, libraries, user, onLogout, onSignIn, onAddToLibrary, libraryItems }) {
   const insights = library ? computeInsights(library) : null;
+  const [selectedArtist, setSelectedArtist] = useState(null);
   const topDirs = (library && library.type==='films' && insights) ? getTopDirectors(library, insights) : [];
 
   const watchingShows = useMemo(() => {
@@ -3464,6 +3506,7 @@ function InsightsSidebar({ library, libraries, user, onLogout, onSignIn }) {
           name,
           count,
           photo: artistItem?.cover_url || albumItem?.cover_url || '',
+          spotifyArtistId: artistItem?.metadata?.spotify_artist_id || (String(artistItem?.ext_id || '').startsWith('artist-') ? String(artistItem.ext_id).slice('artist-'.length) : ''),
         };
       });
   }, [library, insights]);
@@ -3476,6 +3519,7 @@ function InsightsSidebar({ library, libraries, user, onLogout, onSignIn }) {
   const genreData = insights ? insights.genres.slice(0,6) : [];
 
   return (
+    <>
     <div className={`insights-panel ${library?.type==='music' ? 'music-mode' : ''}`}>
       {user ? (
         <div className="ins-profile" onClick={onLogout} title="Sign out">
@@ -3577,7 +3621,19 @@ function InsightsSidebar({ library, libraries, user, onLogout, onSignIn }) {
                 <div className="music-artists-grid">
                   {musicArtistCards.map((a, i) => (
                     <div key={a.name} className="music-artist-card" style={{animationDelay:`${i*0.05}s`}}>
-                      <div className="music-artist-photo">
+                      <div
+                        className="music-artist-photo"
+                        onClick={()=>{
+                          const artistId = a.spotifyArtistId || '';
+                          setSelectedArtist({
+                            id: artistId || undefined,
+                            spotify_id: artistId || undefined,
+                            name: a.name,
+                            image_url: a.photo || '',
+                          });
+                        }}
+                        style={{cursor:'pointer'}}
+                      >
                         {a.photo
                           ? <img src={a.photo} alt={a.name} onError={e=>{e.target.style.display='none'; if (e.target.nextSibling) e.target.nextSibling.style.display='flex';}}/>
                           : null}
@@ -3603,6 +3659,16 @@ function InsightsSidebar({ library, libraries, user, onLogout, onSignIn }) {
         )}
       </div>
     </div>
+    {selectedArtist && (
+      <ArtistAlbumsModal
+        key={(selectedArtist.id || selectedArtist.spotify_id || '') + '-' + (selectedArtist.name || '')}
+        artist={selectedArtist}
+        onClose={() => setSelectedArtist(null)}
+        onAddToLibrary={onAddToLibrary}
+        libraryItems={libraryItems || []}
+      />
+    )}
+    </>
   );
 }
 
@@ -4135,7 +4201,15 @@ function App() {
 
   return (
     <>
-      <InsightsSidebar library={currentLib} libraries={libraries} user={user} onLogout={handleLogout} onSignIn={()=>setShowAuth(true)}/>
+      <InsightsSidebar
+        library={currentLib}
+        libraries={libraries}
+        user={user}
+        onLogout={handleLogout}
+        onSignIn={()=>setShowAuth(true)}
+        onAddToLibrary={(item)=>handleAddItem('music', item)}
+        libraryItems={musicLibItems}
+      />
 
       {/* Left nav drawer */}
       <div className={`nav-overlay ${navOpen?'open':''}`} onClick={()=>setNavOpen(false)}/>
@@ -4263,6 +4337,7 @@ function App() {
             onRemoveItem={handleRemoveItem}
             onRateItem={handleRateItem}
             onMoveStatus={handleMoveStatus}
+            onAddToLibrary={(item)=>handleAddItem('music', item)}
           />
         ) : (
           <>
