@@ -270,7 +270,7 @@ body{background:var(--bg);color:var(--text);font-family:'Geist',sans-serif;font-
 @keyframes toast-in{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
 
 /* ─── Insights Panel ──────────────────────────────────────────────────────── */
-.insights-panel{position:fixed;top:0;right:0;width:340px;height:100vh;background:#0d0b08;border-left:1px solid rgba(180,83,9,.12);display:flex;flex-direction:column;z-index:50;overflow:hidden;transition:transform .3s ease}
+.insights-panel{position:fixed;top:0;right:0;width:680px;height:100vh;background:#0d0b08;border-left:1px solid rgba(180,83,9,.12);display:flex;flex-direction:column;z-index:50;overflow:hidden;transition:transform .3s ease}
 .ins-profile{display:flex;align-items:center;gap:14px;padding:20px 20px;border-bottom:1px solid rgba(180,83,9,.12);cursor:pointer;transition:background .2s}
 .ins-profile:hover{background:rgba(255,255,255,.025)}
 .ins-profile-avatar{width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:400;color:var(--gold);flex-shrink:0}
@@ -443,14 +443,14 @@ body{background:var(--bg);color:var(--text);font-family:'Geist',sans-serif;font-
 .ins-watching-title{font-size:11px;font-weight:300;letter-spacing:.15em;text-transform:uppercase;color:rgba(217,119,6,.7);margin-bottom:12px;display:flex;align-items:center;gap:8px}
 .ins-watching-title svg{width:12px;height:12px;color:#d97706;opacity:1;flex-shrink:0}
 .ins-watching-list{display:flex;flex-direction:column;gap:10px}
-.ins-watch-card{display:flex;gap:14px;align-items:center;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05);border-radius:12px;padding:14px;animation:fadeUp .35s ease both;transition:border-color .2s}
-.ins-watch-card:hover{border-color:rgba(255,255,255,.1)}
-.ins-watch-poster{width:46px;height:62px;flex-shrink:0;border-radius:8px;overflow:hidden;background:rgba(255,255,255,.03)}
+.ins-watch-card{display:flex;gap:16px;align-items:center;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:16px;animation:fadeUp .35s ease both;transition:border-color .2s,box-shadow .2s}
+.ins-watch-card:hover{border-color:rgba(245,158,11,.18);box-shadow:0 10px 24px rgba(0,0,0,.24)}
+.ins-watch-poster{width:60px;height:85px;flex-shrink:0;border-radius:12px;overflow:hidden;background:rgba(255,255,255,.03);box-shadow:0 8px 18px rgba(0,0,0,.24)}
 .ins-watch-poster img{width:100%;height:100%;object-fit:cover;display:block}
 .ins-watch-body{min-width:0;flex:1}
-.ins-watch-name{font-size:14px;font-weight:400;color:white;line-height:1.25}
-.ins-watch-meta{font-size:11px;font-weight:300;color:rgba(255,255,255,.25);margin-top:2px}
-.ins-watch-badge{font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:#f59e0b;margin-top:4px}
+.ins-watch-name{font-size:16px;font-weight:400;color:rgba(255,255,255,.95);line-height:1.2}
+.ins-watch-meta{font-size:13px;font-weight:300;color:rgba(255,255,255,.32);margin-top:4px}
+.ins-watch-badge{font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:#f59e0b;margin-top:8px}
 
 /* Directors — 2×2 grid of cards */
 .ins-directors{padding:0}
@@ -516,7 +516,7 @@ body{background:var(--bg);color:var(--text);font-family:'Geist',sans-serif;font-
 .ins-fav-decade-film-year{font-size:8px;color:rgba(255,255,255,.3);margin-top:1px}
 
 /* ─── Layout ──────────────────────────────────────────────────────────────── */
-.main-content{padding-right:340px;min-height:100vh;display:flex;flex-direction:column}
+.main-content{padding-right:680px;min-height:100vh;display:flex;flex-direction:column}
 .main-content.sidebar-hidden{padding-right:0}
 .footer{padding:16px 48px 32px;display:flex;align-items:center;justify-content:space-between;margin-top:auto}
 .footer-label{font-size:12px;font-weight:300;letter-spacing:.15em;text-transform:uppercase;color:var(--text4)}
@@ -711,12 +711,12 @@ body{background:var(--bg);color:var(--text);font-family:'Geist',sans-serif;font-
 
 .topbar-avatar-mobile{display:none}
 /* ─── Responsive ──────────────────────────────────────────────────────────── */
-@media(max-width:1400px){
-  .insights-panel{width:320px}
-  .main-content{padding-right:320px}
+@media(max-width:1600px){
+  .insights-panel{width:560px}
+  .main-content{padding-right:560px}
   .main-content.sidebar-hidden{padding-right:0}
 }
-@media(max-width:1000px){
+@media(max-width:1200px){
   .insights-panel{display:none}
   .main-content,.main-content.sidebar-hidden{padding-right:0}
   .topbar-avatar-mobile{display:flex}
@@ -3095,7 +3095,7 @@ function computeInsights(library) {
           const ra = a.user_rating || a.metadata?.vote_average || 0;
           const rb = b.user_rating || b.metadata?.vote_average || 0;
           return rb - ra;
-        }).slice(0, 7);
+        }).slice(0, 10);
         favouriteDecade = { decade: dec, count: data.items.length, avgRating: avg, score: bestScore, films: topFilms };
       }
     });
