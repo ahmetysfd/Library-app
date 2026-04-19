@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__figma__get_design_context",
+      "Bash(node server.js)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8000/)",
+      "Bash(node -e \"const fs=require\\('fs'\\); const html=fs.readFileSync\\('index.html','utf8'\\); const styleStart=html.indexOf\\('<style>'\\); const styleEnd=html.indexOf\\('</style>'\\); console.log\\('Style block found:',styleStart,styleEnd\\); const scriptStart=html.indexOf\\('<script'\\); const scriptEnd=html.lastIndexOf\\('</script>'\\); console.log\\('Script block found:',scriptStart,scriptEnd\\); console.log\\('File length:',html.length\\)\")",
+      "Bash(npx serve *)",
+      "Bash(node -e ' *)"
+    ]
+  }
+}
