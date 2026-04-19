@@ -271,6 +271,12 @@ body{background:var(--bg);color:var(--text);font-family:'Geist',sans-serif;font-
 
 /* ─── Insights Panel ──────────────────────────────────────────────────────── */
 .insights-panel{position:fixed;top:0;right:0;width:672px;height:100vh;background:var(--bg2);border-left:0.5px solid var(--border);display:flex;flex-direction:column;z-index:50;overflow:hidden;transition:transform .3s ease}
+.ins-profile{display:flex;align-items:center;gap:14px;padding:20px 28px;border-bottom:0.5px solid var(--border);cursor:pointer;transition:background .2s}
+.ins-profile:hover{background:var(--bg3)}
+.ins-profile-avatar{width:52px;height:52px;border-radius:50%;background:var(--bg3);border:1px solid var(--gold-dim);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:400;color:var(--gold);flex-shrink:0}
+.ins-profile-info{display:flex;flex-direction:column;gap:2px}
+.ins-profile-name{font-size:15px;letter-spacing:.06em;color:var(--text1);font-weight:500}
+.ins-profile-sub{font-size:11px;color:var(--text3);letter-spacing:.04em}
 .insights-scroll{flex:1;overflow-y:auto;padding:0 0 32px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
 .insights-scroll::-webkit-scrollbar{width:4px}.insights-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 
@@ -491,6 +497,23 @@ body{background:var(--bg);color:var(--text);font-family:'Geist',sans-serif;font-
 .ins-donut-legend-count{font-size:13px;font-weight:400;color:var(--text3);flex-shrink:0;min-width:16px;text-align:right}
 .ins-donut-legend-item.active .ins-donut-legend-count{color:var(--gold);font-size:14px}
 
+/* Favourite Decade */
+.ins-fav-decade{padding:24px 28px 28px;border-top:0.5px solid var(--border2)}
+.ins-fav-decade-title{font-size:11px;font-weight:300;letter-spacing:.2em;text-transform:uppercase;color:var(--text3);margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.ins-fav-decade-title::after{content:'';flex:1;height:0.5px;background:var(--border2)}
+.ins-fav-decade-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:18px}
+.ins-fav-decade-label{font-family:'Cormorant Garamond',serif;font-size:42px;font-weight:400;color:var(--gold);line-height:1}
+.ins-fav-decade-stats{display:flex;gap:6px;font-size:12px;color:var(--text3);letter-spacing:.04em}
+.ins-fav-decade-films{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:10px}
+.ins-fav-decade-poster{position:relative;border-radius:4px;overflow:hidden;border:0.5px solid var(--border);background:var(--bg3);aspect-ratio:2/3;animation:fadeUp .4s ease both;cursor:default;transition:border-color .2s,transform .2s}
+.ins-fav-decade-poster:hover{border-color:var(--gold-dim);transform:scale(1.04)}
+.ins-fav-decade-poster img{width:100%;height:100%;object-fit:cover;display:block}
+.ins-fav-decade-no-poster{display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-family:'Cormorant Garamond',serif;font-size:16px;color:var(--gold);opacity:.5}
+.ins-fav-decade-film-info{position:absolute;bottom:0;left:0;right:0;padding:20px 6px 6px;background:linear-gradient(transparent,rgba(0,0,0,.85));opacity:0;transition:opacity .2s}
+.ins-fav-decade-poster:hover .ins-fav-decade-film-info{opacity:1}
+.ins-fav-decade-film-title{font-size:10px;font-weight:500;color:#eee;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ins-fav-decade-film-year{font-size:9px;color:var(--text3);margin-top:2px}
+
 /* ─── Layout ──────────────────────────────────────────────────────────────── */
 .main-content{padding-right:672px;min-height:100vh;display:flex;flex-direction:column}
 .main-content.sidebar-hidden{padding-right:0}
@@ -684,6 +707,7 @@ body{background:var(--bg);color:var(--text);font-family:'Geist',sans-serif;font-
 .lib-list-delete{background:none;border:none;color:var(--text4);cursor:pointer;padding:6px;transition:color .2s;font-size:16px;line-height:1}
 .lib-list-delete:hover{color:var(--danger)}
 
+.topbar-avatar-mobile{display:none}
 /* ─── Responsive ──────────────────────────────────────────────────────────── */
 @media(max-width:1400px){
   .insights-panel{width:560px}
@@ -693,6 +717,7 @@ body{background:var(--bg);color:var(--text);font-family:'Geist',sans-serif;font-
 @media(max-width:1200px){
   .insights-panel{display:none}
   .main-content,.main-content.sidebar-hidden{padding-right:0}
+  .topbar-avatar-mobile{display:flex}
 }
 @media(max-width:768px){
   .topbar,.shelves,.lib-page,.footer{padding-left:20px;padding-right:20px}
@@ -3043,7 +3068,38 @@ function computeInsights(library) {
 
   const artistCount = Object.keys(personMap).filter(k=>k!=='Unknown').length;
 
-  return { genres, topPeople, topActors, avgRating, watched, watchlist, total:items.length, histogram, ratings, directorFilms, movieCount, showCount, artistCount };
+  // Favourite decade (films only, movies not TV)
+  let favouriteDecade = null;
+  if (type === 'films') {
+    const decadeMap = {};
+    items.forEach(item => {
+      if (item.metadata?.media_type === 'tv') return;
+      const year = parseInt(item.subtitle);
+      if (!year || isNaN(year)) return;
+      const decade = Math.floor(year / 10) * 10;
+      if (!decadeMap[decade]) decadeMap[decade] = { ratings: [], items: [] };
+      const r = item.user_rating || item.metadata?.vote_average || 0;
+      if (r) decadeMap[decade].ratings.push(r);
+      decadeMap[decade].items.push(item);
+    });
+    let bestScore = -1;
+    Object.entries(decadeMap).forEach(([dec, data]) => {
+      if (data.ratings.length === 0) return;
+      const avg = data.ratings.reduce((a, b) => a + b, 0) / data.ratings.length;
+      const score = avg * Math.log(data.items.length + 1);
+      if (score > bestScore) {
+        bestScore = score;
+        const topFilms = [...data.items].sort((a, b) => {
+          const ra = a.user_rating || a.metadata?.vote_average || 0;
+          const rb = b.user_rating || b.metadata?.vote_average || 0;
+          return rb - ra;
+        }).slice(0, 7);
+        favouriteDecade = { decade: dec, count: data.items.length, avgRating: avg, score: bestScore, films: topFilms };
+      }
+    });
+  }
+
+  return { genres, topPeople, topActors, avgRating, watched, watchlist, total:items.length, histogram, ratings, directorFilms, movieCount, showCount, artistCount, favouriteDecade };
 }
 
 // Get top 3 directors with their best film
@@ -3172,7 +3228,42 @@ function GenreDonutSection({ data }) {
   );
 }
 
-function InsightsSidebar({ library, libraries }) {
+function FavouriteDecadeSection({ data }) {
+  if (!data) return null;
+  const decadeLabel = data.decade + 's';
+  return (
+    <div className="ins-fav-decade">
+      <div className="ins-fav-decade-title">
+        <svg viewBox="0 0 16 16" width="14" height="14" fill="none" style={{opacity:.5}}><path d="M8 1.5l1.5 3.2 3.5.5-2.5 2.5.6 3.5L8 9.5l-3.1 1.7.6-3.5L3 5.2l3.5-.5z" fill="var(--gold)"/></svg>
+        Favourite Decade
+      </div>
+      <div className="ins-fav-decade-header">
+        <div className="ins-fav-decade-label">{decadeLabel}</div>
+        <div className="ins-fav-decade-stats">
+          <span>{data.count} {data.count===1?'movie':'movies'}</span>
+          <span>·</span>
+          <span>avg {data.avgRating.toFixed(1)}</span>
+        </div>
+      </div>
+      <div className="ins-fav-decade-films">
+        {data.films.map((film, i) => (
+          <div key={film.ext_id||i} className="ins-fav-decade-poster" style={{animationDelay:`${i*0.06}s`}}>
+            {film.cover_url
+              ? <img src={film.cover_url} alt={film.title} onError={e=>{e.target.style.visibility='hidden'}}/>
+              : <span className="ins-fav-decade-no-poster">{film.title?.slice(0,2)}</span>
+            }
+            <div className="ins-fav-decade-film-info">
+              <div className="ins-fav-decade-film-title">{film.title}</div>
+              <div className="ins-fav-decade-film-year">{film.subtitle}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function InsightsSidebar({ library, libraries, user, onLogout, onSignIn }) {
   const insights = library ? computeInsights(library) : null;
   const topDirs = (library && library.type==='films' && insights) ? getTopDirectors(library, insights) : [];
 
@@ -3201,6 +3292,19 @@ function InsightsSidebar({ library, libraries }) {
 
   return (
     <div className="insights-panel">
+      {user ? (
+        <div className="ins-profile" onClick={onLogout} title="Sign out">
+          <div className="ins-profile-avatar">{(user.username||user.display_name||'U').slice(0,2).toUpperCase()}</div>
+          <div className="ins-profile-info">
+            <div className="ins-profile-name">{user.username||user.display_name}</div>
+            <div className="ins-profile-sub">Sign out</div>
+          </div>
+        </div>
+      ) : (
+        <div className="ins-profile">
+          <button className="btn-signin" onClick={onSignIn} style={{width:'100%'}}>Sign in</button>
+        </div>
+      )}
       <div className="insights-scroll">
         {!library ? (
           <>
@@ -3312,6 +3416,9 @@ function InsightsSidebar({ library, libraries }) {
 
             {/* ── Genre Distribution — interactive donut ── */}
             {genreData.length > 0 && <GenreDonutSection data={genreData}/>}
+
+            {/* ── Favourite Decade ── */}
+            {library.type==='films' && insights.favouriteDecade && <FavouriteDecadeSection data={insights.favouriteDecade}/>}
           </>
         )}
       </div>
@@ -3848,7 +3955,7 @@ function App() {
 
   return (
     <>
-      <InsightsSidebar library={currentLib} libraries={libraries}/>
+      <InsightsSidebar library={currentLib} libraries={libraries} user={user} onLogout={handleLogout} onSignIn={()=>setShowAuth(true)}/>
 
       {/* Left nav drawer */}
       <div className={`nav-overlay ${navOpen?'open':''}`} onClick={()=>setNavOpen(false)}/>
@@ -3925,15 +4032,12 @@ function App() {
                 <span className="steam-label" style={{fontSize:12}}>Steam</span>
               </button>
             )}
-            {user
-              ? (
-                <div className="avatar-chip" onClick={handleLogout} title="Sign out">
-                  <div className="avatar-circle">{(user.username||user.display_name||'U').slice(0,2).toUpperCase()}</div>
-                  <span className="avatar-name">{user.username||user.display_name}</span>
-                </div>
-              )
-              : <button className="btn-signin" onClick={()=>setShowAuth(true)}>Sign in</button>
-            }
+            {user ? (
+              <div className="avatar-chip topbar-avatar-mobile" onClick={handleLogout} title="Sign out">
+                <div className="avatar-circle">{(user.username||user.display_name||'U').slice(0,2).toUpperCase()}</div>
+                <span className="avatar-name">{user.username||user.display_name}</span>
+              </div>
+            ) : <button className="btn-signin" onClick={()=>setShowAuth(true)}>Sign in</button>}
           </div>
         </div>
 
